@@ -43,6 +43,8 @@ Após a autenticação, o Business Manager da empresa informou que não há apli
 
 O login da conta Meta existente foi concluído e abriu a Meta Business Suite da empresa. A área de aplicativos informa que não há aplicativo associado ou acessível à conta comercial. O fluxo de integração oficial continua dependente de uma aplicação de tecnologias sociais da Meta com a Instagram API habilitada e atribuída à empresa.
 
+Em nova verificação realizada em 27/08/2026, o painel **Apps** da empresa continuou exibindo “Nenhum aplicativo encontrado” e orientou a solicitar acesso a um administrador da conta comercial. A conta autenticada pode acessar a Business Suite, mas ainda não possui aplicativo social elegível para a integração.
+
 ## Implementação preparada no Social Studio
 
 O Social Studio agora possui as tabelas `instagram_connections`, `content_media`, `publication_jobs` e `publication_attempts`. O token da conta é protegido no servidor por criptografia autenticada; ele nunca é enviado ao navegador, exibido na interface ou salvo em logs funcionais.
@@ -56,3 +58,7 @@ Antes da confirmação final, cada versão congelada precisa passar por um teste
 ## Variáveis seguras ainda necessárias
 
 Depois que a aplicação de tecnologias sociais estiver acessível, cadastre exclusivamente no gerenciador seguro do projeto `META_INSTAGRAM_APP_ID` e `META_INSTAGRAM_APP_SECRET`. Configure no painel da Meta a URL de retorno pública exatamente como `https://<domínio-publicado>/api/instagram/oauth/callback`, habilite Instagram Login e solicite `instagram_business_basic` e `instagram_business_content_publish`. Enquanto o aplicativo estiver em desenvolvimento, vincule a conta profissional como conta de teste/usuário com acesso permitido.
+
+## Domínio de produção
+
+O Social Studio está publicado em `https://depaulasoc-5hpbpodx.manus.space`. A rota `https://depaulasoc-5hpbpodx.manus.space/instagram` respondeu corretamente e permanece protegida por autenticação. Quando o aplicativo Meta estiver disponível, a URL de retorno a cadastrar será `https://depaulasoc-5hpbpodx.manus.space/api/instagram/oauth/callback`.

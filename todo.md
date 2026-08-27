@@ -35,6 +35,9 @@
 - [ ] Validar a integração em modo seguro e salvar checkpoint com instruções de conexão da conta profissional.
 - [ ] Recuperar a sessão de autenticação da Meta no navegador e concluir a configuração de acesso ao Instagram.
 - [ ] Obter ou receber de administrador o acesso a uma aplicação de tecnologias sociais da Meta vinculável à empresa.
+- [ ] Verificar o papel administrativo da conta Meta autenticada e criar ou vincular a aplicação social elegível, se o painel permitir.
+- [ ] Registrar a URL de retorno de produção do Social Studio e validar a configuração de OAuth antes da conexão da conta.
+- [x] Exibir na central do Instagram o roteiro de configuração Meta com a URL pública de retorno e os controles de ativação.
 - [x] Implementar teste não público de ponta a ponta, com container temporário da Meta, auditoria e bloqueio de agendamento até aprovação.
 - [x] Criar testes automatizados para o teste não público, incluindo sucesso, falha Meta e bloqueio de agendamento sem teste aprovado.
 - [x] Adicionar prévia visual real da mídia e legenda na central do Instagram antes da confirmação.
