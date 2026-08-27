@@ -47,3 +47,4 @@
 - [x] Organizar as artes importadas por área, tema, formato e sequência de carrossel na biblioteca interna.
 - [x] Exibir a galeria de artes no painel Biblioteca e validar o acesso em desktop e mobile.
 - [x] Garantir o encerramento limpo do importador de artes após a execução idempotente em lote.
+- [ ] Sincronizar a versão atual do De Paula Social Studio com o repositório GitHub s2corporativo/studio.
