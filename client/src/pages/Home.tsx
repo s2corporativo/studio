@@ -1,292 +1,106 @@
 import DashboardLayout from "@/components/DashboardLayout";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { cn } from "@/lib/utils";
-import { calculatePrePublicationScore } from "@shared/prePublication";
-import {
-  ArrowUpRight,
-  BookMarked,
-  CalendarClock,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  ClipboardCheck,
-  FileText,
-  Link as LinkIcon,
-  Loader2,
-  LockKeyhole,
-  Plus,
-  ShieldCheck,
-  Sparkles,
-  XCircle,
-} from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useLocation } from "wouter";
-import { ContentDeskV4, KnowledgeDeskV2, StrategyBoardV2 } from "./EditorialTools";
 import AssetLibrary from "./AssetLibrary";
-import InstagramDesk from "./InstagramDesk";
+import ArtworkStudio from "./ArtworkStudio";
+import AutomationCenter from "./AutomationCenter";
+import { ContentDeskV4, StrategyBoardV2 } from "./EditorialTools";
+import KnowledgePanel from "./KnowledgePanel";
 import MarketingRoadmap from "./MarketingRoadmap";
+import NetworkHub from "./NetworkHub";
+import NewsRadar from "./NewsRadar";
+import SaasOverview from "./SaasOverview";
+import { BrandPanel, CalendarPanel, SourcesPanel } from "./StudioPanels";
 
-type Format = "post" | "carousel" | "reel" | "story";
-type Status = "draft" | "review" | "approved" | "scheduled" | "published" | "rejected";
-
-const areaMeta: Record<string, { code: string; tint: string }> = {
-  "Consumidor": { code: "CON", tint: "bg-amber-200/8 text-amber-200" },
-  "Trabalhista": { code: "TRB", tint: "bg-sky-200/8 text-sky-200" },
-  "Trabalhista Empresarial": { code: "EMP", tint: "bg-emerald-200/8 text-emerald-200" },
-  "Tributário": { code: "TRI", tint: "bg-orange-200/8 text-orange-200" },
-  "Ambiental": { code: "AMB", tint: "bg-green-200/8 text-green-200" },
-  "Penal": { code: "PEN", tint: "bg-red-200/8 text-red-200" },
-  "Juizado Especial": { code: "JEC", tint: "bg-violet-200/8 text-violet-200" },
-  "LGPD": { code: "LGPD", tint: "bg-cyan-200/8 text-cyan-200" },
-  "Compliance": { code: "CMP", tint: "bg-lime-200/8 text-lime-200" },
-};
-
-const statusMeta: Record<Status, { label: string; className: string }> = {
-  draft: { label: "Rascunho", className: "bg-white/7 text-stone-300" },
-  review: { label: "Em revisão", className: "bg-amber-300/12 text-amber-200" },
-  approved: { label: "Aprovado", className: "bg-emerald-300/12 text-emerald-200" },
-  scheduled: { label: "Agendado", className: "bg-sky-300/12 text-sky-200" },
-  published: { label: "Publicado", className: "bg-violet-300/12 text-violet-200" },
-  rejected: { label: "Ajustes", className: "bg-red-300/12 text-red-200" },
-};
-
-const monthLabel = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" });
-
-function localInputValue(value?: Date | string | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
-}
-
-function formatDate(value?: Date | string | null, withTime = false) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit", month: "short", ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
-  }).format(new Date(value));
-}
-
-function StatusPill({ status }: { status: Status }) {
-  const item = statusMeta[status];
-  return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold tracking-wide", item.className)}>{item.label}</span>;
-}
-
-function AreaMonogram({ area, large = false }: { area: string; large?: boolean }) {
-  const item = areaMeta[area] ?? { code: "DP", tint: "bg-[#c99550]/10 text-[#e7c58f]" };
-  return <div className={cn("flex shrink-0 items-center justify-center rounded-full border border-current/15 font-serif font-semibold tracking-wide", item.tint, large ? "h-12 w-12 text-base" : "h-8 w-8 text-[10px]")}>{item.code}</div>;
-}
-
-function EmptyState({ title, text }: { title: string; text: string }) {
-  return <div className="editorial-panel flex min-h-52 flex-col items-center justify-center rounded-2xl p-8 text-center"><div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full border border-[#c99550]/30 bg-[#c99550]/10 text-[#dcb579]"><FileText className="h-5 w-5" /></div><h3 className="font-serif text-xl">{title}</h3><p className="mt-1 max-w-sm text-xs leading-5 text-[#9eaaa3]">{text}</p></div>;
+function mutationError(error: { message: string }) {
+  toast.error(error.message || "Não foi possível concluir a operação.");
 }
 
 export default function Home() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
+  const utils = trpc.useUtils();
+  const dataQuery = trpc.socialStudio.data.useQuery(undefined, { enabled: Boolean(user), staleTime: 30_000 });
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const studio = trpc.socialStudio.data.useQuery(undefined, { refetchOnWindowFocus: false });
-  const utils = trpc.useUtils();
-  const generate = trpc.socialStudio.generateDraft.useMutation({ onSuccess: (post) => { setSelectedPostId(post.id); setLocation("/conteudos"); utils.socialStudio.data.invalidate(); setNotice("Rascunho criado e pronto para revisão editorial."); }, onError: (error) => setNotice(error.message) });
-  const updatePost = trpc.socialStudio.updatePost.useMutation({ onSuccess: () => { utils.socialStudio.data.invalidate(); setNotice("Conteúdo atualizado."); }, onError: (error) => setNotice(error.message) });
-  const sendToReview = trpc.socialStudio.sendToReview.useMutation({ onSuccess: () => { utils.socialStudio.data.invalidate(); setNotice("Conteúdo enviado para revisão jurídica."); }, onError: (error) => setNotice(error.message) });
-  const decide = trpc.socialStudio.decide.useMutation({ onSuccess: () => { utils.socialStudio.data.invalidate(); setNotice("Decisão registrada no histórico editorial."); }, onError: (error) => setNotice(error.message) });
-  const schedule = trpc.socialStudio.schedule.useMutation({ onSuccess: () => { utils.socialStudio.data.invalidate(); setNotice("Conteúdo agendado no calendário interno."); }, onError: (error) => setNotice(error.message) });
-  const updateBrand = trpc.socialStudio.updateBrand.useMutation({ onSuccess: () => { utils.socialStudio.data.invalidate(); setNotice("DNA da marca atualizado."); }, onError: (error) => setNotice(error.message) });
-  const addSource = trpc.socialStudio.addSource.useMutation({ onSuccess: () => { utils.socialStudio.data.invalidate(); setNotice("Fonte adicionada à central."); }, onError: (error) => setNotice(error.message) });
-  const addKnowledge = trpc.socialStudio.addKnowledge.useMutation({ onSuccess: () => { utils.socialStudio.data.invalidate(); setNotice("Material institucional adicionado."); }, onError: (error) => setNotice(error.message) });
-  const uploadKnowledge = trpc.socialStudio.uploadKnowledge.useMutation({ onSuccess: () => { utils.socialStudio.data.invalidate(); setNotice("Documento institucional armazenado na base."); }, onError: (error) => setNotice(error.message) });
 
-  const data = studio.data;
-  const posts = data?.posts ?? [];
-  const topics = data?.topics ?? [];
-  const activePage = location === "/" ? "overview" : location.slice(1);
-  const selectedPost = posts.find((post) => post.id === selectedPostId) ?? posts[0] ?? null;
-  const counts = useMemo(() => posts.reduce<Record<Status, number>>((acc, post) => { acc[post.status as Status] += 1; return acc; }, { draft: 0, review: 0, approved: 0, scheduled: 0, published: 0, rejected: 0 }), [posts]);
+  const data = dataQuery.data;
+  useEffect(() => {
+    if (!selectedTopicId && data?.topics?.length) setSelectedTopicId(data.topics[0].id);
+    if (!selectedPostId && data?.posts?.length) setSelectedPostId(data.posts[0].id);
+  }, [data?.topics?.length, data?.posts?.length, selectedTopicId, selectedPostId]);
 
-  useEffect(() => { if (notice) { const timer = window.setTimeout(() => setNotice(null), 4200); return () => window.clearTimeout(timer); } }, [notice]);
+  const refresh = async () => { await utils.socialStudio.data.invalidate(); };
+  const generate = trpc.socialStudio.generateDraft.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Rascunho criado."); }, onError: mutationError });
+  const updatePost = trpc.socialStudio.updatePost.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Conteúdo salvo."); }, onError: mutationError });
+  const sendReview = trpc.socialStudio.sendToReview.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Enviado para revisão."); }, onError: mutationError });
+  const decide = trpc.socialStudio.decide.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Decisão registrada."); }, onError: mutationError });
+  const schedule = trpc.socialStudio.schedule.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Data registrada no calendário."); }, onError: mutationError });
+  const addSource = trpc.socialStudio.addSource.useMutation({ onSuccess: async () => { await refresh(); toast.success("Fonte cadastrada."); }, onError: mutationError });
+  const addKnowledge = trpc.socialStudio.addKnowledge.useMutation({ onSuccess: async () => { await refresh(); toast.success("Referência cadastrada."); }, onError: mutationError });
+  const uploadKnowledge = trpc.socialStudio.uploadKnowledge.useMutation({ onSuccess: async () => { await refresh(); toast.success("Documento armazenado."); }, onError: mutationError });
+  const updateBrand = trpc.socialStudio.updateBrand.useMutation({ onSuccess: async () => { await refresh(); toast.success("Brand OS atualizado."); }, onError: mutationError });
 
-  if (studio.isLoading) {
-    return <DashboardLayout><div className="studio-grain min-h-[calc(100vh-2rem)] rounded-3xl p-10"><div className="flex items-center gap-3 text-[#d9b16f]"><Loader2 className="h-5 w-5 animate-spin" />Preparando a sala editorial...</div></div></DashboardLayout>;
+  const selectedPost = useMemo(() => data?.posts?.find(post => post.id === selectedPostId) ?? null, [data?.posts, selectedPostId]);
+  const counts = useMemo(() => {
+    const result = { draft: 0, review: 0, approved: 0, scheduled: 0, published: 0, rejected: 0 } as Record<string, number>;
+    for (const post of data?.posts ?? []) result[post.status] = (result[post.status] ?? 0) + 1;
+    return result;
+  }, [data?.posts]);
+
+  let content: React.ReactNode;
+  if (!user || dataQuery.isLoading) {
+    content = <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-violet-300" /></div>;
+  } else if (dataQuery.isError || !data) {
+    content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? "Não foi possível carregar o Social OS."}</div>;
+  } else if (location === "/radar") {
+    content = <NewsRadar />;
+  } else if (location === "/automacao") {
+    content = <AutomationCenter settings={data.automation} />;
+  } else if (location === "/redes" || location === "/instagram") {
+    content = <NetworkHub />;
+  } else if (location === "/biblioteca") {
+    content = <AssetLibrary assets={data.assets as any} />;
+  } else if (location === "/conhecimento") {
+    content = <KnowledgePanel materials={data.knowledge} onAdd={(value: any) => addKnowledge.mutate(value)} adding={addKnowledge.isPending} onUpload={(value: any) => uploadKnowledge.mutate(value)} uploading={uploadKnowledge.isPending} />;
+  } else if (location === "/fontes") {
+    content = <SourcesPanel sources={data.sources} onAdd={(value: any) => addSource.mutate(value)} adding={addSource.isPending} />;
+  } else if (location === "/marca") {
+    content = <BrandPanel brand={data.brand} onSave={(value: any) => updateBrand.mutate(value)} saving={updateBrand.isPending} />;
+  } else if (location === "/roadmap") {
+    content = <MarketingRoadmap />;
+  } else if (location === "/planejamento") {
+    content = <StrategyBoardV2 topics={data.topics} onUseTopic={(id: number) => { setSelectedTopicId(id); setLocation("/conteudos"); }} />;
+  } else if (location === "/calendario") {
+    content = <CalendarPanel posts={data.posts} />;
+  } else if (location === "/conteudos") {
+    content = <div className="space-y-6">
+      <ContentDeskV4
+        topics={data.topics}
+        sources={data.sources}
+        brand={data.brand}
+        posts={data.posts}
+        selectedPost={selectedPost}
+        selectedTopicId={selectedTopicId}
+        onSelectTopic={(id: number) => setSelectedTopicId(id)}
+        onSelectPost={(id: number) => setSelectedPostId(id)}
+        onGenerate={(value: any) => generate.mutate(value)}
+        generating={generate.isPending}
+        onUpdate={(value: any) => updatePost.mutate(value)}
+        saving={updatePost.isPending}
+        onSendReview={(id: number) => sendReview.mutate({ id })}
+        onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes?: string) => decide.mutate({ id, decision, notes: notes || undefined })}
+        onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })}
+      />
+      {selectedPost && <ArtworkStudio post={selectedPost} />}
+    </div>;
+  } else {
+    content = <SaasOverview data={data} counts={counts} onCreate={() => setLocation("/conteudos")} onOpenCalendar={() => setLocation("/calendario")} onOpenRadar={() => setLocation("/radar")} onOpenAutomation={() => setLocation("/automacao")} onOpenNetworks={() => setLocation("/redes")} />;
   }
 
-  if (studio.isError || !data) {
-    return <DashboardLayout><div className="studio-grain min-h-[calc(100vh-2rem)] rounded-3xl p-10"><EmptyState title="A sala editorial não abriu" text="Verifique a conexão com o banco de dados e tente atualizar a página." /></div></DashboardLayout>;
-  }
-
-  return (
-    <DashboardLayout>
-      <div className="studio-grain min-h-[calc(100vh-2rem)] overflow-hidden rounded-[1.65rem] border border-[#d6ad6c]/10 bg-[#0d1916]">
-        <header className="flex flex-col gap-5 border-b border-[#dfbf8d]/12 px-5 py-6 sm:px-8 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="tiny-kicker">Ateliê editorial jurídico</p>
-            <h1 className="mt-2 font-serif text-3xl leading-none text-[#f1e8d9] sm:text-4xl">{pageTitle(activePage)}</h1>
-            <p className="mt-2 max-w-2xl text-xs leading-5 text-[#a7b0aa]">Planejamento, precisão jurídica e publicação responsável em uma única sala de controle.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block"><p className="text-xs font-semibold text-[#e9e1d4]">{user?.name ?? "Equipe editorial"}</p><p className="mt-1 text-[10px] uppercase tracking-[0.15em] text-[#b08e58]">controle jurídico ativo</p></div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#c99550]/30 bg-[#c99550]/10 font-serif text-lg text-[#edca92]">DT</div>
-          </div>
-        </header>
-
-        {notice && <div className="mx-5 mt-5 flex items-center gap-2 rounded-xl border border-[#d7ad69]/25 bg-[#c99550]/10 px-4 py-3 text-xs text-[#f0d8b0] sm:mx-8"><ShieldCheck className="h-4 w-4" />{notice}</div>}
-
-        <main className="px-5 py-6 sm:px-8 sm:py-8">
-          {activePage === "overview" && <Overview data={data} counts={counts} onCreate={() => setLocation("/conteudos")} onOpenCalendar={() => setLocation("/calendario")} />}
-          {activePage === "conteudos" && <ContentDeskV4 topics={topics} sources={data.sources} brand={data.brand} posts={posts} selectedPost={selectedPost} selectedTopicId={selectedTopicId} onSelectTopic={setSelectedTopicId} onSelectPost={setSelectedPostId} onGenerate={generate.mutate} generating={generate.isPending} onUpdate={updatePost.mutate} saving={updatePost.isPending} onSendReview={(id: number) => sendToReview.mutate({ id })} onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes: string) => decide.mutate({ id, decision, notes })} onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })} />}
-          {activePage === "calendario" && <EditorialCalendar posts={posts} onSelectPost={(id) => { setSelectedPostId(id); setLocation("/conteudos"); }} />}
-          {activePage === "biblioteca" && <div className="space-y-7"><TopicLibraryV2 topics={topics} onUseTopic={(id) => { setSelectedTopicId(id); setLocation("/conteudos"); }} /><AssetLibrary assets={data.assets} /></div>}
-          {activePage === "fontes" && <SourceCenter sources={data.sources} adding={addSource.isPending} onAdd={addSource.mutate} />}
-          {activePage === "planejamento" && <StrategyBoardV2 topics={topics} onUseTopic={(id) => { setSelectedTopicId(id); setLocation("/conteudos"); }} />}
-          {activePage === "conhecimento" && <KnowledgeDeskV2 materials={data.knowledge} adding={addKnowledge.isPending} onAdd={addKnowledge.mutate} uploading={uploadKnowledge.isPending} onUpload={uploadKnowledge.mutate} />}
-          {activePage === "instagram" && <InstagramDesk />}
-          {activePage === "roadmap" && <MarketingRoadmap />}
-          {activePage === "marca" && <BrandDeskV2 brand={data.brand} saving={updateBrand.isPending} onSave={updateBrand.mutate} />}
-        </main>
-      </div>
-    </DashboardLayout>
-  );
-}
-
-function pageTitle(page: string) {
-  return ({ overview: "Sala de controle", conteudos: "Mesa de conteúdo", calendario: "Calendário editorial", biblioteca: "Biblioteca de temas e artes", fontes: "Central de fontes", planejamento: "Planejamento inteligente", conhecimento: "Base de conhecimento", instagram: "Central do Instagram", roadmap: "Marketing OS", marca: "DNA da marca" } as Record<string, string>)[page] ?? "De Paula Social Studio";
-}
-
-function Overview({ data, counts, onCreate, onOpenCalendar }: { data: any; counts: Record<Status, number>; onCreate: () => void; onOpenCalendar: () => void }) {
-  const cards = [
-    { label: "Rascunhos", value: counts.draft, note: "aguardam construção", tone: "text-stone-200" },
-    { label: "Em revisão", value: counts.review, note: "controle jurídico", tone: "text-amber-200" },
-    { label: "Aprovados", value: counts.approved, note: "prontos para agenda", tone: "text-emerald-200" },
-    { label: "Agendados", value: counts.scheduled, note: "calendário interno", tone: "text-sky-200" },
-  ];
-  const upcoming = data.posts.filter((post: any) => post.scheduledAt).sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()).slice(0, 4);
-  return <div className="space-y-7">
-    <TopTopicsLedger topics={data.topTopics ?? []} />
-    <section className="grid gap-4 md:grid-cols-4">{cards.map((card) => <div key={card.label} className="editorial-panel rounded-2xl p-4"><p className="tiny-kicker">{card.label}</p><div className="mt-5 flex items-end justify-between"><span className={cn("font-serif text-4xl leading-none", card.tone)}>{card.value}</span><span className="text-[10px] text-[#8e9a92]">{card.note}</span></div></div>)}</section>
-    <section className="grid gap-7 xl:grid-cols-[1.4fr_0.9fr]">
-      <div className="editorial-panel rounded-2xl p-5 sm:p-6"><div className="flex items-start justify-between gap-4"><div><p className="tiny-kicker">Ritmo da semana</p><h2 className="mt-2 font-serif text-2xl">Da pauta à aprovação</h2></div><Button onClick={onCreate} className="bg-[#c99550] text-[#13221f] hover:bg-[#ddad65]"><Plus className="mr-2 h-4 w-4" />Novo rascunho</Button></div><div className="mt-7 grid grid-cols-7 gap-2">{["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"].map((day, index) => <div key={day} className={cn("min-h-28 rounded-xl border p-3", index === 2 ? "border-[#c99550]/50 bg-[#c99550]/8" : "border-white/6 bg-black/10")}><p className="text-[9px] font-bold tracking-widest text-[#8f9c94]">{day}</p><p className="mt-1 font-serif text-lg">{25 + index}</p>{index === 2 && <div className="mt-5 h-1.5 rounded-full bg-[#c99550]" />}</div>)}</div><div className="mt-5 flex items-center justify-between border-t border-white/7 pt-4 text-xs text-[#9da79f]"><span>Organize os conteúdos pela decisão que precisam receber.</span><button onClick={onOpenCalendar} className="inline-flex items-center gap-1 font-semibold text-[#e6bd7d] hover:text-[#f6d9a5]">Abrir calendário <ArrowUpRight className="h-3.5 w-3.5" /></button></div></div>
-      <div className="editorial-panel rounded-2xl p-5 sm:p-6"><p className="tiny-kicker">Guarda jurídica</p><h2 className="mt-2 font-serif text-2xl">Publicar só com lastro</h2><div className="mt-6 space-y-4">{[["Fonte jurídica", "Vincule lei, página oficial ou nota técnica."], ["Data de revisão", "Defina quando o conteúdo precisa ser reavaliado."], ["Aprovação humana", "Bloqueie qualquer item sem responsável."]].map(([title, text], index) => <div className="flex gap-3" key={title}><div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#c99550]/30 bg-[#c99550]/8 font-serif text-xs text-[#e1b979]">0{index + 1}</div><div><p className="text-xs font-semibold text-[#e9e2d7]">{title}</p><p className="mt-1 text-[11px] leading-4 text-[#99a49d]">{text}</p></div></div>)}</div></div>
-    </section>
-    <section className="grid gap-7 xl:grid-cols-[1fr_1fr]">
-      <div className="editorial-panel rounded-2xl p-5 sm:p-6"><div className="flex items-center justify-between"><div><p className="tiny-kicker">Próximas decisões</p><h2 className="mt-2 font-serif text-2xl">Fila editorial</h2></div><ClipboardCheck className="h-5 w-5 text-[#c99550]" /></div>{data.posts.length === 0 ? <p className="mt-7 text-sm text-[#9ba59e]">Crie o primeiro rascunho para iniciar a fila.</p> : <div className="mt-6 space-y-3">{data.posts.slice(0, 4).map((post: any) => <div key={post.id} className="flex items-center gap-3 rounded-xl border border-white/7 bg-black/10 p-3"><AreaMonogram area={post.area} /><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#eee6d9]">{post.title}</p><p className="mt-1 text-[10px] text-[#95a099]">{post.area} · revisão {formatDate(post.reviewDueAt)}</p></div><StatusPill status={post.status as Status} /></div>)}</div>}</div>
-      <div className="editorial-panel rounded-2xl p-5 sm:p-6"><div className="flex items-center justify-between"><div><p className="tiny-kicker">Assuntos do escritório</p><h2 className="mt-2 font-serif text-2xl">Biblioteca inicial</h2></div><BookMarked className="h-5 w-5 text-[#c99550]" /></div><div className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-2">{data.topics.slice(0, 6).map((topic: any) => <div key={topic.id} className="flex items-center gap-3 rounded-xl border border-white/7 bg-black/10 p-3"><AreaMonogram area={topic.area} /><div className="min-w-0"><p className="truncate text-xs font-semibold text-[#efe7db]">{topic.area}</p><p className="mt-1 truncate text-[10px] text-[#91a099]">{topic.suggestedFormat}</p></div></div>)}</div></div>
-    </section>
-    {upcoming.length > 0 && <section className="editorial-panel rounded-2xl p-5"><p className="tiny-kicker">Próximos agendamentos internos</p><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">{upcoming.map((post: any) => <div key={post.id} className="rounded-xl border border-white/7 bg-black/10 p-3"><p className="font-serif text-lg text-[#e8c080]">{formatDate(post.scheduledAt, true)}</p><p className="mt-2 text-xs font-semibold text-[#eee6db]">{post.title}</p></div>)}</div></section>}
-  </div>;
-}
-
-function ContentDesk({ topics, posts, selectedPost, selectedTopicId, onSelectTopic, onSelectPost, onGenerate, generating, onUpdate, saving, onSendReview, onDecide, onSchedule }: any) {
-  const selectedTopic = topics.find((topic: any) => topic.id === selectedTopicId) ?? topics[0];
-  const [form, setForm] = useState({ topicId: selectedTopic?.id ?? null, area: selectedTopic?.area ?? "Trabalhista Empresarial", topic: selectedTopic?.title ?? "", audience: selectedTopic?.audience ?? "Empresas e gestores", format: (selectedTopic?.suggestedFormat ?? "carousel") as Format, objective: "Gerar autoridade e iniciar conversas qualificadas.", legalSource: selectedTopic?.sourceUrl ?? "" });
-  const [editor, setEditor] = useState<any>(null);
-  const [scheduleValue, setScheduleValue] = useState("");
-  const [decisionNotes, setDecisionNotes] = useState("");
-
-  useEffect(() => { if (selectedTopic) setForm((current) => ({ ...current, topicId: selectedTopic.id, area: selectedTopic.area, topic: selectedTopic.title, audience: selectedTopic.audience, format: selectedTopic.suggestedFormat, legalSource: selectedTopic.sourceUrl ?? "" })); }, [selectedTopic?.id]);
-  useEffect(() => { if (selectedPost) { setEditor({ ...selectedPost, reviewDueAt: localInputValue(selectedPost.reviewDueAt), mediaUrl: selectedPost.mediaUrl ?? "" }); setScheduleValue(localInputValue(selectedPost.scheduledAt)); setDecisionNotes(""); } }, [selectedPost?.id]);
-
-  const createDraft = (event: FormEvent) => { event.preventDefault(); onGenerate({ ...form, legalSource: form.legalSource || null }); };
-  const saveEditor = () => { if (!editor) return; onUpdate({ id: editor.id, title: editor.title, hook: editor.hook || null, caption: editor.caption || null, cta: editor.cta || null, hashtags: editor.hashtags || null, legalSource: editor.legalSource || null, reviewDueAt: editor.reviewDueAt ? new Date(editor.reviewDueAt) : null, mediaUrl: editor.mediaUrl || null }); };
-
-  return <div className="grid gap-7 xl:grid-cols-[0.82fr_1.18fr]">
-    <div className="space-y-7"><section className="editorial-panel rounded-2xl p-5 sm:p-6"><div className="flex items-center justify-between"><div><p className="tiny-kicker">Nova pauta</p><h2 className="mt-2 font-serif text-2xl">Crie com direção</h2></div><Sparkles className="h-5 w-5 text-[#c99550]" /></div><form className="mt-6 space-y-4" onSubmit={createDraft}><Field label="Tema da biblioteca"><select className="editorial-input" value={form.topicId ?? ""} onChange={(e) => { const id = Number(e.target.value); onSelectTopic(id); }}>{topics.map((topic: any) => <option className="bg-[#12221e]" value={topic.id} key={topic.id}>{topic.area} — {topic.title}</option>)}</select></Field><Field label="Público"><input className="editorial-input" value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })} /></Field><div className="grid grid-cols-2 gap-3"><Field label="Formato"><select className="editorial-input" value={form.format} onChange={(e) => setForm({ ...form, format: e.target.value as Format })}>{["post", "carousel", "reel", "story"].map((format) => <option className="bg-[#12221e]" key={format}>{format}</option>)}</select></Field><Field label="Objetivo"><select className="editorial-input" value={form.objective} onChange={(e) => setForm({ ...form, objective: e.target.value })}><option className="bg-[#12221e]">Gerar autoridade e iniciar conversas qualificadas.</option><option className="bg-[#12221e]">Educar e estimular salvamentos.</option><option className="bg-[#12221e]">Orientar prevenção de riscos.</option></select></Field></div><Field label="Fonte jurídica"><input className="editorial-input" value={form.legalSource} onChange={(e) => setForm({ ...form, legalSource: e.target.value })} placeholder="https://..." /></Field><Button type="submit" disabled={generating} className="w-full bg-[#c99550] text-[#13221f] hover:bg-[#ddb06b]">{generating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Gerando rascunho...</> : <><Sparkles className="mr-2 h-4 w-4" />Gerar rascunho estruturado</>}</Button><p className="text-[10px] leading-4 text-[#8f9d95]">A geração cria um rascunho. A aprovação jurídica continua obrigatória.</p></form></section><section className="editorial-panel rounded-2xl p-5"><div className="flex items-center justify-between"><p className="tiny-kicker">Conteúdos recentes</p><span className="text-xs text-[#a7b0aa]">{posts.length}</span></div><div className="mt-4 space-y-2">{posts.length === 0 ? <p className="text-xs text-[#9aa59e]">Aguardando primeiro rascunho.</p> : posts.map((post: any) => <button type="button" onClick={() => onSelectPost(post.id)} key={post.id} className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors", selectedPost?.id === post.id ? "border-[#c99550]/45 bg-[#c99550]/8" : "border-white/7 bg-black/10 hover:bg-white/4")}><AreaMonogram area={post.area} /><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#ede5d9]">{post.title}</p><p className="mt-1 text-[10px] text-[#90a098]">{post.format} · atualizado {formatDate(post.updatedAt)}</p></div><StatusPill status={post.status as Status} /></button>)}</div></section></div>
-    <div>{!editor ? <EmptyState title="Selecione um conteúdo" text="Use a biblioteca ou crie um rascunho para abrir o editor e a central de preparação." /> : <section className="editorial-panel rounded-2xl"><div className="border-b border-white/8 p-5 sm:p-6"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div className="flex items-center gap-3"><AreaMonogram area={editor.area} large /><div><p className="tiny-kicker">{editor.area}</p><h2 className="mt-1 font-serif text-2xl leading-none">{editor.format === "carousel" ? "Carrossel informativo" : "Publicação institucional"}</h2></div></div><StatusPill status={editor.status as Status} /></div></div><div className="grid gap-6 p-5 sm:p-6 2xl:grid-cols-[1.1fr_0.9fr]"><div className="space-y-4"><Field label="Título"><input className="editorial-input font-serif text-lg" value={editor.title} onChange={(e) => setEditor({ ...editor, title: e.target.value })} /></Field><Field label="Gancho"><textarea className="editorial-input min-h-20 resize-y" value={editor.hook ?? ""} onChange={(e) => setEditor({ ...editor, hook: e.target.value })} /></Field><Field label="Legenda"><textarea className="editorial-input min-h-60 resize-y leading-6" value={editor.caption ?? ""} onChange={(e) => setEditor({ ...editor, caption: e.target.value })} /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="CTA"><textarea className="editorial-input min-h-20 resize-y" value={editor.cta ?? ""} onChange={(e) => setEditor({ ...editor, cta: e.target.value })} /></Field><Field label="Hashtags"><textarea className="editorial-input min-h-20 resize-y" value={editor.hashtags ?? ""} onChange={(e) => setEditor({ ...editor, hashtags: e.target.value })} /></Field></div><Button onClick={saveEditor} disabled={saving} className="bg-[#c99550] text-[#13221f] hover:bg-[#ddb06b]">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar alterações</Button></div>
-      <aside className="space-y-4"><div className="rounded-2xl border border-[#c99550]/20 bg-[#0a1613]/70 p-4"><p className="tiny-kicker">Central de preparação</p><h3 className="mt-2 font-serif text-xl">Checklist de saída</h3><div className="mt-4 space-y-3 text-xs">{[[!!editor.legalSource, "Fonte jurídica vinculada"], [!!editor.reviewDueAt, "Data de revisão definida"], [!!editor.approvalOwnerName || editor.status !== "approved", "Responsável pela aprovação"], [!!editor.mediaUrl, "Link público da mídia"]].map(([done, label]) => <div className="flex items-center gap-2" key={String(label)}>{done ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <div className="h-4 w-4 rounded-full border border-[#d4ac6f]/45" />}<span className={done ? "text-[#e7dfd3]" : "text-[#98a49d]"}>{label}</span></div>)}</div></div><Field label="Fonte jurídica"><input className="editorial-input" value={editor.legalSource ?? ""} onChange={(e) => setEditor({ ...editor, legalSource: e.target.value })} placeholder="Lei, ato ou URL oficial" /></Field><Field label="Revisar novamente em"><input type="datetime-local" className="editorial-input" value={editor.reviewDueAt ?? ""} onChange={(e) => setEditor({ ...editor, reviewDueAt: e.target.value })} /></Field><Field label="Link público da arte/mídia"><div className="relative"><LinkIcon className="absolute left-3 top-3 h-4 w-4 text-[#ba955e]" /><input className="editorial-input pl-9" value={editor.mediaUrl ?? ""} onChange={(e) => setEditor({ ...editor, mediaUrl: e.target.value })} placeholder="https://..." /></div></Field><div className="rounded-xl border border-white/7 bg-black/15 p-3"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#d2aa69]">Fluxo editorial</p><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => onSendReview(editor.id)} disabled={editor.status !== "draft" && editor.status !== "rejected"} variant="outline" className="border-[#d9b46f]/35 bg-transparent text-[#e9cf9f] hover:bg-[#c99550]/10">Enviar à revisão</Button><Button size="sm" onClick={() => onDecide(editor.id, "approved", decisionNotes)} disabled={editor.status !== "review"} className="bg-emerald-300/15 text-emerald-100 hover:bg-emerald-300/25">Aprovar</Button><Button size="sm" onClick={() => onDecide(editor.id, "changes_requested", decisionNotes)} disabled={editor.status !== "review"} className="bg-red-300/12 text-red-100 hover:bg-red-300/20">Solicitar ajuste</Button></div><textarea className="editorial-input mt-3 min-h-20 resize-y text-[11px]" value={decisionNotes} onChange={(e) => setDecisionNotes(e.target.value)} placeholder="Observação de revisão (opcional)" /></div><div className="rounded-xl border border-sky-300/15 bg-sky-300/5 p-3"><div className="flex items-center gap-2 text-sky-100"><CalendarClock className="h-4 w-4" /><p className="text-xs font-semibold">Agendamento interno</p></div><input type="datetime-local" className="editorial-input mt-3" value={scheduleValue} onChange={(e) => setScheduleValue(e.target.value)} /><Button onClick={() => scheduleValue && onSchedule(editor.id, new Date(scheduleValue))} disabled={editor.status !== "approved" || !scheduleValue} size="sm" className="mt-3 w-full bg-sky-300/15 text-sky-100 hover:bg-sky-300/25">Agendar no calendário</Button><p className="mt-2 text-[10px] leading-4 text-[#8fa7ae]">A versão enxuta organiza a agenda e prepara a publicação. O envio ao Instagram permanece sob confirmação humana.</p></div></aside></div></section>}</div>
-  </div>;
-}
-
-function EditorialCalendar({ posts, onSelectPost }: { posts: any[]; onSelectPost: (id: number) => void }) {
-  const [cursor, setCursor] = useState(() => new Date());
-  const [mode, setMode] = useState<"month" | "week">("month");
-  const days = useMemo(() => {
-    const start = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
-    const pad = (start.getDay() + 6) % 7;
-    const count = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
-    return Array.from({ length: pad + count }, (_, index) => index < pad ? null : new Date(cursor.getFullYear(), cursor.getMonth(), index - pad + 1));
-  }, [cursor]);
-  const weekDays = useMemo(() => {
-    const date = new Date(cursor);
-    const shift = (date.getDay() + 6) % 7;
-    date.setDate(date.getDate() - shift);
-    return Array.from({ length: 7 }, (_, index) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + index));
-  }, [cursor]);
-  const byDay = (day: Date) => posts.filter((post) => {
-    const value = post.scheduledAt ?? post.reviewDueAt ?? post.createdAt;
-    const date = new Date(value);
-    return date.getFullYear() === day.getFullYear() && date.getMonth() === day.getMonth() && date.getDate() === day.getDate();
-  });
-  const move = (direction: -1 | 1) => {
-    if (mode === "week") setCursor(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + (direction * 7)));
-    else setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + direction, 1));
-  };
-  const heading = mode === "week" ? `${formatDate(weekDays[0])} — ${formatDate(weekDays[6])}` : monthLabel.format(cursor);
-  return <div className="space-y-6">
-    <div className="editorial-panel flex flex-col gap-4 rounded-2xl p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="tiny-kicker">Agenda com contexto</p><h2 className="mt-2 font-serif text-3xl capitalize">{heading}</h2></div><div className="flex flex-wrap items-center gap-2"><div className="mr-1 flex rounded-lg border border-white/10 bg-black/10 p-1"><button onClick={() => setMode("month")} className={cn("rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", mode === "month" ? "bg-[#c99550]/18 text-[#f1cd98]" : "text-[#91a098]")}>Mês</button><button onClick={() => setMode("week")} className={cn("rounded-md px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider", mode === "week" ? "bg-[#c99550]/18 text-[#f1cd98]" : "text-[#91a098]")}>Semana</button></div><Button variant="outline" size="icon" onClick={() => move(-1)} className="border-[#d9b46f]/30 bg-transparent text-[#e8cf9e]"><ChevronLeft className="h-4 w-4" /></Button><Button variant="outline" size="sm" onClick={() => setCursor(new Date())} className="border-[#d9b46f]/30 bg-transparent text-[#e8cf9e]">Hoje</Button><Button variant="outline" size="icon" onClick={() => move(1)} className="border-[#d9b46f]/30 bg-transparent text-[#e8cf9e]"><ChevronRight className="h-4 w-4" /></Button></div></div>
-    {mode === "month" ? <div className="editorial-panel overflow-hidden rounded-2xl"><div className="grid grid-cols-7 border-b border-white/8 bg-black/15">{["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((day) => <div key={day} className="px-2 py-3 text-center text-[10px] font-bold uppercase tracking-[0.14em] text-[#af956e]">{day}</div>)}</div><div className="grid grid-cols-7">{days.map((day, index) => <div key={day?.toISOString() ?? `blank-${index}`} className="min-h-32 border-b border-r border-white/6 p-2 sm:min-h-36">{day && <><p className={cn("font-serif text-base", day.toDateString() === new Date().toDateString() ? "text-[#e7bd7d]" : "text-[#d6ddd6]")}>{day.getDate()}</p><div className="mt-2 space-y-1.5">{byDay(day).slice(0, 2).map((post) => <button key={post.id} onClick={() => onSelectPost(post.id)} className="w-full truncate rounded-md border border-white/7 bg-white/4 px-2 py-1 text-left text-[9px] text-[#e6ded2] hover:bg-[#c99550]/12"><span className="mr-1 text-[#cf9c55]">{areaMeta[post.area]?.code ?? "DP"}</span>{post.title}</button>)}</div></>}</div>)}</div></div> : <div className="grid gap-3 md:grid-cols-7">{weekDays.map((day) => <section key={day.toISOString()} className={cn("editorial-panel min-h-60 rounded-2xl p-4", day.toDateString() === new Date().toDateString() && "border-[#c99550]/45")}><p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#b59664]">{new Intl.DateTimeFormat("pt-BR", { weekday: "short" }).format(day)}</p><p className="mt-1 font-serif text-2xl text-[#e9ddca]">{day.getDate()}</p><div className="mt-5 space-y-2">{byDay(day).length === 0 ? <p className="text-[10px] leading-4 text-[#718078]">Sem decisão editorial prevista.</p> : byDay(day).map((post) => <button key={post.id} onClick={() => onSelectPost(post.id)} className="w-full rounded-lg border border-white/8 bg-black/15 p-2.5 text-left hover:bg-[#c99550]/10"><span className="text-[9px] font-bold tracking-widest text-[#cfa260]">{areaMeta[post.area]?.code ?? "DP"}</span><p className="mt-1 line-clamp-3 text-[11px] font-semibold leading-4 text-[#e5dfd4]">{post.title}</p><p className="mt-2 text-[9px] text-[#91a098]">{post.status === "scheduled" ? "Agendado" : "Revisão"}</p></button>)}</div></section>)}</div>}
-    <p className="text-xs leading-5 text-[#92a099]">O calendário exibe agendamentos internos, revisões e conteúdos criados. Apenas itens aprovados podem ser movidos para o status “agendado”.</p>
-  </div>;
-}
-
-function TopicLibrary({ topics, onUseTopic }: { topics: any[]; onUseTopic: (id: number) => void }) {
-  const [filter, setFilter] = useState("Todos");
-  const areas = ["Todos", ...Array.from(new Set(topics.map((topic) => topic.area)))];
-  const items = filter === "Todos" ? topics : topics.filter((topic) => topic.area === filter);
-  return <div className="space-y-6"><div className="editorial-panel rounded-2xl p-5 sm:p-6"><div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"><div><p className="tiny-kicker">Pautas com direção</p><h2 className="mt-2 max-w-2xl font-serif text-3xl">Temas que o escritório pode explicar com rigor e continuidade.</h2></div><div className="flex flex-wrap gap-2">{areas.map((area) => <button key={area} onClick={() => setFilter(area)} className={cn("rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] transition", filter === area ? "border-[#d8af6b]/50 bg-[#c99550]/15 text-[#f0cd98]" : "border-white/10 text-[#9ba69f] hover:border-white/25")}>{area}</button>)}</div></div></div><div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">{items.map((topic) => <article key={topic.id} className="editorial-panel group flex min-h-56 flex-col rounded-2xl p-5"><div className="flex items-start justify-between"><AreaMonogram area={topic.area} large /><span className="rounded-full bg-[#c99550]/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#e1bb7d]">{topic.priority}</span></div><p className="mt-5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#93a29a]">{topic.area}</p><h3 className="mt-2 font-serif text-2xl leading-6 text-[#eee5d9]">{topic.title}</h3><p className="mt-3 text-[11px] leading-5 text-[#96a29b]">Público: {topic.audience}</p><div className="mt-auto flex items-center justify-between border-t border-white/7 pt-4"><span className="text-[10px] uppercase tracking-[0.12em] text-[#af956e]">{topic.suggestedFormat}</span><button onClick={() => onUseTopic(topic.id)} className="inline-flex items-center gap-1 text-xs font-bold text-[#e7bd7d] hover:text-[#f6dbaf]">Usar tema <ArrowUpRight className="h-3.5 w-3.5" /></button></div></article>)}</div></div>;
-}
-
-function SourceCenter({ sources, onAdd, adding }: { sources: any[]; onAdd: (value: any) => void; adding: boolean }) {
-  const [form, setForm] = useState({ title: "", sourceType: "legislação", url: "", notes: "" });
-  return <div className="grid gap-7 xl:grid-cols-[0.75fr_1.25fr]"><section className="editorial-panel rounded-2xl p-5 sm:p-6"><p className="tiny-kicker">Nova fonte</p><h2 className="mt-2 font-serif text-2xl">Lastro antes de publicar</h2><form className="mt-6 space-y-4" onSubmit={(e) => { e.preventDefault(); onAdd({ ...form, url: form.url || null, notes: form.notes || null, verifiedAt: new Date() }); setForm({ title: "", sourceType: "legislação", url: "", notes: "" }); }}><Field label="Título"><input required className="editorial-input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex.: Código de Defesa do Consumidor" /></Field><Field label="Tipo"><select className="editorial-input" value={form.sourceType} onChange={(e) => setForm({ ...form, sourceType: e.target.value })}>{["legislação", "órgão público", "site", "parecer", "nota técnica"].map((item) => <option key={item} className="bg-[#12221e]">{item}</option>)}</select></Field><Field label="URL"><input className="editorial-input" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} placeholder="https://..." /></Field><Field label="Observação"><textarea className="editorial-input min-h-24 resize-y" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field><Button type="submit" disabled={adding} className="w-full bg-[#c99550] text-[#13221f] hover:bg-[#ddb06b]">{adding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}Adicionar fonte</Button></form></section><section className="editorial-panel rounded-2xl p-5 sm:p-6"><div className="flex items-start justify-between"><div><p className="tiny-kicker">Base consultada</p><h2 className="mt-2 font-serif text-2xl">Central de fontes</h2></div><LockKeyhole className="h-5 w-5 text-[#c99550]" /></div><div className="mt-6 space-y-3">{sources.length === 0 ? <p className="text-sm text-[#9da79f]">Nenhuma fonte cadastrada.</p> : sources.map((source) => <div key={source.id} className="rounded-xl border border-white/7 bg-black/10 p-4"><div className="flex flex-col justify-between gap-2 sm:flex-row"><div><p className="text-xs font-semibold text-[#eee6da]">{source.title}</p><p className="mt-1 text-[10px] uppercase tracking-wider text-[#be9b63]">{source.sourceType} · verificada {formatDate(source.verifiedAt)}</p></div>{source.url && <a href={source.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-[#e7bd7d] hover:text-[#f8dfb4]">Abrir fonte <ArrowUpRight className="h-3.5 w-3.5" /></a>}</div>{source.notes && <p className="mt-3 text-xs leading-5 text-[#9ca69f]">{source.notes}</p>}</div>)}</div></section></div>;
-}
-
-function BrandDesk({ brand, onSave, saving }: { brand: any; onSave: (value: any) => void; saving: boolean }) {
-  const [form, setForm] = useState<any>(brand);
-  useEffect(() => setForm(brand), [brand?.id]);
-  if (!form) return <EmptyState title="DNA ainda não criado" text="Atualize a página para carregar o perfil inicial do escritório." />;
-  return <div className="grid gap-7 xl:grid-cols-[1fr_0.72fr]"><form className="editorial-panel rounded-2xl p-5 sm:p-6" onSubmit={(e) => { e.preventDefault(); onSave({ brandName: form.brandName, segment: form.segment, location: form.location || null, targetAudience: form.targetAudience || null, commercialGoal: form.commercialGoal || null, toneOfVoice: form.toneOfVoice || null, primaryCta: form.primaryCta || null, prohibitedTerms: form.prohibitedTerms || null, websiteUrl: form.websiteUrl || null, whatsapp: form.whatsapp || null, visualGuidelines: form.visualGuidelines || null }); }}><div><p className="tiny-kicker">Memória do escritório</p><h2 className="mt-2 font-serif text-3xl">DNA da marca</h2><p className="mt-2 text-xs leading-5 text-[#9aa59e]">Estas diretrizes alimentam a criação e a revisão dos rascunhos, evitando que o posicionamento precise ser repetido a cada pauta.</p></div><div className="mt-7 grid gap-4 sm:grid-cols-2"><Field label="Nome da marca"><input required className="editorial-input" value={form.brandName ?? ""} onChange={(e) => setForm({ ...form, brandName: e.target.value })} /></Field><Field label="Segmento"><input required className="editorial-input" value={form.segment ?? ""} onChange={(e) => setForm({ ...form, segment: e.target.value })} /></Field><Field label="Localização"><input className="editorial-input" value={form.location ?? ""} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field><Field label="Site"><input type="url" className="editorial-input" value={form.websiteUrl ?? ""} onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })} /></Field></div><div className="mt-4 grid gap-4"><Field label="Público-alvo"><textarea className="editorial-input min-h-20 resize-y" value={form.targetAudience ?? ""} onChange={(e) => setForm({ ...form, targetAudience: e.target.value })} /></Field><Field label="Objetivo comercial"><textarea className="editorial-input min-h-20 resize-y" value={form.commercialGoal ?? ""} onChange={(e) => setForm({ ...form, commercialGoal: e.target.value })} /></Field><Field label="Tom de voz"><textarea className="editorial-input min-h-20 resize-y" value={form.toneOfVoice ?? ""} onChange={(e) => setForm({ ...form, toneOfVoice: e.target.value })} /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="CTA principal"><textarea className="editorial-input min-h-20 resize-y" value={form.primaryCta ?? ""} onChange={(e) => setForm({ ...form, primaryCta: e.target.value })} /></Field><Field label="Termos proibidos"><textarea className="editorial-input min-h-20 resize-y" value={form.prohibitedTerms ?? ""} onChange={(e) => setForm({ ...form, prohibitedTerms: e.target.value })} /></Field></div><Field label="Diretrizes visuais"><textarea className="editorial-input min-h-20 resize-y" value={form.visualGuidelines ?? ""} onChange={(e) => setForm({ ...form, visualGuidelines: e.target.value })} /></Field></div><Button type="submit" disabled={saving} className="mt-6 bg-[#c99550] text-[#13221f] hover:bg-[#ddb06b]">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar DNA da marca</Button></form><aside className="space-y-5"><div className="editorial-panel rounded-2xl p-5 sm:p-6"><p className="tiny-kicker">Assinatura visual</p><div className="mt-5 rounded-2xl border border-[#d2aa6a]/20 bg-[#091411] p-6 text-center"><div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[#c99550]/45 bg-[#c99550]/10 font-serif text-4xl text-[#efc685]">DT</div><p className="mt-5 font-serif text-2xl tracking-[0.08em] text-[#f1e4d2]">DE PAULA TEIXEIRA</p><div className="studio-rule mx-auto mt-3 h-px w-36" /><p className="mt-3 text-[10px] tracking-[0.28em] text-[#c99b5b]">ADVOCACIA</p></div></div><div className="editorial-panel rounded-2xl p-5"><p className="tiny-kicker">Regra de ouro</p><p className="mt-3 font-serif text-2xl leading-7 text-[#ead7b5]">“Controle antes da velocidade; fonte antes da afirmação.”</p><p className="mt-4 text-xs leading-5 text-[#99a49d]">O sistema bloqueia a aprovação quando a fonte jurídica, a data de revisão ou o responsável não estiverem definidos.</p></div></aside></div>;
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.13em] text-[#b99a67]">{label}</span>{children}</label>; }
-
-function TopTopicsLedger({ topics }: { topics: any[] }) {
-  return <section className="editorial-panel rounded-2xl p-5 sm:p-6"><div className="flex items-center justify-between gap-4"><div><p className="tiny-kicker">Leitura de uso real</p><h2 className="mt-2 font-serif text-2xl">Temas mais utilizados</h2></div><BookMarked className="h-5 w-5 text-[#c99550]" /></div><div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{topics.map((topic) => <div key={topic.id} className="flex items-center gap-3 rounded-xl border border-white/7 bg-black/10 p-3"><AreaMonogram area={topic.area} /><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#eee6db]">{topic.area}</p><p className="mt-1 text-[10px] text-[#91a098]">{topic.usageCount === 0 ? "Ainda sem uso registrado" : `${topic.usageCount} conteúdo(s) criado(s)`}</p></div><span className="font-serif text-xl text-[#e2ba7a]">{topic.usageCount}</span></div>)}</div></section>;
-}
-
-function ContentDeskV2({ topics, sources, brand, posts, selectedPost, selectedTopicId, onSelectTopic, onSelectPost, onGenerate, generating, onUpdate, saving, onSendReview, onDecide, onSchedule }: any) {
-  const selectedTopic = topics.find((topic: any) => topic.id === selectedTopicId) ?? topics[0];
-  const [form, setForm] = useState<any>({ topicId: selectedTopic?.id ?? null, sourceId: null, area: selectedTopic?.area ?? "Trabalhista Empresarial", topic: selectedTopic?.title ?? "", audience: selectedTopic?.audience ?? "Empresas e gestores", format: selectedTopic?.suggestedFormat ?? "carousel", objective: "Gerar autoridade e iniciar conversas qualificadas.", legalSource: selectedTopic?.sourceUrl ?? "" });
-  const [editor, setEditor] = useState<any>(null);
-  const [scheduleValue, setScheduleValue] = useState("");
-  const [decisionNotes, setDecisionNotes] = useState("");
-  useEffect(() => { if (selectedTopic) setForm((current: any) => ({ ...current, topicId: selectedTopic.id, area: selectedTopic.area, topic: selectedTopic.title, audience: selectedTopic.audience, format: selectedTopic.suggestedFormat, legalSource: selectedTopic.sourceUrl ?? "" })); }, [selectedTopic?.id]);
-  useEffect(() => { if (selectedPost) { setEditor({ ...selectedPost, reviewDueAt: localInputValue(selectedPost.reviewDueAt), mediaUrl: selectedPost.mediaUrl ?? "", sourceId: selectedPost.sourceId?.toString() ?? "" }); setScheduleValue(localInputValue(selectedPost.scheduledAt)); } }, [selectedPost?.id]);
-  const selectSource = (idValue: string, target: "form" | "editor") => { const source = sources.find((item: any) => item.id === Number(idValue)); if (target === "form") setForm({ ...form, sourceId: idValue ? Number(idValue) : null, legalSource: source?.url ?? form.legalSource }); else setEditor({ ...editor, sourceId: idValue ? Number(idValue) : null, legalSource: source?.url ?? editor.legalSource }); };
-  const preflight = editor ? calculatePrePublicationScore({ ...editor, prohibitedTerms: brand?.prohibitedTerms }) : { score: 0, passed: [], pending: ["clareza", "CTA", "identidade", "legibilidade", "risco regulatório"] };
-  const score = preflight.score;
-  const scoreText = score >= 85 ? "Pronto para revisão" : score >= 60 ? "Falta completar controles" : "Risco elevado";
-  const createDraft = (event: FormEvent) => { event.preventDefault(); onGenerate({ ...form, sourceId: form.sourceId || null, legalSource: form.legalSource || null }); };
-  const save = () => editor && onUpdate({ id: editor.id, sourceId: editor.sourceId ? Number(editor.sourceId) : null, title: editor.title, hook: editor.hook || null, caption: editor.caption || null, cta: editor.cta || null, hashtags: editor.hashtags || null, keyStatement: editor.keyStatement || null, legalSource: editor.legalSource || null, reviewDueAt: editor.reviewDueAt ? new Date(editor.reviewDueAt) : null, mediaUrl: editor.mediaUrl || null });
-  return <div className="grid gap-7 xl:grid-cols-[0.78fr_1.22fr]">
-    <div className="space-y-6"><section className="editorial-panel rounded-2xl p-5 sm:p-6"><p className="tiny-kicker">Estratégia antes da produção</p><h2 className="mt-2 font-serif text-2xl">Crie com direção</h2><form className="mt-6 space-y-4" onSubmit={createDraft}><Field label="Tema da biblioteca"><select className="editorial-input" value={form.topicId ?? ""} onChange={(e) => { onSelectTopic(Number(e.target.value)); }}>{topics.map((topic: any) => <option className="bg-[#12221e]" value={topic.id} key={topic.id}>{topic.area} — {topic.title}</option>)}</select></Field><div className="grid grid-cols-2 gap-3"><Field label="Público"><input className="editorial-input" value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })} /></Field><Field label="Formato"><select className="editorial-input" value={form.format} onChange={(e) => setForm({ ...form, format: e.target.value })}>{["post", "carousel", "reel", "story"].map((item) => <option className="bg-[#12221e]" value={item} key={item}>{item}</option>)}</select></Field></div><Field label="Objetivo e estágio"><select className="editorial-input" value={form.objective} onChange={(e) => setForm({ ...form, objective: e.target.value })}><option className="bg-[#12221e]">Gerar autoridade e iniciar conversas qualificadas.</option><option className="bg-[#12221e]">Educar e estimular salvamentos.</option><option className="bg-[#12221e]">Orientar prevenção de riscos.</option><option className="bg-[#12221e]">Converter interesse em contato institucional.</option></select></Field><Field label="Fonte vinculada"><select className="editorial-input" value={form.sourceId ?? ""} onChange={(e) => selectSource(e.target.value, "form")}><option className="bg-[#12221e]" value="">Selecionar fonte da central</option>{sources.map((source: any) => <option className="bg-[#12221e]" value={source.id} key={source.id}>{source.title}</option>)}</select></Field><Field label="URL ou base jurídica"><input className="editorial-input" value={form.legalSource} onChange={(e) => setForm({ ...form, legalSource: e.target.value })} placeholder="https://..." /></Field><Button type="submit" disabled={generating} className="w-full bg-[#c99550] text-[#13221f] hover:bg-[#ddb06b]">{generating ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Gerando rascunho...</> : <><Sparkles className="mr-2 h-4 w-4" />Gerar rascunho estruturado</>}</Button><p className="text-[10px] leading-4 text-[#8f9d95]">A IA só prepara o rascunho. Nenhum conteúdo segue sem revisão humana.</p></form></section><section className="editorial-panel rounded-2xl p-5"><div className="flex items-center justify-between"><p className="tiny-kicker">Fila editorial</p><span className="text-xs text-[#a7b0aa]">{posts.length}</span></div><div className="mt-4 space-y-2">{posts.length === 0 ? <p className="text-xs text-[#9aa59e]">Crie o primeiro conteúdo para abrir a fila.</p> : posts.map((post: any) => <button type="button" onClick={() => onSelectPost(post.id)} key={post.id} className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-left", selectedPost?.id === post.id ? "border-[#c99550]/45 bg-[#c99550]/8" : "border-white/7 bg-black/10 hover:bg-white/4")}><AreaMonogram area={post.area} /><div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-[#ede5d9]">{post.title}</p><p className="mt-1 text-[10px] text-[#90a098]">{post.format} · {formatDate(post.updatedAt)}</p></div><StatusPill status={post.status as Status} /></button>)}</div></section></div>
-    <div>{!editor ? <EmptyState title="Selecione um conteúdo" text="O editor exibe o texto, a ficha de rastreabilidade e o checklist de preparação." /> : <section className="editorial-panel rounded-2xl overflow-hidden"><div className="border-b border-white/8 p-5 sm:p-6"><div className="flex items-start justify-between"><div className="flex items-center gap-3"><AreaMonogram area={editor.area} large /><div><p className="tiny-kicker">{editor.area}</p><h2 className="mt-1 font-serif text-2xl">{editor.format === "carousel" ? "Carrossel informativo" : "Conteúdo institucional"}</h2></div></div><StatusPill status={editor.status as Status} /></div></div><div className="grid gap-6 p-5 sm:p-6 2xl:grid-cols-[1.05fr_0.95fr]"><div className="space-y-4"><Field label="Título"><input className="editorial-input font-serif text-lg" value={editor.title} onChange={(e) => setEditor({ ...editor, title: e.target.value })} /></Field><Field label="Gancho"><textarea className="editorial-input min-h-20 resize-y" value={editor.hook ?? ""} onChange={(e) => setEditor({ ...editor, hook: e.target.value })} /></Field><Field label="Legenda pronta"><textarea className="editorial-input min-h-56 resize-y leading-6" value={editor.caption ?? ""} onChange={(e) => setEditor({ ...editor, caption: e.target.value })} /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="CTA"><textarea className="editorial-input min-h-20 resize-y" value={editor.cta ?? ""} onChange={(e) => setEditor({ ...editor, cta: e.target.value })} /></Field><Field label="Hashtags"><textarea className="editorial-input min-h-20 resize-y" value={editor.hashtags ?? ""} onChange={(e) => setEditor({ ...editor, hashtags: e.target.value })} /></Field></div><Button onClick={save} disabled={saving} className="bg-[#c99550] text-[#13221f] hover:bg-[#ddb06b]">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar alterações</Button></div><aside className="space-y-4"><div className="rounded-2xl border border-[#c99550]/20 bg-[#0a1613]/70 p-4"><p className="tiny-kicker">Score pré-publicação</p><div className="mt-4 flex items-end justify-between"><p className="font-serif text-5xl text-[#e5bb78]">{score}</p><p className="mb-2 text-xs text-[#9ba69f]">{scoreText}</p></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/8"><div className="h-full bg-[#c99550]" style={{ width: `${score}%` }} /></div><p className="mt-3 text-[10px] leading-4 text-[#9da89f]">Controles pendentes: {preflight.pending.length ? preflight.pending.join(", ") : "nenhum"}.</p></div><div className="rounded-xl border border-white/7 bg-black/15 p-4"><p className="tiny-kicker">Ficha de rastreabilidade</p><div className="mt-4 space-y-4"><Field label="Afirmação-chave"><textarea className="editorial-input min-h-20 resize-y" value={editor.keyStatement ?? ""} onChange={(e) => setEditor({ ...editor, keyStatement: e.target.value })} placeholder="Afirmação que deve estar apoiada por fonte" /></Field><Field label="Fonte da central"><select className="editorial-input" value={editor.sourceId ?? ""} onChange={(e) => selectSource(e.target.value, "editor")}><option className="bg-[#12221e]" value="">Selecionar fonte</option>{sources.map((source: any) => <option className="bg-[#12221e]" value={source.id} key={source.id}>{source.title}</option>)}</select></Field><Field label="Base jurídica ou URL"><input className="editorial-input" value={editor.legalSource ?? ""} onChange={(e) => setEditor({ ...editor, legalSource: e.target.value })} /></Field><Field label="Revisar novamente em"><input type="datetime-local" className="editorial-input" value={editor.reviewDueAt ?? ""} onChange={(e) => setEditor({ ...editor, reviewDueAt: e.target.value })} /></Field><Field label="Link público da mídia"><input className="editorial-input" value={editor.mediaUrl ?? ""} onChange={(e) => setEditor({ ...editor, mediaUrl: e.target.value })} placeholder="https://..." /></Field></div></div><div className="rounded-xl border border-white/7 bg-black/15 p-4"><p className="tiny-kicker">Decisão humana</p><textarea className="editorial-input mt-3 min-h-20 resize-y text-[11px]" value={decisionNotes} onChange={(e) => setDecisionNotes(e.target.value)} placeholder="Observação de revisão" /><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => onSendReview(editor.id)} disabled={editor.status !== "draft" && editor.status !== "rejected"} className="border-[#d9b46f]/35 bg-transparent text-[#e9cf9f]">Enviar à revisão</Button><Button size="sm" onClick={() => onDecide(editor.id, "approved", decisionNotes)} disabled={editor.status !== "review"} className="bg-emerald-300/15 text-emerald-100 hover:bg-emerald-300/25">Aprovar</Button><Button size="sm" onClick={() => onDecide(editor.id, "changes_requested", decisionNotes)} disabled={editor.status !== "review"} className="bg-red-300/12 text-red-100 hover:bg-red-300/20">Ajustar</Button></div></div><div className="rounded-xl border border-sky-300/15 bg-sky-300/5 p-4"><p className="tiny-kicker text-sky-200">Agenda interna</p><input type="datetime-local" className="editorial-input mt-3" value={scheduleValue} onChange={(e) => setScheduleValue(e.target.value)} /><Button onClick={() => scheduleValue && onSchedule(editor.id, new Date(scheduleValue))} disabled={editor.status !== "approved" || !scheduleValue} size="sm" className="mt-3 w-full bg-sky-300/15 text-sky-100 hover:bg-sky-300/25">Agendar no calendário</Button></div></aside></div></section>}</div>
-  </div>;
-}
-
-function TopicLibraryV2({ topics, onUseTopic }: { topics: any[]; onUseTopic: (id: number) => void }) {
-  const [filter, setFilter] = useState("Todos");
-  const [query, setQuery] = useState("");
-  const areas = ["Todos", ...Array.from(new Set(topics.map((topic) => topic.area)))];
-  const items = topics.filter((topic) => (filter === "Todos" || topic.area === filter) && `${topic.area} ${topic.title} ${topic.audience}`.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR")));
-  return <div className="space-y-6"><section className="editorial-panel rounded-2xl p-5 sm:p-6"><p className="tiny-kicker">Pautas com direção</p><div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"><h2 className="max-w-2xl font-serif text-3xl">Encontre um tema antes de construir o próximo conteúdo.</h2><input className="editorial-input max-w-sm" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por área, tema ou público" /></div><div className="mt-5 flex flex-wrap gap-2">{areas.map((area) => <button key={area} onClick={() => setFilter(area)} className={cn("rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em]", filter === area ? "border-[#d8af6b]/50 bg-[#c99550]/15 text-[#f0cd98]" : "border-white/10 text-[#9ba69f] hover:border-white/25")}>{area}</button>)}</div></section><div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">{items.map((topic) => <article key={topic.id} className="editorial-panel flex min-h-56 flex-col rounded-2xl p-5"><div className="flex items-start justify-between"><AreaMonogram area={topic.area} large /><span className="rounded-full bg-[#c99550]/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#e1bb7d]">{topic.priority}</span></div><p className="mt-5 text-[10px] font-bold uppercase tracking-[0.15em] text-[#93a29a]">{topic.area}</p><h3 className="mt-2 font-serif text-2xl leading-6 text-[#eee5d9]">{topic.title}</h3><p className="mt-3 text-[11px] leading-5 text-[#96a29b]">Público: {topic.audience}</p><div className="mt-auto flex items-center justify-between border-t border-white/7 pt-4"><span className="text-[10px] uppercase tracking-[0.12em] text-[#af956e]">{topic.suggestedFormat}</span><button onClick={() => onUseTopic(topic.id)} className="inline-flex items-center gap-1 text-xs font-bold text-[#e7bd7d]">Usar tema <ArrowUpRight className="h-3.5 w-3.5" /></button></div></article>)}</div></div>;
-}
-
-function BrandDeskV2({ brand, onSave, saving }: { brand: any; onSave: (value: any) => void; saving: boolean }) {
-  const [form, setForm] = useState<any>(brand);
-  useEffect(() => setForm(brand), [brand?.id]);
-  if (!form) return <EmptyState title="DNA ainda não criado" text="Atualize a página para carregar o perfil inicial do escritório." />;
-  const submit = (event: FormEvent) => { event.preventDefault(); onSave({ brandName: form.brandName, segment: form.segment, location: form.location || null, targetAudience: form.targetAudience || null, commercialGoal: form.commercialGoal || null, toneOfVoice: form.toneOfVoice || null, primaryCta: form.primaryCta || null, prohibitedTerms: form.prohibitedTerms || null, websiteUrl: form.websiteUrl || null, whatsapp: form.whatsapp || null, visualGuidelines: form.visualGuidelines || null, operationMode: form.operationMode ?? "manual" }); };
-  return <div className="grid gap-7 xl:grid-cols-[1fr_0.72fr]"><form className="editorial-panel rounded-2xl p-5 sm:p-6" onSubmit={submit}><p className="tiny-kicker">Memória do escritório</p><h2 className="mt-2 font-serif text-3xl">DNA da marca</h2><p className="mt-2 text-xs leading-5 text-[#9aa59e]">Diretrizes persistentes para que estratégia, conteúdo e revisão respeitem a identidade institucional.</p><div className="mt-7 grid gap-4 sm:grid-cols-2"><Field label="Nome da marca"><input required className="editorial-input" value={form.brandName ?? ""} onChange={(e) => setForm({ ...form, brandName: e.target.value })} /></Field><Field label="Segmento"><input required className="editorial-input" value={form.segment ?? ""} onChange={(e) => setForm({ ...form, segment: e.target.value })} /></Field><Field label="Localização"><input className="editorial-input" value={form.location ?? ""} onChange={(e) => setForm({ ...form, location: e.target.value })} /></Field><Field label="Modo operacional"><select className="editorial-input" value={form.operationMode ?? "manual"} onChange={(e) => setForm({ ...form, operationMode: e.target.value })}><option className="bg-[#12221e]" value="manual">Manual — toda decisão é humana</option><option className="bg-[#12221e]" value="semi_automatic">Semiautomático — cria e aguarda aprovação</option></select></Field></div><div className="mt-4 grid gap-4"><Field label="Público-alvo"><textarea className="editorial-input min-h-20 resize-y" value={form.targetAudience ?? ""} onChange={(e) => setForm({ ...form, targetAudience: e.target.value })} /></Field><Field label="Objetivo comercial"><textarea className="editorial-input min-h-20 resize-y" value={form.commercialGoal ?? ""} onChange={(e) => setForm({ ...form, commercialGoal: e.target.value })} /></Field><Field label="Tom de voz"><textarea className="editorial-input min-h-20 resize-y" value={form.toneOfVoice ?? ""} onChange={(e) => setForm({ ...form, toneOfVoice: e.target.value })} /></Field><div className="grid gap-4 sm:grid-cols-2"><Field label="CTA principal"><textarea className="editorial-input min-h-20 resize-y" value={form.primaryCta ?? ""} onChange={(e) => setForm({ ...form, primaryCta: e.target.value })} /></Field><Field label="Termos proibidos"><textarea className="editorial-input min-h-20 resize-y" value={form.prohibitedTerms ?? ""} onChange={(e) => setForm({ ...form, prohibitedTerms: e.target.value })} /></Field></div><Field label="Diretrizes visuais"><textarea className="editorial-input min-h-20 resize-y" value={form.visualGuidelines ?? ""} onChange={(e) => setForm({ ...form, visualGuidelines: e.target.value })} /></Field></div><Button type="submit" disabled={saving} className="mt-6 bg-[#c99550] text-[#13221f] hover:bg-[#ddb06b]">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar DNA da marca</Button></form><aside className="space-y-5"><div className="editorial-panel rounded-2xl p-5 sm:p-6"><p className="tiny-kicker">Assinatura visual</p><img src="/manus-storage/depaula-teixeira-logo_c8a7e033.jpg" alt="Logo De Paula Teixeira Advocacia" className="mt-5 aspect-square w-full rounded-2xl border border-[#d2aa6a]/20 object-cover" /></div><div className="editorial-panel rounded-2xl p-5"><p className="tiny-kicker">Roteiro de expansão</p><div className="mt-4 space-y-3">{[["V1", "Estratégia, rascunho, revisão, aprovação e agenda interna."], ["V2", "Templates bloqueados, carrosséis, integração oficial e métricas por objetivo."], ["V3", "Reels, campanhas, reaproveitamento, evergreen, testes A/B, CRM, monitor de falhas e operação multiempresa."]].map(([stage, copy]) => <div key={stage} className="flex gap-3"><span className="font-serif text-xl text-[#e2ba7a]">{stage}</span><p className="pt-1 text-[11px] leading-5 text-[#9aa69f]">{copy}</p></div>)}</div></div><div className="editorial-panel rounded-2xl p-5"><p className="tiny-kicker">Regra de ouro</p><p className="mt-3 font-serif text-2xl leading-7 text-[#ead7b5]">“Controle antes da velocidade; fonte antes da afirmação.”</p><p className="mt-4 text-xs leading-5 text-[#99a49d]">O modo semiautomático nunca elimina a aprovação humana para conteúdo jurídico.</p></div></aside></div>;
+  return <DashboardLayout><div className="saas-shell mx-auto w-full max-w-[1680px]">{content}</div></DashboardLayout>;
 }

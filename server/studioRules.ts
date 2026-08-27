@@ -1,3 +1,4 @@
+import { evaluateOabCompliance } from "../shared/compliance";
 import type { ContentStatus } from "../drizzle/schema";
 
 type ApprovalInput = {
@@ -5,6 +6,11 @@ type ApprovalInput = {
   legalSource?: string | null;
   reviewDueAt?: Date | null;
   approvalOwnerName?: string | null;
+  title?: string | null;
+  hook?: string | null;
+  caption?: string | null;
+  cta?: string | null;
+  prohibitedTerms?: string | null;
 };
 
 export function approvalReadiness(input: ApprovalInput) {
@@ -12,7 +18,10 @@ export function approvalReadiness(input: ApprovalInput) {
   if (!input.sourceId) missing.push("fonte vinculada");
   if (!input.reviewDueAt) missing.push("data de revisão");
   if (!input.approvalOwnerName?.trim()) missing.push("responsável pela aprovação");
-  return { ready: missing.length === 0, missing };
+  const compliance = evaluateOabCompliance(input);
+  const blocking = compliance.filter(issue => issue.severity === "block");
+  if (blocking.length) missing.push(`compliance: ${blocking.map(issue => issue.label).join("; ")}`);
+  return { ready: missing.length === 0, missing, compliance };
 }
 
 export function canSchedule(status: ContentStatus, scheduledAt?: Date | null) {
@@ -31,6 +40,10 @@ export function canSubmitForReview(input: ApprovalInput) {
   }
   if (!input.reviewDueAt) {
     return { allowed: false, reason: "Defina a data de revisão antes de enviar o conteúdo." };
+  }
+  const blocking = evaluateOabCompliance(input).filter(issue => issue.severity === "block");
+  if (blocking.length) {
+    return { allowed: false, reason: `Compliance bloqueou o envio: ${blocking.map(issue => issue.label).join("; ")}.` };
   }
   return { allowed: true as const };
 }
