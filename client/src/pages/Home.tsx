@@ -24,6 +24,7 @@ import {
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { ContentDeskV4, KnowledgeDeskV2, StrategyBoardV2 } from "./EditorialTools";
+import InstagramDesk from "./InstagramDesk";
 import MarketingRoadmap from "./MarketingRoadmap";
 
 type Format = "post" | "carousel" | "reel" | "story";
@@ -140,6 +141,7 @@ export default function Home() {
           {activePage === "fontes" && <SourceCenter sources={data.sources} adding={addSource.isPending} onAdd={addSource.mutate} />}
           {activePage === "planejamento" && <StrategyBoardV2 topics={topics} onUseTopic={(id) => { setSelectedTopicId(id); setLocation("/conteudos"); }} />}
           {activePage === "conhecimento" && <KnowledgeDeskV2 materials={data.knowledge} adding={addKnowledge.isPending} onAdd={addKnowledge.mutate} uploading={uploadKnowledge.isPending} onUpload={uploadKnowledge.mutate} />}
+          {activePage === "instagram" && <InstagramDesk />}
           {activePage === "roadmap" && <MarketingRoadmap />}
           {activePage === "marca" && <BrandDeskV2 brand={data.brand} saving={updateBrand.isPending} onSave={updateBrand.mutate} />}
         </main>
@@ -149,7 +151,7 @@ export default function Home() {
 }
 
 function pageTitle(page: string) {
-  return ({ overview: "Sala de controle", conteudos: "Mesa de conteúdo", calendario: "Calendário editorial", biblioteca: "Biblioteca de temas", fontes: "Central de fontes", planejamento: "Planejamento inteligente", conhecimento: "Base de conhecimento", roadmap: "Marketing OS", marca: "DNA da marca" } as Record<string, string>)[page] ?? "De Paula Social Studio";
+  return ({ overview: "Sala de controle", conteudos: "Mesa de conteúdo", calendario: "Calendário editorial", biblioteca: "Biblioteca de temas", fontes: "Central de fontes", planejamento: "Planejamento inteligente", conhecimento: "Base de conhecimento", instagram: "Central do Instagram", roadmap: "Marketing OS", marca: "DNA da marca" } as Record<string, string>)[page] ?? "De Paula Social Studio";
 }
 
 function Overview({ data, counts, onCreate, onOpenCalendar }: { data: any; counts: Record<Status, number>; onCreate: () => void; onOpenCalendar: () => void }) {

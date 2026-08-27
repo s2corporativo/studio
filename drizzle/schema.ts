@@ -1,10 +1,12 @@
 import {
   boolean,
+  index,
   int,
   mysqlEnum,
   mysqlTable,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from "drizzle-orm/mysql-core";
 
@@ -30,6 +32,11 @@ export const contentStatuses = [
 ] as const;
 
 export const editorialFormats = ["post", "carousel", "reel", "story"] as const;
+
+export const instagramConnectionStates = ["disconnected", "pending", "connected", "expired", "error"] as const;
+export const publicationJobStatuses = ["pending_confirmation", "queued", "processing", "published", "failed", "cancelled"] as const;
+export const publicationAttemptStages = ["preflight", "container", "publish", "schedule", "callback"] as const;
+export const publicationAttemptOutcomes = ["started", "succeeded", "failed", "skipped"] as const;
 
 export const brandProfiles = mysqlTable("brand_profiles", {
   id: int("id").autoincrement().primaryKey(),
@@ -122,6 +129,24 @@ export const contentPosts = mysqlTable("content_posts", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const contentMedia = mysqlTable("content_media", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  postId: int("postId").notNull(),
+  storageKey: varchar("storageKey", { length: 1024 }),
+  url: varchar("url", { length: 2048 }).notNull(),
+  fileName: varchar("fileName", { length: 255 }),
+  mimeType: varchar("mimeType", { length: 120 }),
+  byteSize: int("byteSize"),
+  width: int("width"),
+  height: int("height"),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("content_media_post_order_idx").on(table.postId, table.sortOrder),
+  index("content_media_user_idx").on(table.userId),
+]);
+
 export const approvalLogs = mysqlTable("approval_logs", {
   id: int("id").autoincrement().primaryKey(),
   postId: int("postId").notNull(),
@@ -132,9 +157,70 @@ export const approvalLogs = mysqlTable("approval_logs", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const instagramConnections = mysqlTable("instagram_connections", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  instagramUserId: varchar("instagramUserId", { length: 80 }),
+  username: varchar("username", { length: 120 }),
+  accessTokenCiphertext: text("accessTokenCiphertext"),
+  tokenExpiresAt: timestamp("tokenExpiresAt"),
+  permissions: text("permissions"),
+  state: mysqlEnum("state", instagramConnectionStates).default("disconnected").notNull(),
+  lastError: text("lastError"),
+  connectedAt: timestamp("connectedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("instagram_connections_user_unique").on(table.userId),
+  index("instagram_connections_state_idx").on(table.state),
+]);
+
+export const publicationJobs = mysqlTable("publication_jobs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  postId: int("postId").notNull(),
+  connectionId: int("connectionId"),
+  status: mysqlEnum("status", publicationJobStatuses).default("pending_confirmation").notNull(),
+  idempotencyKey: varchar("idempotencyKey", { length: 128 }).notNull(),
+  frozenPayload: text("frozenPayload").notNull(),
+  confirmedAt: timestamp("confirmedAt"),
+  confirmedByUserId: int("confirmedByUserId"),
+  scheduledAt: timestamp("scheduledAt"),
+  scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+  containerId: varchar("containerId", { length: 160 }),
+  mediaId: varchar("mediaId", { length: 160 }),
+  permalink: varchar("permalink", { length: 2048 }),
+  attemptCount: int("attemptCount").default(0).notNull(),
+  lastError: text("lastError"),
+  publishedAt: timestamp("publishedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("publication_jobs_idempotency_unique").on(table.idempotencyKey),
+  index("publication_jobs_user_status_idx").on(table.userId, table.status),
+  index("publication_jobs_post_idx").on(table.postId),
+  index("publication_jobs_cron_task_idx").on(table.scheduleCronTaskUid),
+]);
+
+export const publicationAttempts = mysqlTable("publication_attempts", {
+  id: int("id").autoincrement().primaryKey(),
+  jobId: int("jobId").notNull(),
+  stage: mysqlEnum("stage", publicationAttemptStages).notNull(),
+  outcome: mysqlEnum("outcome", publicationAttemptOutcomes).notNull(),
+  externalReference: varchar("externalReference", { length: 255 }),
+  errorCode: varchar("errorCode", { length: 120 }),
+  detail: text("detail"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  index("publication_attempts_job_idx").on(table.jobId, table.createdAt),
+]);
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type ContentPost = typeof contentPosts.$inferSelect;
 export type EditorialTopic = typeof editorialTopics.$inferSelect;
 export type BrandProfile = typeof brandProfiles.$inferSelect;
 export type ContentStatus = (typeof contentStatuses)[number];
+export type ContentMedia = typeof contentMedia.$inferSelect;
+export type InstagramConnection = typeof instagramConnections.$inferSelect;
+export type PublicationJob = typeof publicationJobs.$inferSelect;

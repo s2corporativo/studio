@@ -1,11 +1,15 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import {
   approvalLogs,
   brandProfiles,
+  contentMedia,
   contentPosts,
   contentSources,
   editorialTopics,
+  instagramConnections,
   knowledgeMaterials,
+  publicationAttempts,
+  publicationJobs,
   type ContentPost,
   type ContentStatus,
 } from "../drizzle/schema";
@@ -92,6 +96,7 @@ export async function getStudioData(userId: number) {
   const [brand] = await db.select().from(brandProfiles).where(eq(brandProfiles.userId, userId)).limit(1);
   const topics = await db.select().from(editorialTopics).where(eq(editorialTopics.userId, userId)).orderBy(desc(editorialTopics.createdAt));
   const posts = await db.select().from(contentPosts).where(eq(contentPosts.userId, userId)).orderBy(desc(contentPosts.updatedAt));
+  const media = await db.select().from(contentMedia).where(eq(contentMedia.userId, userId)).orderBy(asc(contentMedia.postId), asc(contentMedia.sortOrder));
   const sources = await db.select().from(contentSources).where(eq(contentSources.userId, userId)).orderBy(desc(contentSources.verifiedAt));
   const knowledge = await db.select().from(knowledgeMaterials).where(eq(knowledgeMaterials.userId, userId)).orderBy(desc(knowledgeMaterials.createdAt));
   const usageByTopic = posts.reduce<Record<number, number>>((acc, post) => {
@@ -102,7 +107,7 @@ export async function getStudioData(userId: number) {
     .map(topic => ({ ...topic, usageCount: usageByTopic[topic.id] ?? 0 }))
     .sort((a, b) => b.usageCount - a.usageCount || a.title.localeCompare(b.title, "pt-BR"))
     .slice(0, 6);
-  return { brand, topics, posts, sources, knowledge, topTopics };
+  return { brand, topics, posts, media, sources, knowledge, topTopics };
 }
 
 export async function createStudioPost(userId: number, values: Omit<typeof contentPosts.$inferInsert, "id" | "userId" | "createdAt" | "updatedAt">) {
@@ -168,4 +173,181 @@ export async function recordDecision(userId: number, postId: number, reviewerNam
     updatedAt: new Date(),
   }).where(eq(contentPosts.id, post.id));
   return getStudioPost(userId, postId);
+}
+
+export async function getPostMedia(userId: number, postId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await getStudioPost(userId, postId);
+  return db.select().from(contentMedia).where(and(eq(contentMedia.userId, userId), eq(contentMedia.postId, postId))).orderBy(asc(contentMedia.sortOrder));
+}
+
+export async function addPostMedia(userId: number, postId: number, values: Omit<typeof contentMedia.$inferInsert, "id" | "userId" | "postId" | "sortOrder" | "createdAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const post = await getStudioPost(userId, postId);
+  const existing = await getPostMedia(userId, postId);
+  const sortOrder = existing.length;
+  const result = await db.insert(contentMedia).values({ ...values, userId, postId, sortOrder });
+  if (!post.mediaUrl) {
+    await db.update(contentPosts).set({ mediaUrl: values.url, updatedAt: new Date() }).where(eq(contentPosts.id, postId));
+  } else {
+    await db.update(contentPosts).set({ updatedAt: new Date() }).where(eq(contentPosts.id, postId));
+  }
+  const [media] = await db.select().from(contentMedia).where(eq(contentMedia.id, Number(result[0].insertId))).limit(1);
+  return media;
+}
+
+export async function removePostMedia(userId: number, postId: number, mediaId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await getStudioPost(userId, postId);
+  const [media] = await db.select().from(contentMedia).where(and(eq(contentMedia.id, mediaId), eq(contentMedia.userId, userId), eq(contentMedia.postId, postId))).limit(1);
+  if (!media) throw new Error("Mídia não encontrada.");
+  await db.delete(contentMedia).where(eq(contentMedia.id, mediaId));
+  const remaining = await getPostMedia(userId, postId);
+  await db.update(contentPosts).set({ mediaUrl: remaining[0]?.url ?? null, updatedAt: new Date() }).where(eq(contentPosts.id, postId));
+  return remaining;
+}
+
+export async function getInstagramConnection(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [connection] = await db.select().from(instagramConnections).where(eq(instagramConnections.userId, userId)).limit(1);
+  return connection ?? null;
+}
+
+export async function getInstagramConnectionSummary(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [connection] = await db.select({
+    id: instagramConnections.id,
+    instagramUserId: instagramConnections.instagramUserId,
+    username: instagramConnections.username,
+    tokenExpiresAt: instagramConnections.tokenExpiresAt,
+    permissions: instagramConnections.permissions,
+    state: instagramConnections.state,
+    lastError: instagramConnections.lastError,
+    connectedAt: instagramConnections.connectedAt,
+    updatedAt: instagramConnections.updatedAt,
+  }).from(instagramConnections).where(eq(instagramConnections.userId, userId)).limit(1);
+  return connection ?? null;
+}
+
+export async function upsertInstagramConnection(userId: number, values: Omit<typeof instagramConnections.$inferInsert, "id" | "userId" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const existing = await getInstagramConnection(userId);
+  if (existing) {
+    await db.update(instagramConnections).set({ ...values, updatedAt: new Date() }).where(eq(instagramConnections.id, existing.id));
+  } else {
+    await db.insert(instagramConnections).values({ ...values, userId });
+  }
+  return getInstagramConnection(userId);
+}
+
+export async function setInstagramConnectionError(userId: number, message: string) {
+  const connection = await getInstagramConnection(userId);
+  if (!connection) return null;
+  return upsertInstagramConnection(userId, {
+    instagramUserId: connection.instagramUserId,
+    username: connection.username,
+    accessTokenCiphertext: connection.accessTokenCiphertext,
+    tokenExpiresAt: connection.tokenExpiresAt,
+    permissions: connection.permissions,
+    state: "error",
+    lastError: message.slice(0, 3_000),
+    connectedAt: connection.connectedAt,
+  });
+}
+
+export type FrozenPublicationPayload = {
+  postId: number;
+  title: string;
+  format: "post" | "carousel";
+  caption: string;
+  altText: string | null;
+  media: Array<{ id: number; url: string; mimeType: string | null; byteSize: number | null; width: number | null; height: number | null }>;
+  approvedAt: string;
+};
+
+export async function createPublicationRequest(userId: number, payload: FrozenPublicationPayload) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const connection = await getInstagramConnection(userId);
+  if (!connection) throw new Error("A conta profissional do Instagram não está conectada.");
+  const keySource = JSON.stringify({ postId: payload.postId, media: payload.media.map((item) => item.id), caption: payload.caption, approvedAt: payload.approvedAt });
+  const idempotencyKey = Buffer.from(keySource).toString("base64url").slice(0, 128);
+  const [existing] = await db.select().from(publicationJobs).where(and(eq(publicationJobs.userId, userId), eq(publicationJobs.idempotencyKey, idempotencyKey))).limit(1);
+  if (existing) {
+    if (existing.status === "failed" || existing.status === "cancelled") {
+      await db.update(publicationJobs).set({ status: "pending_confirmation", confirmedAt: null, confirmedByUserId: null, scheduledAt: null, scheduleCronTaskUid: null, lastError: null, updatedAt: new Date() }).where(eq(publicationJobs.id, existing.id));
+      return getPublicationJob(userId, existing.id);
+    }
+    return existing;
+  }
+  const result = await db.insert(publicationJobs).values({
+    userId,
+    postId: payload.postId,
+    connectionId: connection.id,
+    status: "pending_confirmation",
+    idempotencyKey,
+    frozenPayload: JSON.stringify(payload),
+  });
+  const [job] = await db.select().from(publicationJobs).where(eq(publicationJobs.id, Number(result[0].insertId))).limit(1);
+  return job;
+}
+
+export async function getPublicationJob(userId: number, jobId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [job] = await db.select().from(publicationJobs).where(and(eq(publicationJobs.userId, userId), eq(publicationJobs.id, jobId))).limit(1);
+  if (!job) throw new Error("Solicitação de publicação não encontrada.");
+  return job;
+}
+
+export async function getPublicationJobByTaskUid(taskUid: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [job] = await db.select().from(publicationJobs).where(eq(publicationJobs.scheduleCronTaskUid, taskUid)).limit(1);
+  return job ?? null;
+}
+
+export async function updatePublicationJob(jobId: number, patch: Partial<Omit<typeof publicationJobs.$inferInsert, "id" | "userId" | "postId" | "createdAt" | "updatedAt">>) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(publicationJobs).set({ ...patch, updatedAt: new Date() }).where(eq(publicationJobs.id, jobId));
+  const [job] = await db.select().from(publicationJobs).where(eq(publicationJobs.id, jobId)).limit(1);
+  if (!job) throw new Error("Solicitação de publicação não encontrada.");
+  return job;
+}
+
+export async function recordPublicationAttempt(jobId: number, values: Omit<typeof publicationAttempts.$inferInsert, "id" | "jobId" | "createdAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const result = await db.insert(publicationAttempts).values({ jobId, ...values });
+  const [attempt] = await db.select().from(publicationAttempts).where(eq(publicationAttempts.id, Number(result[0].insertId))).limit(1);
+  return attempt;
+}
+
+export async function getInstagramStudioData(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const connection = await getInstagramConnectionSummary(userId);
+  const jobs = await db.select({
+    id: publicationJobs.id,
+    postId: publicationJobs.postId,
+    status: publicationJobs.status,
+    confirmedAt: publicationJobs.confirmedAt,
+    scheduledAt: publicationJobs.scheduledAt,
+    containerId: publicationJobs.containerId,
+    mediaId: publicationJobs.mediaId,
+    permalink: publicationJobs.permalink,
+    attemptCount: publicationJobs.attemptCount,
+    lastError: publicationJobs.lastError,
+    publishedAt: publicationJobs.publishedAt,
+    createdAt: publicationJobs.createdAt,
+    updatedAt: publicationJobs.updatedAt,
+  }).from(publicationJobs).where(eq(publicationJobs.userId, userId)).orderBy(desc(publicationJobs.updatedAt)).limit(25);
+  return { connection, jobs };
 }

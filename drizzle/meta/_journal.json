@@ -36,6 +36,20 @@
       "when": 1787801963094,
       "tag": "0004_skinny_bushwacker",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1787855265571,
+      "tag": "0005_exotic_chimera",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1787855437480,
+      "tag": "0006_lyrical_cannonball",
+      "breakpoints": true
     }
   ]
 }

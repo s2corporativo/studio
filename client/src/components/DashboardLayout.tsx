@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { BookOpenText, CalendarDays, ClipboardCheck, FilePenLine, LayoutDashboard, LibraryBig, LogOut, PanelLeft, ShieldCheck, Workflow } from "lucide-react";
+import { BookOpenText, CalendarDays, ClipboardCheck, FilePenLine, Instagram, LayoutDashboard, LibraryBig, LogOut, PanelLeft, ShieldCheck, Workflow } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -35,6 +35,7 @@ const menuItems = [
   { icon: LibraryBig, label: "Biblioteca", path: "/biblioteca" },
   { icon: BookOpenText, label: "Fontes", path: "/fontes" },
   { icon: BookOpenText, label: "Conhecimento", path: "/conhecimento" },
+  { icon: Instagram, label: "Instagram", path: "/instagram" },
   { icon: Workflow, label: "Marketing OS", path: "/roadmap" },
   { icon: ShieldCheck, label: "DNA da marca", path: "/marca" },
 ];

@@ -26,3 +26,15 @@
 - [x] Adicionar detector de repetição de temas, títulos e legendas recentes.
 - [x] Registrar no roadmap a reutilização de conteúdo, evergreen, testes A/B, campanhas, métricas por objetivo, modo agência, CRM e monitor de falhas.
 - [x] Registrar no produto o roadmap do Sistema Operacional de Marketing por IA: objetivos, grafo de conteúdo, lacunas, personas, jornadas, métricas e governança avançada.
+- [x] Ler a documentação oficial da Meta e definir as permissões, limites e pré-requisitos da integração do Instagram.
+- [ ] Configurar credenciais e variáveis de ambiente da Meta sem expor segredos no código.
+- [x] Criar modelo de dados e procedimentos para conexão, mídia, confirmação, publicação e registro de resultado no Instagram.
+- [x] Implementar a central de publicação do Instagram com mídia, legenda, prévia e confirmação explícita.
+- [ ] Implementar o processamento controlado de conteúdos agendados em infraestrutura compatível.
+- [x] Criar testes para bloqueios de aprovação, confirmação e envio de publicação.
+- [ ] Validar a integração em modo seguro e salvar checkpoint com instruções de conexão da conta profissional.
+- [ ] Recuperar a sessão de autenticação da Meta no navegador e concluir a configuração de acesso ao Instagram.
+- [ ] Obter ou receber de administrador o acesso a uma aplicação de tecnologias sociais da Meta vinculável à empresa.
+- [ ] Incluir mecanismo de publicação de teste, sem envio público, para validar a integração antes de qualquer agendamento.
+- [x] Adicionar prévia visual real da mídia e legenda na central do Instagram antes da confirmação.
+- [x] Criar testes de serviço para confirmação explícita, idempotência e erro da Meta registrado em auditoria.
