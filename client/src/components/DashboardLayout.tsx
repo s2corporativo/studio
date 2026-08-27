@@ -21,15 +21,19 @@ import {
 } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { BookOpenText, CalendarDays, FilePenLine, LayoutDashboard, LibraryBig, LogOut, PanelLeft, ShieldCheck } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: LayoutDashboard, label: "Visão geral", path: "/" },
+  { icon: FilePenLine, label: "Conteúdos", path: "/conteudos" },
+  { icon: CalendarDays, label: "Calendário", path: "/calendario" },
+  { icon: LibraryBig, label: "Biblioteca", path: "/biblioteca" },
+  { icon: BookOpenText, label: "Fontes", path: "/fontes" },
+  { icon: ShieldCheck, label: "DNA da marca", path: "/marca" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -157,8 +161,8 @@ function DashboardLayoutContent({
           className="border-r-0"
           disableTransition={isResizing}
         >
-          <SidebarHeader className="h-16 justify-center">
-            <div className="flex items-center gap-3 px-2 transition-all w-full">
+          <SidebarHeader className="h-24 justify-center">
+            <div className="flex items-center gap-3 px-3 transition-all w-full">
               <button
                 onClick={toggleSidebar}
                 className="h-8 w-8 flex items-center justify-center hover:bg-accent rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
@@ -168,9 +172,11 @@ function DashboardLayoutContent({
               </button>
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-semibold tracking-tight truncate">
-                    Navigation
-                  </span>
+                  <img src="/manus-storage/depaula-teixeira-logo_c8a7e033.jpg" alt="De Paula Teixeira Advocacia" className="h-11 w-11 rounded-full border border-[#c99550]/35 object-cover" />
+                  <div className="min-w-0">
+                    <span className="font-serif text-lg leading-none tracking-[0.08em] text-[#d2a45d] truncate block">SOCIAL STUDIO</span>
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/50">De Paula Teixeira</span>
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -199,7 +205,7 @@ function DashboardLayoutContent({
             </SidebarMenu>
           </SidebarContent>
 
-          <SidebarFooter className="p-3">
+          <SidebarFooter className="p-3 border-t border-sidebar-border/60">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-3 rounded-lg px-1 py-1 hover:bg-accent/50 transition-colors w-full text-left group-data-[collapsible=icon]:justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -224,7 +230,7 @@ function DashboardLayoutContent({
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
+                  <span>Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
