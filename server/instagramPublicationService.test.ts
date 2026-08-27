@@ -8,6 +8,7 @@ vi.mock("./instagramApi", () => ({
   publishInstagramImages: vi.fn(),
 }));
 vi.mock("./socialStudioDb", () => ({
+  claimQueuedPublicationJob: vi.fn(),
   getInstagramConnection: vi.fn(),
   getPublicationJob: vi.fn(),
   recordPublicationAttempt: vi.fn(),
@@ -19,7 +20,7 @@ vi.mock("./socialStudioDb", () => ({
 
 import { createInstagramTestContainer, InstagramApiError, getInstagramPublishingLimit, publishInstagramImages } from "./instagramApi";
 import { executeConfirmedInstagramPublication, testInstagramPublication } from "./instagramPublicationService";
-import { getInstagramConnection, getPublicationJob, recordPublicationAttempt, updatePublicationJob, updateStudioPost } from "./socialStudioDb";
+import { claimQueuedPublicationJob, getInstagramConnection, getPublicationJob, recordPublicationAttempt, updatePublicationJob, updateStudioPost } from "./socialStudioDb";
 
 const frozenPayload = JSON.stringify({ postId: 17, title: "Título", format: "post", caption: "Legenda aprovada", altText: null, media: [{ id: 3, url: "https://studio.example.com/manus-storage/arte.jpg", mimeType: "image/jpeg", byteSize: 300_000, width: 1080, height: 1350 }], approvedAt: "2026-08-27T12:00:00.000Z" });
 const queuedJob = { id: 91, userId: 5, postId: 17, status: "queued", confirmedAt: new Date(), attemptCount: 0, testContainerId: "test-container-0", testedAt: new Date(), frozenPayload } as any;
@@ -29,6 +30,7 @@ describe("serviço de publicação confirmada", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getPublicationJob).mockResolvedValue(queuedJob);
+    vi.mocked(claimQueuedPublicationJob).mockResolvedValue(true);
     vi.mocked(getInstagramConnection).mockResolvedValue(connection);
     vi.mocked(getInstagramPublishingLimit).mockResolvedValue({ data: [{ quota_usage: 1, config: { quota_total: 100 } }] });
     vi.mocked(createInstagramTestContainer).mockResolvedValue({ containerId: "test-container-1" });
@@ -53,6 +55,12 @@ describe("serviço de publicação confirmada", () => {
   it("não repete uma publicação que já foi registrada como concluída", async () => {
     vi.mocked(getPublicationJob).mockResolvedValue({ ...queuedJob, status: "published" });
     await expect(executeConfirmedInstagramPublication(5, 91)).resolves.toMatchObject({ status: "published" });
+    expect(publishInstagramImages).not.toHaveBeenCalled();
+  });
+
+  it("trava concorrência e impede duas execuções do mesmo job", async () => {
+    vi.mocked(claimQueuedPublicationJob).mockResolvedValue(false);
+    await expect(executeConfirmedInstagramPublication(5, 91)).rejects.toThrow("já está sendo processada");
     expect(publishInstagramImages).not.toHaveBeenCalled();
   });
 

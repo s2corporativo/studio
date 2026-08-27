@@ -2,6 +2,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import {
   approvalLogs,
   assetLibraryItems,
+  automationSettings,
   brandProfiles,
   contentMedia,
   contentPosts,
@@ -50,6 +51,22 @@ export async function ensureStudioDefaults(userId: number) {
     });
   }
 
+  const existingAutomation = await db.select({ id: automationSettings.id }).from(automationSettings).where(eq(automationSettings.userId, userId)).limit(1);
+  if (existingAutomation.length === 0) {
+    await db.insert(automationSettings).values({
+      userId,
+      enabled: false,
+      cadence: "weekdays",
+      postsPerWeek: 5,
+      defaultPublishTime: "18:30",
+      planningHorizonDays: 30,
+      requireApproval: true,
+      refreshRadarDaily: true,
+      preferredAreas: "Trabalhista,Consumidor,Empresarial,Ambiental,Tributário",
+      preferredFormats: "carousel,post,reel",
+    });
+  }
+
   const existingTopics = await db.select({ id: editorialTopics.id }).from(editorialTopics).where(eq(editorialTopics.userId, userId)).limit(1);
   if (existingTopics.length === 0) {
     await db.insert(editorialTopics).values(defaultTopics.map(([area, title, audience, priority, format, sourceUrl]) => ({
@@ -95,6 +112,7 @@ export async function getStudioData(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
   const [brand] = await db.select().from(brandProfiles).where(eq(brandProfiles.userId, userId)).limit(1);
+  const [automation] = await db.select().from(automationSettings).where(eq(automationSettings.userId, userId)).limit(1);
   const topics = await db.select().from(editorialTopics).where(eq(editorialTopics.userId, userId)).orderBy(desc(editorialTopics.createdAt));
   const posts = await db.select().from(contentPosts).where(eq(contentPosts.userId, userId)).orderBy(desc(contentPosts.updatedAt));
   const media = await db.select().from(contentMedia).where(eq(contentMedia.userId, userId)).orderBy(asc(contentMedia.postId), asc(contentMedia.sortOrder));
@@ -109,7 +127,7 @@ export async function getStudioData(userId: number) {
     .map(topic => ({ ...topic, usageCount: usageByTopic[topic.id] ?? 0 }))
     .sort((a, b) => b.usageCount - a.usageCount || a.title.localeCompare(b.title, "pt-BR"))
     .slice(0, 6);
-  return { brand, topics, posts, media, assets, sources, knowledge, topTopics };
+  return { brand, automation, topics, posts, media, assets, sources, knowledge, topTopics };
 }
 
 export async function createStudioPost(userId: number, values: Omit<typeof contentPosts.$inferInsert, "id" | "userId" | "createdAt" | "updatedAt">) {
@@ -145,12 +163,29 @@ export async function updateBrandProfile(userId: number, patch: Partial<typeof b
   return brand;
 }
 
+export async function updateAutomationSettings(userId: number, patch: Partial<typeof automationSettings.$inferInsert>) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await ensureStudioDefaults(userId);
+  await db.update(automationSettings).set({ ...patch, updatedAt: new Date() }).where(eq(automationSettings.userId, userId));
+  const [settings] = await db.select().from(automationSettings).where(eq(automationSettings.userId, userId)).limit(1);
+  return settings;
+}
+
 export async function createContentSource(userId: number, values: Omit<typeof contentSources.$inferInsert, "id" | "userId" | "createdAt">) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
   const result = await db.insert(contentSources).values({ ...values, userId });
   const [source] = await db.select().from(contentSources).where(and(eq(contentSources.id, Number(result[0].insertId)), eq(contentSources.userId, userId))).limit(1);
   return source;
+}
+
+export async function getOrCreateContentSource(userId: number, values: { title: string; sourceType: string; url: string; notes?: string | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [existing] = await db.select().from(contentSources).where(and(eq(contentSources.userId, userId), eq(contentSources.url, values.url))).limit(1);
+  if (existing) return existing;
+  return createContentSource(userId, { ...values, verifiedAt: new Date() });
 }
 
 export async function createKnowledgeMaterial(userId: number, values: Omit<typeof knowledgeMaterials.$inferInsert, "id" | "userId" | "createdAt">) {
@@ -278,7 +313,7 @@ export async function createPublicationRequest(userId: number, payload: FrozenPu
   if (!db) throw new Error("Banco de dados indisponível.");
   const connection = await getInstagramConnection(userId);
   if (!connection) throw new Error("A conta profissional do Instagram não está conectada.");
-  const keySource = JSON.stringify({ postId: payload.postId, media: payload.media.map((item) => item.id), caption: payload.caption, approvedAt: payload.approvedAt });
+  const keySource = JSON.stringify({ postId: payload.postId, media: payload.media.map((item) => item.id), caption: payload.caption });
   const idempotencyKey = Buffer.from(keySource).toString("base64url").slice(0, 128);
   const [existing] = await db.select().from(publicationJobs).where(and(eq(publicationJobs.userId, userId), eq(publicationJobs.idempotencyKey, idempotencyKey))).limit(1);
   if (existing) {
@@ -313,6 +348,13 @@ export async function getPublicationJobByTaskUid(taskUid: string) {
   if (!db) throw new Error("Banco de dados indisponível.");
   const [job] = await db.select().from(publicationJobs).where(eq(publicationJobs.scheduleCronTaskUid, taskUid)).limit(1);
   return job ?? null;
+}
+
+export async function claimQueuedPublicationJob(userId: number, jobId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const result = await db.update(publicationJobs).set({ status: "processing", updatedAt: new Date() }).where(and(eq(publicationJobs.id, jobId), eq(publicationJobs.userId, userId), eq(publicationJobs.status, "queued")));
+  return Number((result as any)?.[0]?.affectedRows ?? 0) === 1;
 }
 
 export async function updatePublicationJob(jobId: number, patch: Partial<Omit<typeof publicationJobs.$inferInsert, "id" | "userId" | "postId" | "createdAt" | "updatedAt">>) {

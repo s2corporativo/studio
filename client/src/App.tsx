@@ -13,6 +13,9 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/conteudos"} component={Home} />
       <Route path={"/calendario"} component={Home} />
+      <Route path={"/radar"} component={Home} />
+      <Route path={"/automacao"} component={Home} />
+      <Route path={"/redes"} component={Home} />
       <Route path={"/biblioteca"} component={Home} />
       <Route path={"/fontes"} component={Home} />
       <Route path={"/planejamento"} component={Home} />
