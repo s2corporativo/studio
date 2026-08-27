@@ -1,6 +1,7 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import {
   approvalLogs,
+  assetLibraryItems,
   brandProfiles,
   contentMedia,
   contentPosts,
@@ -97,6 +98,7 @@ export async function getStudioData(userId: number) {
   const topics = await db.select().from(editorialTopics).where(eq(editorialTopics.userId, userId)).orderBy(desc(editorialTopics.createdAt));
   const posts = await db.select().from(contentPosts).where(eq(contentPosts.userId, userId)).orderBy(desc(contentPosts.updatedAt));
   const media = await db.select().from(contentMedia).where(eq(contentMedia.userId, userId)).orderBy(asc(contentMedia.postId), asc(contentMedia.sortOrder));
+  const assets = await db.select().from(assetLibraryItems).where(eq(assetLibraryItems.userId, userId)).orderBy(asc(assetLibraryItems.area), asc(assetLibraryItems.groupKey), asc(assetLibraryItems.slideOrder), asc(assetLibraryItems.fileName));
   const sources = await db.select().from(contentSources).where(eq(contentSources.userId, userId)).orderBy(desc(contentSources.verifiedAt));
   const knowledge = await db.select().from(knowledgeMaterials).where(eq(knowledgeMaterials.userId, userId)).orderBy(desc(knowledgeMaterials.createdAt));
   const usageByTopic = posts.reduce<Record<number, number>>((acc, post) => {
@@ -107,7 +109,7 @@ export async function getStudioData(userId: number) {
     .map(topic => ({ ...topic, usageCount: usageByTopic[topic.id] ?? 0 }))
     .sort((a, b) => b.usageCount - a.usageCount || a.title.localeCompare(b.title, "pt-BR"))
     .slice(0, 6);
-  return { brand, topics, posts, media, sources, knowledge, topTopics };
+  return { brand, topics, posts, media, assets, sources, knowledge, topTopics };
 }
 
 export async function createStudioPost(userId: number, values: Omit<typeof contentPosts.$inferInsert, "id" | "userId" | "createdAt" | "updatedAt">) {

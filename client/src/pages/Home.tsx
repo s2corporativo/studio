@@ -24,6 +24,7 @@ import {
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { ContentDeskV4, KnowledgeDeskV2, StrategyBoardV2 } from "./EditorialTools";
+import AssetLibrary from "./AssetLibrary";
 import InstagramDesk from "./InstagramDesk";
 import MarketingRoadmap from "./MarketingRoadmap";
 
@@ -137,7 +138,7 @@ export default function Home() {
           {activePage === "overview" && <Overview data={data} counts={counts} onCreate={() => setLocation("/conteudos")} onOpenCalendar={() => setLocation("/calendario")} />}
           {activePage === "conteudos" && <ContentDeskV4 topics={topics} sources={data.sources} brand={data.brand} posts={posts} selectedPost={selectedPost} selectedTopicId={selectedTopicId} onSelectTopic={setSelectedTopicId} onSelectPost={setSelectedPostId} onGenerate={generate.mutate} generating={generate.isPending} onUpdate={updatePost.mutate} saving={updatePost.isPending} onSendReview={(id: number) => sendToReview.mutate({ id })} onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes: string) => decide.mutate({ id, decision, notes })} onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })} />}
           {activePage === "calendario" && <EditorialCalendar posts={posts} onSelectPost={(id) => { setSelectedPostId(id); setLocation("/conteudos"); }} />}
-          {activePage === "biblioteca" && <TopicLibraryV2 topics={topics} onUseTopic={(id) => { setSelectedTopicId(id); setLocation("/conteudos"); }} />}
+          {activePage === "biblioteca" && <div className="space-y-7"><TopicLibraryV2 topics={topics} onUseTopic={(id) => { setSelectedTopicId(id); setLocation("/conteudos"); }} /><AssetLibrary assets={data.assets} /></div>}
           {activePage === "fontes" && <SourceCenter sources={data.sources} adding={addSource.isPending} onAdd={addSource.mutate} />}
           {activePage === "planejamento" && <StrategyBoardV2 topics={topics} onUseTopic={(id) => { setSelectedTopicId(id); setLocation("/conteudos"); }} />}
           {activePage === "conhecimento" && <KnowledgeDeskV2 materials={data.knowledge} adding={addKnowledge.isPending} onAdd={addKnowledge.mutate} uploading={uploadKnowledge.isPending} onUpload={uploadKnowledge.mutate} />}
@@ -151,7 +152,7 @@ export default function Home() {
 }
 
 function pageTitle(page: string) {
-  return ({ overview: "Sala de controle", conteudos: "Mesa de conteúdo", calendario: "Calendário editorial", biblioteca: "Biblioteca de temas", fontes: "Central de fontes", planejamento: "Planejamento inteligente", conhecimento: "Base de conhecimento", instagram: "Central do Instagram", roadmap: "Marketing OS", marca: "DNA da marca" } as Record<string, string>)[page] ?? "De Paula Social Studio";
+  return ({ overview: "Sala de controle", conteudos: "Mesa de conteúdo", calendario: "Calendário editorial", biblioteca: "Biblioteca de temas e artes", fontes: "Central de fontes", planejamento: "Planejamento inteligente", conhecimento: "Base de conhecimento", instagram: "Central do Instagram", roadmap: "Marketing OS", marca: "DNA da marca" } as Record<string, string>)[page] ?? "De Paula Social Studio";
 }
 
 function Overview({ data, counts, onCreate, onOpenCalendar }: { data: any; counts: Record<Status, number>; onCreate: () => void; onOpenCalendar: () => void }) {

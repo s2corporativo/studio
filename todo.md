@@ -43,3 +43,6 @@
 - [x] Criar testes automatizados para o teste não público, incluindo sucesso, falha Meta e bloqueio de agendamento sem teste aprovado.
 - [x] Adicionar prévia visual real da mídia e legenda na central do Instagram antes da confirmação.
 - [x] Criar testes de serviço para confirmação explícita, idempotência e erro da Meta registrado em auditoria.
+- [x] Inventariar e importar as artes de Instagram já criadas nesta conversa para o armazenamento seguro do Social Studio.
+- [x] Organizar as artes importadas por área, tema, formato e sequência de carrossel na biblioteca interna.
+- [x] Exibir a galeria de artes no painel Biblioteca e validar o acesso em desktop e mobile.

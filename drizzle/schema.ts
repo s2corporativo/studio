@@ -147,6 +147,30 @@ export const contentMedia = mysqlTable("content_media", {
   index("content_media_user_idx").on(table.userId),
 ]);
 
+export const assetLibraryItems = mysqlTable("asset_library_items", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  sourcePath: varchar("sourcePath", { length: 1024 }).notNull(),
+  storageKey: varchar("storageKey", { length: 1024 }).notNull(),
+  url: varchar("url", { length: 2048 }).notNull(),
+  fileName: varchar("fileName", { length: 255 }).notNull(),
+  area: varchar("area", { length: 100 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  assetType: mysqlEnum("assetType", ["single", "carousel_slide"]).notNull(),
+  groupKey: varchar("groupKey", { length: 160 }),
+  slideOrder: int("slideOrder"),
+  mimeType: varchar("mimeType", { length: 120 }).notNull(),
+  byteSize: int("byteSize").notNull(),
+  width: int("width").notNull(),
+  height: int("height").notNull(),
+  tags: text("tags"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [
+  uniqueIndex("asset_library_source_unique").on(table.userId, table.sourcePath),
+  index("asset_library_user_area_idx").on(table.userId, table.area),
+  index("asset_library_group_order_idx").on(table.userId, table.groupKey, table.slideOrder),
+]);
+
 export const approvalLogs = mysqlTable("approval_logs", {
   id: int("id").autoincrement().primaryKey(),
   postId: int("postId").notNull(),
@@ -224,5 +248,6 @@ export type EditorialTopic = typeof editorialTopics.$inferSelect;
 export type BrandProfile = typeof brandProfiles.$inferSelect;
 export type ContentStatus = (typeof contentStatuses)[number];
 export type ContentMedia = typeof contentMedia.$inferSelect;
+export type AssetLibraryItem = typeof assetLibraryItems.$inferSelect;
 export type InstagramConnection = typeof instagramConnections.$inferSelect;
 export type PublicationJob = typeof publicationJobs.$inferSelect;
