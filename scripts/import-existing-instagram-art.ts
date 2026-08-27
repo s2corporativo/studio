@@ -72,7 +72,10 @@ async function main() {
   console.log(JSON.stringify({ discovered: filePaths.length, imported, skipped: filePaths.length - imported }));
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+main().then(
+  () => process.exit(0),
+  (error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  },
+);
