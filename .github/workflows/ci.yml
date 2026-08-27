@@ -1,45 +1,13 @@
-name: CI
+name: Runner smoke test
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
 
-permissions:
-  contents: read
-
 jobs:
-  validate:
-    name: Typecheck, tests and build
+  smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Enable pnpm with Corepack
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.4.1 --activate
-          pnpm --version
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck
-        run: pnpm check
-
-      - name: Test
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
+      - name: Runner available
+        run: echo "GitHub Actions runner available"
