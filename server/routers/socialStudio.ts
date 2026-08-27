@@ -7,6 +7,7 @@ import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
 import { buildInstagramBusinessLoginUrl, isInstagramMetaConfigured } from "../instagramApi";
 import { createInstagramOAuthState } from "../instagramOAuthState";
+import { getInstagramRedirectUri } from "../instagramOrigins";
 import { buildInstagramCaption, preflightInstagramPublication } from "../instagramRules";
 import { executeConfirmedInstagramPublication, testInstagramConnection, testInstagramPublication } from "../instagramPublicationService";
 import { scheduleConfirmedInstagramPublication } from "../instagramSchedule";
@@ -24,10 +25,7 @@ export const socialStudioRouter = router({
   }),
   beginInstagramConnection: protectedProcedure.mutation(({ ctx }) => {
     if (!isInstagramMetaConfigured()) throw new Error("A aplicação Meta ainda não está acessível ou suas credenciais não foram configuradas no ambiente seguro.");
-    const forwardedHost = ctx.req.get("x-forwarded-host") || ctx.req.get("host");
-    const forwardedProto = ctx.req.get("x-forwarded-proto")?.split(",")[0] || ctx.req.protocol || "https";
-    if (!forwardedHost) throw new Error("Não foi possível preparar o endereço de retorno da conexão.");
-    const redirectUri = `${new URL(`${forwardedProto}://${forwardedHost}`).origin}/api/instagram/oauth/callback`;
+    const redirectUri = getInstagramRedirectUri(ctx.req);
     return { authorizationUrl: buildInstagramBusinessLoginUrl(redirectUri, createInstagramOAuthState(ctx.user.id)), redirectUri };
   }),
   testInstagramConnection: protectedProcedure.mutation(({ ctx }) => testInstagramConnection(ctx.user.id)),

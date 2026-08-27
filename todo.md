@@ -30,13 +30,14 @@
 - [ ] Configurar credenciais e variáveis de ambiente da Meta sem expor segredos no código.
 - [x] Criar modelo de dados e procedimentos para conexão, mídia, confirmação, publicação e registro de resultado no Instagram.
 - [x] Implementar a central de publicação do Instagram com mídia, legenda, prévia e confirmação explícita.
-- [ ] Implementar o processamento controlado de conteúdos agendados em infraestrutura compatível.
+- [x] Implementar o processamento controlado de conteúdos agendados em infraestrutura compatível.
 - [x] Criar testes para bloqueios de aprovação, confirmação e envio de publicação.
 - [ ] Validar a integração em modo seguro e salvar checkpoint com instruções de conexão da conta profissional.
 - [ ] Recuperar a sessão de autenticação da Meta no navegador e concluir a configuração de acesso ao Instagram.
 - [ ] Obter ou receber de administrador o acesso a uma aplicação de tecnologias sociais da Meta vinculável à empresa.
-- [ ] Verificar o papel administrativo da conta Meta autenticada e criar ou vincular a aplicação social elegível, se o painel permitir.
+- [x] Verificar o papel administrativo da conta Meta autenticada e tentar criar ou vincular a aplicação social elegível quando o painel permitiu.
 - [ ] Registrar a URL de retorno de produção do Social Studio e validar a configuração de OAuth antes da conexão da conta.
+- [x] Fixar a URL de retorno OAuth do domínio de produção para evitar dependência de cabeçalhos de origem na autorização Meta.
 - [x] Exibir na central do Instagram o roteiro de configuração Meta com a URL pública de retorno e os controles de ativação.
 - [x] Implementar teste não público de ponta a ponta, com container temporário da Meta, auditoria e bloqueio de agendamento até aprovação.
 - [x] Criar testes automatizados para o teste não público, incluindo sucesso, falha Meta e bloqueio de agendamento sem teste aprovado.

@@ -3,20 +3,12 @@ import { encryptInstagramToken } from "./instagramCrypto";
 import { exchangeInstagramAuthorizationCode, getInstagramProfile } from "./instagramApi";
 import { setInstagramConnectionError, upsertInstagramConnection } from "./socialStudioDb";
 import { verifyInstagramOAuthState } from "./instagramOAuthState";
+import { getInstagramOAuthOrigin, getInstagramRedirectUri } from "./instagramOrigins";
 import { sdk } from "./_core/sdk";
 
 function query(req: Request, key: string) {
   const value = req.query[key];
   return typeof value === "string" ? value : undefined;
-}
-
-function requestOrigin(req: Request) {
-  const forwardedHost = req.get("x-forwarded-host");
-  const host = forwardedHost || req.get("host");
-  const forwardedProto = req.get("x-forwarded-proto")?.split(",")[0];
-  const protocol = forwardedProto || req.protocol || "https";
-  if (!host) throw new Error("Não foi possível determinar o endereço de retorno da aplicação.");
-  return new URL(`${protocol}://${host}`).origin;
 }
 
 function redirect(res: Response, origin: string, state: "connected" | "denied" | "error") {
@@ -27,7 +19,7 @@ export function registerInstagramOAuthRoutes(app: Express) {
   app.get("/api/instagram/oauth/callback", async (req: Request, res: Response) => {
     let origin = "";
     try {
-      origin = requestOrigin(req);
+      origin = getInstagramOAuthOrigin(req);
       const sessionUser = await sdk.authenticateRequest(req);
       const receivedState = query(req, "state");
       const state = receivedState ? verifyInstagramOAuthState(receivedState) : null;
@@ -46,7 +38,7 @@ export function registerInstagramOAuthRoutes(app: Express) {
         res.status(400).send("A Meta não retornou um código de autorização para a conta do Instagram.");
         return;
       }
-      const callbackUrl = `${origin}/api/instagram/oauth/callback`;
+      const callbackUrl = getInstagramRedirectUri(req);
       const token = await exchangeInstagramAuthorizationCode(code, callbackUrl);
       const profile = await getInstagramProfile(token.instagramUserId, token.accessToken);
       await upsertInstagramConnection(sessionUser.id, {

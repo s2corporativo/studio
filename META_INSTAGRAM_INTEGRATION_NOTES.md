@@ -62,3 +62,11 @@ Depois que a aplicação de tecnologias sociais estiver acessível, cadastre exc
 ## Domínio de produção
 
 O Social Studio está publicado em `https://depaulasoc-5hpbpodx.manus.space`. A rota `https://depaulasoc-5hpbpodx.manus.space/instagram` respondeu corretamente e permanece protegida por autenticação. Quando o aplicativo Meta estiver disponível, a URL de retorno a cadastrar será `https://depaulasoc-5hpbpodx.manus.space/api/instagram/oauth/callback`.
+
+O servidor utiliza essa origem publicada para a autorização e para o callback OAuth em produção. Assim, o endereço cadastrado na Meta não depende de valores recebidos em cabeçalhos de origem da requisição.
+
+O endpoint de agendamento em produção foi verificado em 27/08/2026. Uma chamada sem credencial de tarefa recebeu a resposta `permission error for cron cookie`, confirmando que a execução não é acessível publicamente. A infraestrutura de agendamento está publicada, sem tarefas criadas até que a conexão oficial e o teste não público sejam concluídos.
+
+## Situação de permissões
+
+Nas configurações de pessoas da Meta Business Suite, a conta autenticada de Clovis Soares foi exibida com **Acesso total** ao portfólio empresarial e à conta `@depaulateixeira.adv`. A criação do aplicativo, contudo, exige o registro separado de uma conta pessoal de Facebook como desenvolvedor no portal Meta for Developers. O redirecionamento para esse registro já foi identificado; esta etapa permanece para o usuário concluir em momento oportuno.
