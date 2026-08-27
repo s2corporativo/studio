@@ -8,7 +8,7 @@ import { storagePut } from "../storage";
 import { buildInstagramBusinessLoginUrl, isInstagramMetaConfigured } from "../instagramApi";
 import { createInstagramOAuthState } from "../instagramOAuthState";
 import { buildInstagramCaption, preflightInstagramPublication } from "../instagramRules";
-import { executeConfirmedInstagramPublication } from "../instagramPublicationService";
+import { executeConfirmedInstagramPublication, testInstagramConnection, testInstagramPublication } from "../instagramPublicationService";
 import { scheduleConfirmedInstagramPublication } from "../instagramSchedule";
 import { parse as parseCookie } from "cookie";
 import { COOKIE_NAME } from "@shared/const";
@@ -30,6 +30,7 @@ export const socialStudioRouter = router({
     const redirectUri = `${new URL(`${forwardedProto}://${forwardedHost}`).origin}/api/instagram/oauth/callback`;
     return { authorizationUrl: buildInstagramBusinessLoginUrl(redirectUri, createInstagramOAuthState(ctx.user.id)), redirectUri };
   }),
+  testInstagramConnection: protectedProcedure.mutation(({ ctx }) => testInstagramConnection(ctx.user.id)),
   generateDraft: protectedProcedure.input(z.object({
     topicId: z.number().nullable(),
     sourceId: z.number().nullable(),
@@ -199,6 +200,7 @@ export const socialStudioRouter = router({
     await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "succeeded", detail: `Confirmação humana registrada por ${ctx.user.name ?? "responsável"}.` });
     return job;
   }),
+  testInstagramPublication: protectedProcedure.input(z.object({ jobId: z.number() })).mutation(({ ctx, input }) => testInstagramPublication(ctx.user.id, input.jobId)),
   scheduleInstagramPublication: protectedProcedure.input(z.object({ jobId: z.number(), scheduledAt: z.date(), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => {
     const current = await getPublicationJob(ctx.user.id, input.jobId);
     if (current.status !== "pending_confirmation") throw new Error("Esta solicitação não está disponível para confirmação e agendamento.");

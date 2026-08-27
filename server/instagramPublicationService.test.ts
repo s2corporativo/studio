@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("./instagramCrypto", () => ({ decryptInstagramToken: vi.fn(() => "token-seguro") }));
 vi.mock("./instagramApi", () => ({
   InstagramApiError: class InstagramApiError extends Error { constructor(message: string, public code?: string) { super(message); } },
+  createInstagramTestContainer: vi.fn(),
   getInstagramPublishingLimit: vi.fn(),
   publishInstagramImages: vi.fn(),
 }));
@@ -10,16 +11,18 @@ vi.mock("./socialStudioDb", () => ({
   getInstagramConnection: vi.fn(),
   getPublicationJob: vi.fn(),
   recordPublicationAttempt: vi.fn(),
+  setInstagramConnectionError: vi.fn(),
   updatePublicationJob: vi.fn(),
   updateStudioPost: vi.fn(),
+  upsertInstagramConnection: vi.fn(),
 }));
 
-import { InstagramApiError, getInstagramPublishingLimit, publishInstagramImages } from "./instagramApi";
-import { executeConfirmedInstagramPublication } from "./instagramPublicationService";
+import { createInstagramTestContainer, InstagramApiError, getInstagramPublishingLimit, publishInstagramImages } from "./instagramApi";
+import { executeConfirmedInstagramPublication, testInstagramPublication } from "./instagramPublicationService";
 import { getInstagramConnection, getPublicationJob, recordPublicationAttempt, updatePublicationJob, updateStudioPost } from "./socialStudioDb";
 
 const frozenPayload = JSON.stringify({ postId: 17, title: "Título", format: "post", caption: "Legenda aprovada", altText: null, media: [{ id: 3, url: "https://studio.example.com/manus-storage/arte.jpg", mimeType: "image/jpeg", byteSize: 300_000, width: 1080, height: 1350 }], approvedAt: "2026-08-27T12:00:00.000Z" });
-const queuedJob = { id: 91, userId: 5, postId: 17, status: "queued", confirmedAt: new Date(), attemptCount: 0, frozenPayload } as any;
+const queuedJob = { id: 91, userId: 5, postId: 17, status: "queued", confirmedAt: new Date(), attemptCount: 0, testContainerId: "test-container-0", testedAt: new Date(), frozenPayload } as any;
 const connection = { state: "connected", instagramUserId: "ig-7", accessTokenCiphertext: "cipher", tokenExpiresAt: new Date(Date.now() + 3_600_000) } as any;
 
 describe("serviço de publicação confirmada", () => {
@@ -28,6 +31,7 @@ describe("serviço de publicação confirmada", () => {
     vi.mocked(getPublicationJob).mockResolvedValue(queuedJob);
     vi.mocked(getInstagramConnection).mockResolvedValue(connection);
     vi.mocked(getInstagramPublishingLimit).mockResolvedValue({ data: [{ quota_usage: 1, config: { quota_total: 100 } }] });
+    vi.mocked(createInstagramTestContainer).mockResolvedValue({ containerId: "test-container-1" });
     vi.mocked(publishInstagramImages).mockResolvedValue({ containerId: "container-1", mediaId: "media-1", permalink: "https://www.instagram.com/p/example/" });
     vi.mocked(updatePublicationJob).mockResolvedValue(queuedJob);
     vi.mocked(updateStudioPost).mockResolvedValue({} as any);
@@ -37,6 +41,12 @@ describe("serviço de publicação confirmada", () => {
     vi.mocked(getPublicationJob).mockResolvedValue({ ...queuedJob, status: "pending_confirmation", confirmedAt: null });
     await expect(executeConfirmedInstagramPublication(5, 91)).rejects.toThrow("confirmação humana explícita");
     expect(getInstagramConnection).not.toHaveBeenCalled();
+    expect(publishInstagramImages).not.toHaveBeenCalled();
+  });
+
+  it("bloqueia envio público quando o teste não público ainda não foi aprovado", async () => {
+    vi.mocked(getPublicationJob).mockResolvedValue({ ...queuedJob, testContainerId: null, testedAt: null });
+    await expect(executeConfirmedInstagramPublication(5, 91)).rejects.toThrow("teste não público");
     expect(publishInstagramImages).not.toHaveBeenCalled();
   });
 
@@ -51,5 +61,22 @@ describe("serviço de publicação confirmada", () => {
     await expect(executeConfirmedInstagramPublication(5, 91)).rejects.toThrow("ocorrido foi registrado");
     expect(recordPublicationAttempt).toHaveBeenCalledWith(91, expect.objectContaining({ stage: "publish", outcome: "failed", errorCode: "META_REJECTED" }));
     expect(updatePublicationJob).toHaveBeenCalledWith(91, expect.objectContaining({ status: "failed", lastError: "A Meta rejeitou o container." }));
+  });
+
+  it("valida o payload em container temporário sem chamar publicação pública", async () => {
+    vi.mocked(getPublicationJob).mockResolvedValue({ ...queuedJob, status: "pending_confirmation", confirmedAt: null });
+    await testInstagramPublication(5, 91);
+    expect(createInstagramTestContainer).toHaveBeenCalledWith(expect.objectContaining({ instagramUserId: "ig-7", mediaUrls: ["https://studio.example.com/manus-storage/arte.jpg"] }));
+    expect(publishInstagramImages).not.toHaveBeenCalled();
+    expect(updatePublicationJob).toHaveBeenCalledWith(91, expect.objectContaining({ testContainerId: "test-container-1", testedAt: expect.any(Date) }));
+  });
+
+  it("registra falha da Meta no teste e mantém a publicação bloqueada", async () => {
+    vi.mocked(getPublicationJob).mockResolvedValue({ ...queuedJob, status: "pending_confirmation", confirmedAt: null });
+    vi.mocked(createInstagramTestContainer).mockRejectedValue(new InstagramApiError("JPEG rejeitado.", "TEST_MEDIA_REJECTED"));
+    await expect(testInstagramPublication(5, 91)).rejects.toThrow("teste não público falhou");
+    expect(recordPublicationAttempt).toHaveBeenCalledWith(91, expect.objectContaining({ stage: "container", outcome: "failed", errorCode: "TEST_MEDIA_REJECTED" }));
+    expect(updatePublicationJob).toHaveBeenCalledWith(91, expect.objectContaining({ lastError: "JPEG rejeitado." }));
+    expect(publishInstagramImages).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,6 @@
 import { decryptInstagramToken } from "./instagramCrypto";
-import { getInstagramPublishingLimit, InstagramApiError, publishInstagramImages } from "./instagramApi";
-import { getInstagramConnection, getPublicationJob, recordPublicationAttempt, updatePublicationJob, updateStudioPost, type FrozenPublicationPayload } from "./socialStudioDb";
+import { createInstagramTestContainer, getInstagramPublishingLimit, InstagramApiError, publishInstagramImages } from "./instagramApi";
+import { getInstagramConnection, getPublicationJob, recordPublicationAttempt, setInstagramConnectionError, updatePublicationJob, updateStudioPost, upsertInstagramConnection, type FrozenPublicationPayload } from "./socialStudioDb";
 
 function parseFrozenPayload(value: string): FrozenPublicationPayload {
   try {
@@ -12,10 +12,75 @@ function parseFrozenPayload(value: string): FrozenPublicationPayload {
   }
 }
 
+export async function testInstagramConnection(userId: number) {
+  const connection = await getInstagramConnection(userId);
+  if (!connection || connection.state !== "connected" || !connection.instagramUserId || !connection.accessTokenCiphertext) {
+    throw new Error("Conecte a conta profissional do Instagram antes de executar o teste.");
+  }
+  if (connection.tokenExpiresAt && connection.tokenExpiresAt.getTime() <= Date.now()) {
+    throw new Error("O token da conta do Instagram expirou. Reconecte a conta antes de executar o teste.");
+  }
+  try {
+    const token = decryptInstagramToken(connection.accessTokenCiphertext);
+    const limit = await getInstagramPublishingLimit(connection.instagramUserId, token);
+    const used = limit.data?.[0]?.quota_usage ?? 0;
+    const total = limit.data?.[0]?.config?.quota_total ?? 100;
+    await upsertInstagramConnection(userId, {
+      instagramUserId: connection.instagramUserId,
+      username: connection.username,
+      accessTokenCiphertext: connection.accessTokenCiphertext,
+      tokenExpiresAt: connection.tokenExpiresAt,
+      permissions: connection.permissions,
+      state: "connected",
+      lastError: null,
+      connectedAt: connection.connectedAt ?? new Date(),
+    });
+    return { username: connection.username ?? null, used, total, tokenExpiresAt: connection.tokenExpiresAt };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Não foi possível validar a conta do Instagram.";
+    await setInstagramConnectionError(userId, message);
+    throw new Error("A conexão não foi validada. Verifique as permissões e reconecte a conta profissional.");
+  }
+}
+
+export async function testInstagramPublication(userId: number, jobId: number) {
+  const job = await getPublicationJob(userId, jobId);
+  if (job.status !== "pending_confirmation") throw new Error("O teste não público só pode ser executado antes da confirmação final.");
+  const connection = await getInstagramConnection(userId);
+  if (!connection || connection.state !== "connected" || !connection.instagramUserId || !connection.accessTokenCiphertext) {
+    throw new Error("Conecte a conta profissional do Instagram antes de executar o teste.");
+  }
+  if (connection.tokenExpiresAt && connection.tokenExpiresAt.getTime() <= Date.now()) {
+    throw new Error("O token da conta do Instagram expirou. Reconecte a conta antes de executar o teste.");
+  }
+  const payload = parseFrozenPayload(job.frozenPayload);
+  const token = decryptInstagramToken(connection.accessTokenCiphertext);
+  await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "started", detail: "Iniciando teste de ponta a ponta sem envio público." });
+  try {
+    const limit = await getInstagramPublishingLimit(connection.instagramUserId, token);
+    const used = limit.data?.[0]?.quota_usage ?? 0;
+    const total = limit.data?.[0]?.config?.quota_total ?? 100;
+    if (used >= total) throw new InstagramApiError("O limite de publicações da conta no período atual foi atingido.", "PUBLISHING_LIMIT_REACHED");
+    await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "succeeded", detail: `Teste autorizado; limite atual ${used}/${total}.` });
+    await recordPublicationAttempt(job.id, { stage: "container", outcome: "started", detail: "Criando container temporário com a primeira mídia; a publicação pública não será chamada." });
+    const result = await createInstagramTestContainer({ instagramUserId: connection.instagramUserId, token, mediaUrls: payload.media.map((media) => media.url), caption: payload.caption });
+    const testedAt = new Date();
+    await recordPublicationAttempt(job.id, { stage: "container", outcome: "succeeded", externalReference: result.containerId, detail: "Container temporário aceito pela Meta. Ele não foi publicado e expira conforme a plataforma." });
+    await recordPublicationAttempt(job.id, { stage: "publish", outcome: "skipped", detail: "Teste concluído sem chamada de publicação pública." });
+    return updatePublicationJob(job.id, { testContainerId: result.containerId, testedAt, lastError: null });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Falha inesperada no teste de publicação.";
+    await recordPublicationAttempt(job.id, { stage: "container", outcome: "failed", errorCode: error instanceof InstagramApiError ? error.code : "TEST_FAILED", detail: message.slice(0, 3_000) });
+    await updatePublicationJob(job.id, { lastError: message.slice(0, 3_000) });
+    throw new Error("O teste não público falhou. A publicação permanece bloqueada e o detalhe foi registrado na auditoria.");
+  }
+}
+
 export async function executeConfirmedInstagramPublication(userId: number, jobId: number) {
   const job = await getPublicationJob(userId, jobId);
   if (job.status === "published") return job;
   if (job.status !== "queued" || !job.confirmedAt) throw new Error("A publicação precisa de confirmação humana explícita antes do envio ao Instagram.");
+  if (!job.testedAt || !job.testContainerId) throw new Error("Execute e aprove o teste não público antes de confirmar o envio ao Instagram.");
   const connection = await getInstagramConnection(userId);
   if (!connection || connection.state !== "connected" || !connection.instagramUserId || !connection.accessTokenCiphertext) {
     throw new Error("A conta profissional do Instagram não está conectada ou precisa ser reconectada.");

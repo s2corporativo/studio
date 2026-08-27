@@ -12,10 +12,15 @@ export function oneTimeInstagramCron(scheduledAt: Date) {
   return `0 ${scheduledAt.getUTCMinutes()} ${scheduledAt.getUTCHours()} ${scheduledAt.getUTCDate()} ${scheduledAt.getUTCMonth() + 1} *`;
 }
 
+export function assertInstagramScheduleReadiness(job: { status: string; confirmedAt?: Date | null; testedAt?: Date | null; testContainerId?: string | null }) {
+  if (job.status !== "queued" || !job.confirmedAt) throw new Error("A publicação precisa estar confirmada antes de ser agendada.");
+  if (!job.testedAt || !job.testContainerId) throw new Error("Execute e aprove o teste não público antes de agendar a publicação.");
+}
+
 export async function scheduleConfirmedInstagramPublication(userId: number, jobId: number, scheduledAt: Date, sessionToken: string) {
   if (!ENV.isProduction) throw new Error("O agendamento automático será liberado depois de salvar esta versão e publicar o Social Studio.");
   const job = await getPublicationJob(userId, jobId);
-  if (job.status !== "queued" || !job.confirmedAt) throw new Error("A publicação precisa estar confirmada antes de ser agendada.");
+  assertInstagramScheduleReadiness(job);
   if (job.scheduleCronTaskUid) throw new Error("Esta publicação já possui uma execução agendada.");
   const cron = oneTimeInstagramCron(scheduledAt);
   await recordPublicationAttempt(job.id, { stage: "schedule", outcome: "started", detail: `Solicitando execução para ${scheduledAt.toISOString()}.` });

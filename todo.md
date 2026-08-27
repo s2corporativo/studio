@@ -35,6 +35,7 @@
 - [ ] Validar a integração em modo seguro e salvar checkpoint com instruções de conexão da conta profissional.
 - [ ] Recuperar a sessão de autenticação da Meta no navegador e concluir a configuração de acesso ao Instagram.
 - [ ] Obter ou receber de administrador o acesso a uma aplicação de tecnologias sociais da Meta vinculável à empresa.
-- [ ] Incluir mecanismo de publicação de teste, sem envio público, para validar a integração antes de qualquer agendamento.
+- [x] Implementar teste não público de ponta a ponta, com container temporário da Meta, auditoria e bloqueio de agendamento até aprovação.
+- [x] Criar testes automatizados para o teste não público, incluindo sucesso, falha Meta e bloqueio de agendamento sem teste aprovado.
 - [x] Adicionar prévia visual real da mídia e legenda na central do Instagram antes da confirmação.
 - [x] Criar testes de serviço para confirmação explícita, idempotência e erro da Meta registrado em auditoria.

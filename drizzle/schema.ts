@@ -187,6 +187,8 @@ export const publicationJobs = mysqlTable("publication_jobs", {
   confirmedByUserId: int("confirmedByUserId"),
   scheduledAt: timestamp("scheduledAt"),
   scheduleCronTaskUid: varchar("scheduleCronTaskUid", { length: 65 }),
+  testContainerId: varchar("testContainerId", { length: 160 }),
+  testedAt: timestamp("testedAt"),
   containerId: varchar("containerId", { length: 160 }),
   mediaId: varchar("mediaId", { length: 160 }),
   permalink: varchar("permalink", { length: 2048 }),

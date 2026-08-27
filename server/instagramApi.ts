@@ -91,6 +91,30 @@ export async function getInstagramPublishingLimit(instagramUserId: string, token
   return graphRequest<{ data?: Array<{ quota_usage?: number; config?: { quota_total?: number } }> }>(`/${instagramUserId}/content_publishing_limit`, token);
 }
 
+export async function createInstagramTestContainer(input: { instagramUserId: string; token: string; mediaUrls: string[]; caption: string }) {
+  if (!input.mediaUrls.length) throw new InstagramApiError("Não há mídia para validar no teste não público.", "TEST_MEDIA_MISSING");
+  if (input.mediaUrls.length === 1) {
+    const result = await graphRequest<{ id?: string }>(`/${input.instagramUserId}/media`, input.token, {
+      method: "POST",
+      body: { image_url: input.mediaUrls[0], caption: input.caption },
+    });
+    if (!result.id) throw new InstagramApiError("A Meta não retornou o container temporário de teste.", "TEST_CONTAINER_NOT_CREATED");
+    return { containerId: result.id };
+  }
+  const children = await Promise.all(input.mediaUrls.map((imageUrl) => graphRequest<{ id?: string }>(`/${input.instagramUserId}/media`, input.token, {
+    method: "POST",
+    body: { image_url: imageUrl, is_carousel_item: true },
+  })));
+  const childIds = children.map((child) => child.id).filter((id): id is string => Boolean(id));
+  if (childIds.length !== input.mediaUrls.length) throw new InstagramApiError("A Meta não retornou todos os containers temporários do carrossel.", "TEST_CAROUSEL_ITEMS_FAILED");
+  const result = await graphRequest<{ id?: string }>(`/${input.instagramUserId}/media`, input.token, {
+    method: "POST",
+    body: { media_type: "CAROUSEL", children: childIds.join(","), caption: input.caption },
+  });
+  if (!result.id) throw new InstagramApiError("A Meta não retornou o container temporário do carrossel.", "TEST_CAROUSEL_CONTAINER_FAILED");
+  return { containerId: result.id };
+}
+
 export async function publishInstagramImages(input: { instagramUserId: string; token: string; mediaUrls: string[]; caption: string; altText?: string | null }) {
   if (input.mediaUrls.length === 0) throw new InstagramApiError("Não há mídia validada para publicar.", "NO_MEDIA");
   const createImage = (imageUrl: string, isCarouselItem: boolean) => graphRequest<{ id?: string }>(`/${input.instagramUserId}/media`, input.token, {

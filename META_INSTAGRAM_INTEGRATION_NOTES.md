@@ -51,6 +51,8 @@ A central **Instagram** permite selecionar apenas conteúdo aprovado, armazenar 
 
 O código inclui OAuth do Instagram Login, troca de token no servidor, consulta de limite de publicação, criação de container, publicação de imagem única ou carrossel e registro de tentativas. Também foi preparado o endpoint idempotente para publicação agendada. Nenhum agendamento foi criado: esta etapa exige checkpoint, publicação do Social Studio e as credenciais da aplicação Meta.
 
+Antes da confirmação final, cada versão congelada precisa passar por um teste não público de ponta a ponta. Para imagem única, o teste cria um container temporário; para carrossel, valida todas as mídias e o container de carrossel. O fluxo nunca chama o endpoint de publicação durante essa validação. O resultado é auditável e bloqueia publicação e agendamento enquanto não houver aprovação de teste.
+
 ## Variáveis seguras ainda necessárias
 
 Depois que a aplicação de tecnologias sociais estiver acessível, cadastre exclusivamente no gerenciador seguro do projeto `META_INSTAGRAM_APP_ID` e `META_INSTAGRAM_APP_SECRET`. Configure no painel da Meta a URL de retorno pública exatamente como `https://<domínio-publicado>/api/instagram/oauth/callback`, habilite Instagram Login e solicite `instagram_business_basic` e `instagram_business_content_publish`. Enquanto o aplicativo estiver em desenvolvimento, vincule a conta profissional como conta de teste/usuário com acesso permitido.

@@ -340,6 +340,8 @@ export async function getInstagramStudioData(userId: number) {
     status: publicationJobs.status,
     confirmedAt: publicationJobs.confirmedAt,
     scheduledAt: publicationJobs.scheduledAt,
+    testContainerId: publicationJobs.testContainerId,
+    testedAt: publicationJobs.testedAt,
     containerId: publicationJobs.containerId,
     mediaId: publicationJobs.mediaId,
     permalink: publicationJobs.permalink,
