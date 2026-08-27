@@ -15,13 +15,14 @@
 - [x] Criar o DNA da Marca com identidade visual, público, tom, CTA, palavras proibidas, site e dados de contato.
 - [x] Criar central de fontes com URL, título, tipo, data de verificação e vínculo ao conteúdo jurídico.
 - [x] Exibir ficha de rastreabilidade por conteúdo: afirmação, fonte, revisão e responsável.
-- [ ] Adicionar planejamento editorial com pilares, objetivo, formatos e geração de plano de 7 ou 30 dias.
-- [ ] Criar modelos estruturados de post, carrossel, checklist, FAQ, notícia e institucional para preenchimento seguro.
-- [ ] Preparar arquitetura para mídia gerada a partir de templates com texto renderizado pelo sistema, sem texto gerado dentro da imagem.
+- [x] Adicionar planejamento editorial com pilares, objetivo, formatos e geração de plano de 7 ou 30 dias.
+- [x] Criar modelos estruturados de post, carrossel, checklist, FAQ, notícia e institucional para preenchimento seguro.
+- [x] Preparar arquitetura para mídia gerada a partir de templates com texto renderizado pelo sistema, sem texto gerado dentro da imagem.
 - [x] Criar estados de operação manual e semiautomática; manter publicação autônoma como expansão futura.
 - [x] Registrar no produto as expansões futuras de Reels, integração oficial, agendamento automático, métricas e aprendizagem de desempenho.
-- [ ] Adicionar um motor de estratégia com objetivo, pilar editorial, campanha e estágio do funil antes da geração de conteúdo.
-- [ ] Ampliar a biblioteca de conhecimento para aceitar documentos, URLs e materiais institucionais vinculados à marca.
+- [x] Adicionar um motor de estratégia com objetivo, pilar editorial, campanha e estágio do funil antes da geração de conteúdo.
+- [x] Ampliar a biblioteca de conhecimento para aceitar documentos, URLs e materiais institucionais vinculados à marca.
 - [x] Criar score pré-publicação para clareza, CTA, marca, legibilidade e risco regulatório.
-- [ ] Adicionar detector de repetição de temas, títulos e legendas recentes.
+- [x] Adicionar detector de repetição de temas, títulos e legendas recentes.
 - [x] Registrar no roadmap a reutilização de conteúdo, evergreen, testes A/B, campanhas, métricas por objetivo, modo agência, CRM e monitor de falhas.
+- [x] Registrar no produto o roadmap do Sistema Operacional de Marketing por IA: objetivos, grafo de conteúdo, lacunas, personas, jornadas, métricas e governança avançada.

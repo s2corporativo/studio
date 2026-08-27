@@ -15,6 +15,9 @@ function Router() {
       <Route path={"/calendario"} component={Home} />
       <Route path={"/biblioteca"} component={Home} />
       <Route path={"/fontes"} component={Home} />
+      <Route path={"/planejamento"} component={Home} />
+      <Route path={"/conhecimento"} component={Home} />
+      <Route path={"/roadmap"} component={Home} />
       <Route path={"/marca"} component={Home} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}

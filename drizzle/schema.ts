@@ -61,6 +61,19 @@ export const contentSources = mysqlTable("content_sources", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const knowledgeMaterials = mysqlTable("knowledge_materials", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  materialType: varchar("materialType", { length: 60 }).notNull(),
+  url: varchar("url", { length: 1024 }),
+  storageKey: varchar("storageKey", { length: 1024 }),
+  mimeType: varchar("mimeType", { length: 120 }),
+  notes: text("notes"),
+  isVerified: boolean("isVerified").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const editorialTopics = mysqlTable("editorial_topics", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -84,6 +97,11 @@ export const contentPosts = mysqlTable("content_posts", {
   area: varchar("area", { length: 80 }).notNull(),
   format: mysqlEnum("format", editorialFormats).notNull(),
   audience: varchar("audience", { length: 180 }).notNull(),
+  strategicObjective: text("strategicObjective"),
+  contentPillar: varchar("contentPillar", { length: 80 }),
+  campaign: varchar("campaign", { length: 180 }),
+  funnelStage: mysqlEnum("funnelStage", ["discovery", "consideration", "conversion", "relationship"]),
+  templateKey: varchar("templateKey", { length: 60 }),
   title: varchar("title", { length: 255 }).notNull(),
   hook: text("hook"),
   caption: text("caption"),

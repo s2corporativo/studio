@@ -5,6 +5,7 @@ import {
   contentPosts,
   contentSources,
   editorialTopics,
+  knowledgeMaterials,
   type ContentPost,
   type ContentStatus,
 } from "../drizzle/schema";
@@ -70,6 +71,18 @@ export async function ensureStudioDefaults(userId: number) {
       verifiedAt: new Date(),
     });
   }
+
+  const existingKnowledge = await db.select({ id: knowledgeMaterials.id }).from(knowledgeMaterials).where(eq(knowledgeMaterials.userId, userId)).limit(1);
+  if (existingKnowledge.length === 0) {
+    await db.insert(knowledgeMaterials).values({
+      userId,
+      title: "Site institucional da De Paula Teixeira Advocacia",
+      materialType: "site institucional",
+      url: "https://depaulateixeira.adv.br",
+      notes: "Referência prioritária para áreas de atuação, tom e canais oficiais.",
+      isVerified: true,
+    });
+  }
 }
 
 export async function getStudioData(userId: number) {
@@ -80,6 +93,7 @@ export async function getStudioData(userId: number) {
   const topics = await db.select().from(editorialTopics).where(eq(editorialTopics.userId, userId)).orderBy(desc(editorialTopics.createdAt));
   const posts = await db.select().from(contentPosts).where(eq(contentPosts.userId, userId)).orderBy(desc(contentPosts.updatedAt));
   const sources = await db.select().from(contentSources).where(eq(contentSources.userId, userId)).orderBy(desc(contentSources.verifiedAt));
+  const knowledge = await db.select().from(knowledgeMaterials).where(eq(knowledgeMaterials.userId, userId)).orderBy(desc(knowledgeMaterials.createdAt));
   const usageByTopic = posts.reduce<Record<number, number>>((acc, post) => {
     if (post.topicId) acc[post.topicId] = (acc[post.topicId] ?? 0) + 1;
     return acc;
@@ -88,7 +102,7 @@ export async function getStudioData(userId: number) {
     .map(topic => ({ ...topic, usageCount: usageByTopic[topic.id] ?? 0 }))
     .sort((a, b) => b.usageCount - a.usageCount || a.title.localeCompare(b.title, "pt-BR"))
     .slice(0, 6);
-  return { brand, topics, posts, sources, topTopics };
+  return { brand, topics, posts, sources, knowledge, topTopics };
 }
 
 export async function createStudioPost(userId: number, values: Omit<typeof contentPosts.$inferInsert, "id" | "userId" | "createdAt" | "updatedAt">) {
@@ -130,6 +144,14 @@ export async function createContentSource(userId: number, values: Omit<typeof co
   const result = await db.insert(contentSources).values({ ...values, userId });
   const [source] = await db.select().from(contentSources).where(and(eq(contentSources.id, Number(result[0].insertId)), eq(contentSources.userId, userId))).limit(1);
   return source;
+}
+
+export async function createKnowledgeMaterial(userId: number, values: Omit<typeof knowledgeMaterials.$inferInsert, "id" | "userId" | "createdAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const result = await db.insert(knowledgeMaterials).values({ ...values, userId });
+  const [material] = await db.select().from(knowledgeMaterials).where(and(eq(knowledgeMaterials.id, Number(result[0].insertId)), eq(knowledgeMaterials.userId, userId))).limit(1);
+  return material;
 }
 
 export async function recordDecision(userId: number, postId: number, reviewerName: string, decision: "approved" | "rejected" | "changes_requested", notes?: string) {

@@ -1,0 +1,19 @@
+import { Activity, BrainCircuit, ChartNoAxesCombined, DatabaseZap, GitBranch, ShieldCheck, Target, Workflow } from "lucide-react";
+
+const stages = [
+  { code: "V1", title: "Controle editorial e jurídico", description: "Estratégia, fontes, rascunhos, score, revisão humana, aprovação e agenda interna.", icon: ShieldCheck, state: "entregue" },
+  { code: "V2", title: "Conteúdo e campanha conectados", description: "Content Graph, lacunas editoriais, personas, jornadas, objeções, provas revisadas e limites de saturação comercial.", icon: GitBranch, state: "planejado" },
+  { code: "V3", title: "Governança e distribuição", description: "Auditoria, versões congeladas, claims perigosos, conteúdo desatualizado, fila evergreen, integração oficial e métricas por objetivo.", icon: Activity, state: "planejado" },
+  { code: "V4", title: "Marketing operacional por IA", description: "CRM, atribuição de receita, ROI editorial, campanhas multicanal, regionalização, cenários, modo crise e replanejamento orientado por dados.", icon: BrainCircuit, state: "visão estratégica" },
+];
+
+const modules = [
+  { title: "Objetivos e jornadas", copy: "Meta comercial → campanha → sequência de conteúdos → validação humana.", icon: Target },
+  { title: "Grafo de conteúdo", copy: "Serviços, dores, objeções, públicos, provas e conteúdos se conectam sem perder rastreabilidade.", icon: DatabaseZap },
+  { title: "Aprendizagem explicável", copy: "Decisões devem mostrar por que determinado tema, formato e horário foram priorizados.", icon: ChartNoAxesCombined },
+  { title: "Governança permanente", copy: "Fonte, responsável, revisão e bloqueios continuam acima da velocidade operacional.", icon: Workflow },
+];
+
+export default function MarketingRoadmap() {
+  return <div className="space-y-7"><section className="editorial-panel overflow-hidden rounded-2xl p-6 sm:p-8"><p className="tiny-kicker">Arquitetura de evolução</p><div className="mt-4 grid gap-7 lg:grid-cols-[1.2fr_.8fr]"><div><h2 className="max-w-3xl font-serif text-4xl leading-[1.04] text-[#f1e8d9]">Do post isolado ao Sistema Operacional de Marketing por IA.</h2><p className="mt-5 max-w-2xl text-sm leading-6 text-[#a9b5ad]">A plataforma evolui em camadas. A base é editorial e jurídica: nenhuma automação futura deve remover a procedência da informação, o responsável humano ou a capacidade de explicar cada decisão.</p></div><div className="rounded-2xl border border-[#d7ad69]/20 bg-[#c99550]/7 p-5"><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#e2ba7a]">Regra de arquitetura</p><p className="mt-4 font-serif text-2xl leading-7 text-[#efe2cf]">“Automação só escala o que já está controlado.”</p><p className="mt-4 text-xs leading-5 text-[#a5afa8]">Publicação automática, integração de dados e otimização por receita permanecem bloqueadas até que a marca tenha fontes, políticas, métricas e aprovações consistentes.</p></div></div></section><section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">{modules.map((module) => <article className="editorial-panel min-h-48 rounded-2xl p-5" key={module.title}><module.icon className="h-5 w-5 text-[#d9b16f]" /><h3 className="mt-7 font-serif text-xl text-[#eee5d9]">{module.title}</h3><p className="mt-3 text-xs leading-5 text-[#9da89f]">{module.copy}</p></article>)}</section><section className="space-y-4">{stages.map((stage) => <article key={stage.code} className="editorial-panel grid gap-5 rounded-2xl p-5 sm:grid-cols-[88px_1fr_auto] sm:items-center"><div className="font-serif text-4xl text-[#e5bb78]">{stage.code}</div><div><p className="font-serif text-2xl text-[#eee5d9]">{stage.title}</p><p className="mt-2 max-w-3xl text-xs leading-5 text-[#9da89f]">{stage.description}</p></div><span className="h-fit rounded-full border border-[#d7ad69]/20 bg-[#c99550]/8 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#e5bb78]">{stage.state}</span></article>)}</section></div>;
+}
