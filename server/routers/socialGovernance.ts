@@ -39,7 +39,7 @@ export const socialGovernanceRouter = router({
     if (input.decision === "approved") {
       const [post, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.id), getStudioData(ctx.user.id)]);
       const result = approvalReadiness({ ...post, approvalOwnerName: reviewerName, prohibitedTerms: brand?.prohibitedTerms });
-      if (!result.allowed) throw new Error(result.reason);
+      if (!result.ready) throw new Error(`Aprovação bloqueada: inclua ${result.missing.join(", ")}.`);
       const approved = await bindApproval(ctx.user.id, input.id, reviewerName, input.notes);
       await recordAuditEvent(ctx.user.id, "post.version_approved", "content_post", input.id);
       return approved;
