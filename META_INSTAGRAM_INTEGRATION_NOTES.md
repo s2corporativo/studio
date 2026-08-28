@@ -70,3 +70,7 @@ O endpoint de agendamento em produção foi verificado em 27/08/2026. Uma chamad
 ## Situação de permissões
 
 Nas configurações de pessoas da Meta Business Suite, a conta autenticada de Clovis Soares foi exibida com **Acesso total** ao portfólio empresarial e à conta `@depaulateixeira.adv`. A criação do aplicativo, contudo, exige o registro separado de uma conta pessoal de Facebook como desenvolvedor no portal Meta for Developers. O redirecionamento para esse registro já foi identificado; esta etapa permanece para o usuário concluir em momento oportuno.
+
+## Validação de credenciais do aplicativo
+
+Em 28/08/2026, a validação foi alinhada ao fluxo oficial de emissão de token de aplicativo: `GET https://graph.facebook.com/oauth/access_token` com `client_id`, `client_secret` e `grant_type=client_credentials`. Essa chamada não inicia OAuth de usuário e não publica conteúdo. O App ID e o App Secret só podem ser vistos no painel de configurações básicas do aplicativo DPT; o segredo não é recuperável por pesquisa pública e não deve ser incluído em mensagens, código, logs ou documentos.
