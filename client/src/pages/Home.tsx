@@ -39,9 +39,9 @@ export default function Home() {
 
   const refresh = async () => { await utils.socialStudio.data.invalidate(); };
   const generate = trpc.socialStudio.generateDraft.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Rascunho criado."); }, onError: mutationError });
-  const updatePost = trpc.socialStudio.updatePost.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Conteúdo salvo."); }, onError: mutationError });
+  const updatePost = trpc.socialGovernance.updatePost.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success(post.status === "draft" ? "Conteúdo salvo; aprovação anterior foi invalidada quando necessário." : "Conteúdo salvo."); }, onError: mutationError });
   const sendReview = trpc.socialStudio.sendToReview.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Enviado para revisão."); }, onError: mutationError });
-  const decide = trpc.socialStudio.decide.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Decisão registrada."); }, onError: mutationError });
+  const decide = trpc.socialGovernance.decide.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Decisão vinculada à versão atual do conteúdo."); }, onError: mutationError });
   const schedule = trpc.socialStudio.schedule.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Data registrada no calendário."); }, onError: mutationError });
   const addSource = trpc.socialStudio.addSource.useMutation({ onSuccess: async () => { await refresh(); toast.success("Fonte cadastrada."); }, onError: mutationError });
   const addKnowledge = trpc.socialStudio.addKnowledge.useMutation({ onSuccess: async () => { await refresh(); toast.success("Referência cadastrada."); }, onError: mutationError });
