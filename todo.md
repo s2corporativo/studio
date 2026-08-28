@@ -59,3 +59,18 @@
 - [x] Corrigir a geração de rascunho a partir do Radar quando o serviço de IA retornar erro interno, preservando fonte e controles de revisão.
 - [x] Impedir espera indefinida no Design AI, com limite seguro, retorno claro de falha e nova tentativa possível.
 - [x] Auditar as alterações remotas recentes do repositório Studio antes de qualquer sincronização local.
+- [x] Criar cadastro seguro de perfis externos de Instagram, Facebook, LinkedIn, TikTok e YouTube com URL pública, identificação e status operacional.
+- [x] Permitir adicionar, editar, ativar, desativar e remover perfis sociais externos na Central de Redes, sem armazenar senhas ou tokens em texto aberto.
+- [x] Vincular o perfil de Instagram cadastrado ao fluxo OAuth oficial já existente, preservando os bloqueios de Meta, teste não público e confirmação humana.
+- [x] Validar a interface de gestão de perfis sociais em desktop e mobile e criar testes de isolamento por usuário.
+- [x] Associar funcionalmente o perfil de Instagram cadastrado à conexão OAuth oficial, com vínculo persistente por perfil.
+- [x] Exibir na Central de Redes o estado real da conexão OAuth do perfil de Instagram cadastrado.
+- [x] Cobrir em teste o vínculo entre perfil de Instagram, abertura do OAuth e estado de conexão oficial.
+- [x] Testar as transições OAuth pendente, conectado e erro entre a conexão oficial e o perfil de Instagram vinculado.
+- [x] Testar a apresentação do estado real da conexão OAuth no card do perfil de Instagram da Central de Redes.
+- [x] Testar o callback OAuth com vínculo persistido de perfil e transições pendente, conectado e erro na conexão oficial.
+- [x] Testar que o card da Central de Redes renderiza o estado real proveniente da conexão OAuth vinculada.
+- [x] Testar o estado persistente inicial `pending` e a transição completa para `connected` ou `error` no vínculo OAuth do perfil.
+- [x] Incluir a cobertura de apresentação da Central de Redes em um arquivo executado pela suíte e validar todos os rótulos do OAuth vinculado.
+- [x] Testar a persistência de `pending` e `pending_oauth` ao vincular o perfil Instagram à conexão oficial.
+- [x] Testar a sequência persistida `pending → connected` e `pending → error` entre o vínculo de perfil e o callback OAuth.

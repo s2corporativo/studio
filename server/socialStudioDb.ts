@@ -12,10 +12,12 @@ import {
   knowledgeMaterials,
   publicationAttempts,
   publicationJobs,
+  socialProfiles as socialProfilesTable,
   type ContentPost,
   type ContentStatus,
 } from "../drizzle/schema";
 import { getDb } from "./db";
+import { profileStateForInstagramConnection, type InstagramProfileState } from "../shared/instagramProfileConnection";
 
 const defaultTopics = [
   ["Consumidor", "Cobrança indevida: o que precisa ser provado", "Pessoas físicas", "alta", "carousel", "https://www.planalto.gov.br/ccivil_03/leis/l8078compilado.htm"],
@@ -119,6 +121,7 @@ export async function getStudioData(userId: number) {
   const assets = await db.select().from(assetLibraryItems).where(eq(assetLibraryItems.userId, userId)).orderBy(asc(assetLibraryItems.area), asc(assetLibraryItems.groupKey), asc(assetLibraryItems.slideOrder), asc(assetLibraryItems.fileName));
   const sources = await db.select().from(contentSources).where(eq(contentSources.userId, userId)).orderBy(desc(contentSources.verifiedAt));
   const knowledge = await db.select().from(knowledgeMaterials).where(eq(knowledgeMaterials.userId, userId)).orderBy(desc(knowledgeMaterials.createdAt));
+  const socialProfiles = await db.select().from(socialProfilesTable).where(eq(socialProfilesTable.userId, userId)).orderBy(asc(socialProfilesTable.network), asc(socialProfilesTable.displayName));
   const usageByTopic = posts.reduce<Record<number, number>>((acc, post) => {
     if (post.topicId) acc[post.topicId] = (acc[post.topicId] ?? 0) + 1;
     return acc;
@@ -127,7 +130,44 @@ export async function getStudioData(userId: number) {
     .map(topic => ({ ...topic, usageCount: usageByTopic[topic.id] ?? 0 }))
     .sort((a, b) => b.usageCount - a.usageCount || a.title.localeCompare(b.title, "pt-BR"))
     .slice(0, 6);
-  return { brand, automation, topics, posts, media, assets, sources, knowledge, topTopics };
+  return { brand, automation, topics, posts, media, assets, sources, knowledge, socialProfiles, topTopics };
+}
+
+export async function getSocialProfiles(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  return db.select().from(socialProfilesTable).where(eq(socialProfilesTable.userId, userId)).orderBy(asc(socialProfilesTable.network), asc(socialProfilesTable.displayName));
+}
+
+export async function getSocialProfile(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [profile] = await db.select().from(socialProfilesTable).where(and(eq(socialProfilesTable.id, profileId), eq(socialProfilesTable.userId, userId))).limit(1);
+  if (!profile) throw new Error("Perfil social não encontrado.");
+  return profile;
+}
+
+export async function createSocialProfile(userId: number, values: Omit<typeof socialProfilesTable.$inferInsert, "id" | "userId" | "createdAt" | "updatedAt">) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const result = await db.insert(socialProfilesTable).values({ ...values, userId });
+  return getSocialProfile(userId, Number(result[0].insertId));
+}
+
+export async function updateSocialProfile(userId: number, profileId: number, patch: Partial<Omit<typeof socialProfilesTable.$inferSelect, "id" | "userId" | "network" | "createdAt" | "updatedAt">>) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await getSocialProfile(userId, profileId);
+  await db.update(socialProfilesTable).set({ ...patch, updatedAt: new Date() }).where(and(eq(socialProfilesTable.id, profileId), eq(socialProfilesTable.userId, userId)));
+  return getSocialProfile(userId, profileId);
+}
+
+export async function removeSocialProfile(userId: number, profileId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await getSocialProfile(userId, profileId);
+  await db.delete(socialProfilesTable).where(and(eq(socialProfilesTable.id, profileId), eq(socialProfilesTable.userId, userId)));
+  return { id: profileId };
 }
 
 export async function createStudioPost(userId: number, values: Omit<typeof contentPosts.$inferInsert, "id" | "userId" | "createdAt" | "updatedAt">) {
@@ -259,6 +299,7 @@ export async function getInstagramConnectionSummary(userId: number) {
   if (!db) throw new Error("Banco de dados indisponível.");
   const [connection] = await db.select({
     id: instagramConnections.id,
+    socialProfileId: instagramConnections.socialProfileId,
     instagramUserId: instagramConnections.instagramUserId,
     username: instagramConnections.username,
     tokenExpiresAt: instagramConnections.tokenExpiresAt,
@@ -276,17 +317,44 @@ export async function upsertInstagramConnection(userId: number, values: Omit<typ
   if (!db) throw new Error("Banco de dados indisponível.");
   const existing = await getInstagramConnection(userId);
   if (existing) {
-    await db.update(instagramConnections).set({ ...values, updatedAt: new Date() }).where(eq(instagramConnections.id, existing.id));
+    const { socialProfileId, ...connectionValues } = values;
+    await db.update(instagramConnections).set({ ...connectionValues, socialProfileId: socialProfileId ?? existing.socialProfileId, updatedAt: new Date() }).where(eq(instagramConnections.id, existing.id));
   } else {
     await db.insert(instagramConnections).values({ ...values, userId });
   }
   return getInstagramConnection(userId);
 }
 
+export async function linkInstagramProfileToConnection(userId: number, profileId: number) {
+  const profile = await getSocialProfile(userId, profileId);
+  if (profile.network !== "instagram") throw new Error("Selecione um perfil de Instagram para iniciar a conexão oficial.");
+  const connection = await getInstagramConnection(userId);
+  const linked = await upsertInstagramConnection(userId, {
+    socialProfileId: profile.id,
+    instagramUserId: connection?.instagramUserId ?? null,
+    username: connection?.username ?? profile.handle,
+    accessTokenCiphertext: connection?.accessTokenCiphertext ?? null,
+    tokenExpiresAt: connection?.tokenExpiresAt ?? null,
+    permissions: connection?.permissions ?? null,
+    state: "pending",
+    lastError: null,
+    connectedAt: connection?.connectedAt ?? null,
+  });
+  await updateSocialProfile(userId, profile.id, { state: profileStateForInstagramConnection("pending") });
+  return linked;
+}
+
+export async function setInstagramProfileConnectionState(userId: number, profileId: number, state: InstagramProfileState) {
+  const profile = await getSocialProfile(userId, profileId);
+  if (profile.network !== "instagram") return profile;
+  return updateSocialProfile(userId, profileId, { state });
+}
+
 export async function setInstagramConnectionError(userId: number, message: string) {
   const connection = await getInstagramConnection(userId);
   if (!connection) return null;
-  return upsertInstagramConnection(userId, {
+  const updatedConnection = await upsertInstagramConnection(userId, {
+    socialProfileId: connection.socialProfileId,
     instagramUserId: connection.instagramUserId,
     username: connection.username,
     accessTokenCiphertext: connection.accessTokenCiphertext,
@@ -296,6 +364,7 @@ export async function setInstagramConnectionError(userId: number, message: strin
     lastError: message.slice(0, 3_000),
     connectedAt: connection.connectedAt,
   });
+  return updatedConnection;
 }
 
 export type FrozenPublicationPayload = {

@@ -37,6 +37,9 @@ export const instagramConnectionStates = ["disconnected", "pending", "connected"
 export const publicationJobStatuses = ["pending_confirmation", "queued", "processing", "published", "failed", "cancelled"] as const;
 export const publicationAttemptStages = ["preflight", "container", "publish", "schedule", "callback"] as const;
 export const publicationAttemptOutcomes = ["started", "succeeded", "failed", "skipped"] as const;
+export const socialNetworks = ["instagram", "facebook", "linkedin", "tiktok", "youtube"] as const;
+export const socialProfileStates = ["active", "inactive", "pending_oauth", "connected", "error"] as const;
+export const socialProfileConnectionModes = ["manual", "oauth"] as const;
 
 export const brandProfiles = mysqlTable("brand_profiles", {
   id: int("id").autoincrement().primaryKey(),
@@ -206,6 +209,7 @@ export const approvalLogs = mysqlTable("approval_logs", {
 export const instagramConnections = mysqlTable("instagram_connections", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
+  socialProfileId: int("socialProfileId"),
   instagramUserId: varchar("instagramUserId", { length: 80 }),
   username: varchar("username", { length: 120 }),
   accessTokenCiphertext: text("accessTokenCiphertext"),
@@ -218,7 +222,28 @@ export const instagramConnections = mysqlTable("instagram_connections", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [
   uniqueIndex("instagram_connections_user_unique").on(table.userId),
+  index("instagram_connections_profile_idx").on(table.socialProfileId),
   index("instagram_connections_state_idx").on(table.state),
+]);
+
+export const socialProfiles = mysqlTable("social_profiles", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  network: mysqlEnum("network", socialNetworks).notNull(),
+  displayName: varchar("displayName", { length: 160 }).notNull(),
+  handle: varchar("handle", { length: 160 }),
+  profileUrl: varchar("profileUrl", { length: 1024 }).notNull(),
+  externalAccountId: varchar("externalAccountId", { length: 160 }),
+  connectionMode: mysqlEnum("connectionMode", socialProfileConnectionModes).default("manual").notNull(),
+  state: mysqlEnum("state", socialProfileStates).default("active").notNull(),
+  notes: text("notes"),
+  verifiedAt: timestamp("verifiedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("social_profiles_user_network_url_unique").on(table.userId, table.network, table.profileUrl),
+  index("social_profiles_user_network_idx").on(table.userId, table.network),
+  index("social_profiles_user_state_idx").on(table.userId, table.state),
 ]);
 
 export const publicationJobs = mysqlTable("publication_jobs", {
@@ -272,5 +297,6 @@ export type ContentStatus = (typeof contentStatuses)[number];
 export type ContentMedia = typeof contentMedia.$inferSelect;
 export type AssetLibraryItem = typeof assetLibraryItems.$inferSelect;
 export type InstagramConnection = typeof instagramConnections.$inferSelect;
+export type SocialProfile = typeof socialProfiles.$inferSelect;
 export type PublicationJob = typeof publicationJobs.$inferSelect;
 export type AutomationSetting = typeof automationSettings.$inferSelect;

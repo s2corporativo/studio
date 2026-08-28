@@ -2,7 +2,7 @@ import { z } from "zod";
 import { contentStatuses, editorialFormats } from "../../drizzle/schema";
 import { approvalReadiness, canSchedule, canSubmitForReview } from "../studioRules";
 import { generateLegalDraft } from "../socialStudioGenerator";
-import { createContentSource, createKnowledgeMaterial, createPublicationRequest, createStudioPost, getInstagramConnection, getInstagramStudioData, getOrCreateContentSource, getPostMedia, getPublicationJob, getStudioData, getStudioPost, recordDecision, recordPublicationAttempt, updateAutomationSettings, updateBrandProfile, updatePublicationJob, updateStudioPost, addPostMedia, removePostMedia, type FrozenPublicationPayload } from "../socialStudioDb";
+import { createContentSource, createKnowledgeMaterial, createPublicationRequest, createSocialProfile, createStudioPost, getInstagramConnection, getInstagramStudioData, getOrCreateContentSource, getPostMedia, getPublicationJob, getSocialProfiles, getStudioData, getStudioPost, linkInstagramProfileToConnection, recordDecision, recordPublicationAttempt, removeSocialProfile, updateAutomationSettings, updateBrandProfile, updatePublicationJob, updateSocialProfile, updateStudioPost, addPostMedia, removePostMedia, type FrozenPublicationPayload } from "../socialStudioDb";
 import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
 import { buildInstagramBusinessLoginUrl, isInstagramMetaConfigured } from "../instagramApi";
@@ -15,12 +15,40 @@ import { parse as parseCookie } from "cookie";
 import { COOKIE_NAME } from "@shared/const";
 import { generateImage } from "../_core/imageGeneration";
 import { fetchCurrentRadar } from "../newsRadar";
+import { publicSocialProfileHandle, publicSocialProfileUrl, socialNetworkInput } from "../socialProfilePolicy";
 
 const statusSchema = z.enum(contentStatuses);
 const formatSchema = z.enum(editorialFormats);
 
 export const socialStudioRouter = router({
   data: protectedProcedure.query(({ ctx }) => getStudioData(ctx.user.id)),
+  socialProfiles: protectedProcedure.query(({ ctx }) => getSocialProfiles(ctx.user.id)),
+  addSocialProfile: protectedProcedure.input(z.object({
+    network: socialNetworkInput,
+    displayName: z.string().trim().min(2).max(160),
+    handle: publicSocialProfileHandle,
+    profileUrl: publicSocialProfileUrl,
+    externalAccountId: z.string().trim().max(160).nullable(),
+    notes: z.string().trim().max(2000).nullable(),
+  })).mutation(({ ctx, input }) => createSocialProfile(ctx.user.id, {
+    ...input,
+    connectionMode: "manual",
+    state: "active",
+    verifiedAt: new Date(),
+  })),
+  updateSocialProfile: protectedProcedure.input(z.object({
+    id: z.number(),
+    displayName: z.string().trim().min(2).max(160),
+    handle: publicSocialProfileHandle,
+    profileUrl: publicSocialProfileUrl,
+    externalAccountId: z.string().trim().max(160).nullable(),
+    notes: z.string().trim().max(2000).nullable(),
+    state: z.enum(["active", "inactive"]),
+  })).mutation(({ ctx, input }) => {
+    const { id, ...patch } = input;
+    return updateSocialProfile(ctx.user.id, id, patch);
+  }),
+  removeSocialProfile: protectedProcedure.input(z.object({ id: z.number() })).mutation(({ ctx, input }) => removeSocialProfile(ctx.user.id, input.id)),
   radar: protectedProcedure.query(() => fetchCurrentRadar()),
   updateAutomation: protectedProcedure.input(z.object({
     enabled: z.boolean(),
@@ -140,8 +168,13 @@ export const socialStudioRouter = router({
     const [studio, instagram] = await Promise.all([getStudioData(ctx.user.id), getInstagramStudioData(ctx.user.id)]);
     return { ...instagram, posts: studio.posts, media: studio.media, brand: studio.brand, metaConfigured: isInstagramMetaConfigured() };
   }),
-  beginInstagramConnection: protectedProcedure.mutation(({ ctx }) => {
+  beginInstagramConnection: protectedProcedure.input(z.object({ profileId: z.number().int().positive().optional() }).optional()).mutation(async ({ ctx, input }) => {
     if (!isInstagramMetaConfigured()) throw new Error("A aplicação Meta ainda não está acessível ou suas credenciais não foram configuradas no ambiente seguro.");
+    const profiles = await getSocialProfiles(ctx.user.id);
+    const activeInstagramProfiles = profiles.filter(profile => profile.network === "instagram" && profile.state !== "inactive");
+    const profileId = input?.profileId ?? (activeInstagramProfiles.length === 1 ? activeInstagramProfiles[0]?.id : undefined);
+    if (!profileId) throw new Error("Cadastre ou selecione um único perfil ativo de Instagram antes de iniciar o OAuth oficial.");
+    await linkInstagramProfileToConnection(ctx.user.id, profileId);
     const redirectUri = getInstagramRedirectUri(ctx.req);
     return { authorizationUrl: buildInstagramBusinessLoginUrl(redirectUri, createInstagramOAuthState(ctx.user.id)), redirectUri };
   }),

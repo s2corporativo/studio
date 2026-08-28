@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { encryptInstagramToken } from "./instagramCrypto";
 import { exchangeInstagramAuthorizationCode, getInstagramProfile } from "./instagramApi";
-import { setInstagramConnectionError, upsertInstagramConnection } from "./socialStudioDb";
+import { setInstagramConnectionError, setInstagramProfileConnectionState, upsertInstagramConnection } from "./socialStudioDb";
 import { verifyInstagramOAuthState } from "./instagramOAuthState";
 import { getInstagramOAuthOrigin, getInstagramRedirectUri } from "./instagramOrigins";
 import { sdk } from "./_core/sdk";
@@ -13,6 +13,27 @@ function query(req: Request, key: string) {
 
 function redirect(res: Response, origin: string, state: "connected" | "denied" | "error") {
   res.redirect(302, `${origin}/instagram?instagram=${state}`);
+}
+
+export async function completeInstagramOAuthConnection(userId: number, token: { instagramUserId: string; accessToken: string; expiresInSeconds: number; permissions: string | null }, profile: { id?: string | null; user_id?: string | null; username?: string | null }) {
+  const connection = await upsertInstagramConnection(userId, {
+    instagramUserId: profile.id ?? profile.user_id ?? token.instagramUserId,
+    username: profile.username ?? null,
+    accessTokenCiphertext: encryptInstagramToken(token.accessToken),
+    tokenExpiresAt: new Date(Date.now() + token.expiresInSeconds * 1000),
+    permissions: token.permissions,
+    state: "connected",
+    lastError: null,
+    connectedAt: new Date(),
+  });
+  if (connection?.socialProfileId) await setInstagramProfileConnectionState(userId, connection.socialProfileId, "connected");
+  return connection;
+}
+
+export async function failInstagramOAuthConnection(userId: number) {
+  const connection = await setInstagramConnectionError(userId, "Não foi possível concluir a conexão com a Meta. Verifique as permissões e tente novamente.");
+  if (connection?.socialProfileId) await setInstagramProfileConnectionState(userId, connection.socialProfileId, "error");
+  return connection;
 }
 
 export function registerInstagramOAuthRoutes(app: Express) {
@@ -41,20 +62,11 @@ export function registerInstagramOAuthRoutes(app: Express) {
       const callbackUrl = getInstagramRedirectUri(req);
       const token = await exchangeInstagramAuthorizationCode(code, callbackUrl);
       const profile = await getInstagramProfile(token.instagramUserId, token.accessToken);
-      await upsertInstagramConnection(sessionUser.id, {
-        instagramUserId: profile.id ?? profile.user_id ?? token.instagramUserId,
-        username: profile.username ?? null,
-        accessTokenCiphertext: encryptInstagramToken(token.accessToken),
-        tokenExpiresAt: new Date(Date.now() + token.expiresInSeconds * 1000),
-        permissions: token.permissions,
-        state: "connected",
-        lastError: null,
-        connectedAt: new Date(),
-      });
+      await completeInstagramOAuthConnection(sessionUser.id, token, profile);
       redirect(res, origin, "connected");
     } catch (error) {
       const state = query(req, "state") ? verifyInstagramOAuthState(query(req, "state")!) : null;
-      if (state) await setInstagramConnectionError(state.userId, "Não foi possível concluir a conexão com a Meta. Verifique as permissões e tente novamente.");
+      if (state) await failInstagramOAuthConnection(state.userId);
       console.error("[Instagram OAuth] Callback failed", error instanceof Error ? error.message : "unknown");
       if (origin) redirect(res, origin, "error");
       else res.status(500).send("Não foi possível concluir a conexão com o Instagram.");
