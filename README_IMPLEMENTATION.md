@@ -31,6 +31,17 @@
 
 ## Validação
 
-O workflow `.github/workflows/ci.yml` está configurado, porém o GitHub Actions do repositório está encerrando os runs com `startup_failure` antes de criar qualquer job. Portanto `pnpm check`, `pnpm test` e `pnpm build` ainda não possuem resultado de runner nesta branch.
+O workflow `.github/workflows/ci.yml` está configurado, porém o GitHub Actions do repositório está encerrando os runs com `startup_failure` antes de criar qualquer job. O endpoint de jobs do run atual retorna zero jobs; portanto `pnpm check`, `pnpm test` e `pnpm build` ainda não foram executados pelo GitHub nesta branch.
+
+Antes do merge final devem existir evidências de:
+
+1. `pnpm check` concluído com sucesso;
+2. `pnpm test` concluído com sucesso;
+3. `pnpm build` concluído com sucesso;
+4. `node scripts/validate-migrations.mjs` concluído com sucesso;
+5. migrations aplicadas em banco de staging/produção sem reset;
+6. `/api/health` e `/api/ready` retornando JSON esperado;
+7. smoke das rotas principais;
+8. OAuth/teste não público do Instagram validado com credenciais oficiais quando disponíveis.
 
 O PR deve permanecer em draft até que um runner execute a suíte ou uma validação equivalente seja realizada em ambiente de build autorizado.
