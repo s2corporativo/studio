@@ -50,7 +50,7 @@ export function registerInstagramOAuthRoutes(app: Express) {
       }
       const authorizationError = query(req, "error");
       if (authorizationError) {
-        await setInstagramConnectionError(sessionUser.id, "A autorização da conta do Instagram foi recusada ou não concluída.");
+        await failInstagramOAuthConnection(sessionUser.id);
         redirect(res, origin, "denied");
         return;
       }
@@ -61,7 +61,7 @@ export function registerInstagramOAuthRoutes(app: Express) {
       }
       const callbackUrl = getInstagramRedirectUri(req);
       const token = await exchangeInstagramAuthorizationCode(code, callbackUrl);
-      const profile = await getInstagramProfile(token.instagramUserId, token.accessToken);
+      const profile = await getInstagramProfile(token.accessToken);
       await completeInstagramOAuthConnection(sessionUser.id, token, profile);
       redirect(res, origin, "connected");
     } catch (error) {

@@ -24,7 +24,7 @@ export async function testInstagramConnection(userId: number) {
     const token = decryptInstagramToken(connection.accessTokenCiphertext);
     const limit = await getInstagramPublishingLimit(connection.instagramUserId, token);
     const used = limit.data?.[0]?.quota_usage ?? 0;
-    const total = limit.data?.[0]?.config?.quota_total ?? 100;
+    const total = limit.data?.[0]?.config?.quota_total ?? 50;
     await upsertInstagramConnection(userId, {
       instagramUserId: connection.instagramUserId,
       username: connection.username,
@@ -59,7 +59,7 @@ export async function testInstagramPublication(userId: number, jobId: number) {
   try {
     const limit = await getInstagramPublishingLimit(connection.instagramUserId, token);
     const used = limit.data?.[0]?.quota_usage ?? 0;
-    const total = limit.data?.[0]?.config?.quota_total ?? 100;
+    const total = limit.data?.[0]?.config?.quota_total ?? 50;
     if (used >= total) throw new InstagramApiError("O limite de publicações da conta no período atual foi atingido.", "PUBLISHING_LIMIT_REACHED");
     await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "succeeded", detail: `Teste autorizado; limite atual ${used}/${total}.` });
     await recordPublicationAttempt(job.id, { stage: "container", outcome: "started", detail: "Criando container temporário com a primeira mídia; a publicação pública não será chamada." });
@@ -101,7 +101,7 @@ export async function executeConfirmedInstagramPublication(userId: number, jobId
   try {
     const limit = await getInstagramPublishingLimit(connection.instagramUserId, token);
     const used = limit.data?.[0]?.quota_usage ?? 0;
-    const total = limit.data?.[0]?.config?.quota_total ?? 100;
+    const total = limit.data?.[0]?.config?.quota_total ?? 50;
     if (used >= total) throw new InstagramApiError("O limite de publicações da conta no período atual foi atingido.", "PUBLISHING_LIMIT_REACHED");
     await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "succeeded", detail: `Limite verificado: ${used}/${total} publicações no período.` });
     await recordPublicationAttempt(job.id, { stage: "container", outcome: "started", detail: `Enviando ${payload.media.length} imagem(ns) JPEG previamente validada(s).` });

@@ -51,7 +51,7 @@ export function buildInstagramBusinessLoginUrl(redirectUri: string, state: strin
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", "instagram_business_basic,instagram_business_content_publish");
   url.searchParams.set("state", state);
-  url.searchParams.set("enable_fb_login", "true");
+  url.searchParams.set("enable_fb_login", "false");
   return url.toString();
 }
 
@@ -83,12 +83,12 @@ export async function exchangeInstagramAuthorizationCode(code: string, redirectU
   return { accessToken: longResponse.access_token, instagramUserId, permissions, expiresInSeconds: longResponse.expires_in ?? 60 * 24 * 60 * 60 };
 }
 
-export async function getInstagramProfile(instagramUserId: string, token: string) {
-  return graphRequest<{ id?: string; user_id?: string; username?: string }>(`/${instagramUserId}?fields=id,user_id,username`, token);
+export async function getInstagramProfile(token: string) {
+  return graphRequest<{ id?: string; user_id?: string; username?: string }>("/me?fields=id,user_id,username", token);
 }
 
 export async function getInstagramPublishingLimit(instagramUserId: string, token: string) {
-  return graphRequest<{ data?: Array<{ quota_usage?: number; config?: { quota_total?: number } }> }>(`/${instagramUserId}/content_publishing_limit`, token);
+  return graphRequest<{ data?: Array<{ quota_usage?: number; config?: { quota_total?: number; quota_duration?: number } }> }>(`/${instagramUserId}/content_publishing_limit?fields=quota_usage,config`, token);
 }
 
 export async function createInstagramTestContainer(input: { instagramUserId: string; token: string; mediaUrls: string[]; caption: string }) {
@@ -107,6 +107,7 @@ export async function createInstagramTestContainer(input: { instagramUserId: str
   })));
   const childIds = children.map((child) => child.id).filter((id): id is string => Boolean(id));
   if (childIds.length !== input.mediaUrls.length) throw new InstagramApiError("A Meta não retornou todos os containers temporários do carrossel.", "TEST_CAROUSEL_ITEMS_FAILED");
+  await Promise.all(childIds.map((id) => waitForInstagramContainer(id, input.token)));
   const result = await graphRequest<{ id?: string }>(`/${input.instagramUserId}/media`, input.token, {
     method: "POST",
     body: { media_type: "CAROUSEL", children: childIds.join(","), caption: input.caption },
@@ -119,23 +120,25 @@ export async function getInstagramContainerStatus(containerId: string, token: st
   return graphRequest<{ id?: string; status_code?: "EXPIRED" | "ERROR" | "FINISHED" | "IN_PROGRESS" | "PUBLISHED"; status?: string }>(`/${containerId}?fields=id,status_code,status`, token);
 }
 
-async function waitForInstagramContainer(containerId: string, token: string, timeoutMs = 60_000) {
+const CONTAINER_STATUS_POLL_INTERVAL_MS = 60_000;
+const CONTAINER_STATUS_MAX_WAIT_MS = 5 * 60_000;
+
+async function waitForInstagramContainer(containerId: string, token: string, timeoutMs = CONTAINER_STATUS_MAX_WAIT_MS) {
   const startedAt = Date.now();
-  let delay = 750;
   while (Date.now() - startedAt < timeoutMs) {
     const status = await getInstagramContainerStatus(containerId, token);
     if (status.status_code === "FINISHED" || status.status_code === "PUBLISHED") return status;
     if (status.status_code === "ERROR" || status.status_code === "EXPIRED") {
       throw new InstagramApiError(`A Meta não concluiu o processamento da mídia (${status.status_code}).`, `CONTAINER_${status.status_code}`);
     }
-    await new Promise(resolve => setTimeout(resolve, delay));
-    delay = Math.min(Math.round(delay * 1.65), 5_000);
+    await new Promise(resolve => setTimeout(resolve, CONTAINER_STATUS_POLL_INTERVAL_MS));
   }
   throw new InstagramApiError("A Meta demorou além do limite para processar a mídia. A publicação foi interrompida com segurança.", "CONTAINER_TIMEOUT");
 }
 
 export async function publishInstagramImages(input: { instagramUserId: string; token: string; mediaUrls: string[]; caption: string; altText?: string | null }) {
   if (input.mediaUrls.length === 0) throw new InstagramApiError("Não há mídia validada para publicar.", "NO_MEDIA");
+  if (input.mediaUrls.length > 10) throw new InstagramApiError("Um carrossel do Instagram aceita no máximo 10 mídias.", "CAROUSEL_LIMIT_EXCEEDED");
   const createImage = (imageUrl: string, isCarouselItem: boolean) => graphRequest<{ id?: string }>(`/${input.instagramUserId}/media`, input.token, {
     method: "POST",
     body: { image_url: imageUrl, ...(isCarouselItem ? { is_carousel_item: true } : {}), ...(input.altText ? { alt_text: input.altText } : {}) },
@@ -154,7 +157,7 @@ export async function publishInstagramImages(input: { instagramUserId: string; t
     await Promise.all(childIds.map(id => waitForInstagramContainer(id, input.token)));
     const carousel = await graphRequest<{ id?: string }>(`/${input.instagramUserId}/media`, input.token, {
       method: "POST",
-      body: { media_type: "CAROUSEL", children: childIds.join(","), caption: input.caption, ...(input.altText ? { alt_text: input.altText } : {}) },
+      body: { media_type: "CAROUSEL", children: childIds.join(","), caption: input.caption },
     });
     containerId = carousel.id;
   }
