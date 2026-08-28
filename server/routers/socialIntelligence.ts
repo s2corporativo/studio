@@ -165,7 +165,7 @@ export const socialIntelligenceRouter = router({
     periodStart: z.date(),
     periodEnd: z.date(),
   })).mutation(async ({ ctx, input }) => withAgentRun(ctx.user.id, "analyst", "generated_report", input.reportType, async () => {
-    if (input.periodEnd <= input.periodStart) throw new Error("O fim do período deve ser posterior ao início.");
+    if (input.periodEnd.getTime() <= input.periodStart.getTime()) throw new Error("O fim do período deve ser posterior ao início.");
     const db = await getDb();
     if (!db) throw new Error("Banco de dados indisponível.");
     const rows = await db.select({
