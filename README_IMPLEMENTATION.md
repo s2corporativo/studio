@@ -44,4 +44,4 @@ Antes do merge final devem existir evidências de:
 7. smoke das rotas principais;
 8. OAuth/teste não público do Instagram validado com credenciais oficiais quando disponíveis.
 
-O PR deve permanecer em draft até que um runner execute a suíte ou uma validação equivalente seja realizada em ambiente de build autorizado.
+O PR deve permanecer em draft até que um runner execute a suíte ou uma validação equivalente seja realizada em ambiente de build autorizado. Não há autorização implícita neste documento para publicar conteúdo, ativar anúncios, movimentar orçamento ou realizar deploy em produção.
