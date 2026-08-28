@@ -5,27 +5,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import {
-  BarChart3,
-  BookOpenText,
-  Bot,
-  BrainCircuit,
-  CalendarDays,
-  FilePenLine,
-  FolderKanban,
-  Inbox,
-  LayoutDashboard,
-  LibraryBig,
-  LogOut,
-  Network,
-  Radar,
-  ShieldCheck,
-  Sparkles,
-  Target,
-  Users,
-  Workflow,
+  BarChart3, BookOpenText, Bot, BrainCircuit, CalendarDays, FilePenLine, FileSearch,
+  FolderKanban, Inbox, LayoutDashboard, LibraryBig, LogOut, Megaphone, Network,
+  Radar, ScrollText, ShieldCheck, Sparkles, Target, Users, Video, Workflow,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
+
+const commandCenterPaths = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics", "/compliance"]);
 
 const sections = [
   {
@@ -48,16 +35,27 @@ const sections = [
       { icon: Users, label: "Leads", path: "/leads" },
       { icon: Network, label: "Concorrência", path: "/concorrencia" },
       { icon: BarChart3, label: "Analytics", path: "/analytics" },
+      { icon: BrainCircuit, label: "Memória da marca", path: "/memoria" },
+      { icon: Bot, label: "Agentes IA", path: "/agentes" },
       { icon: LibraryBig, label: "Biblioteca", path: "/biblioteca" },
       { icon: BookOpenText, label: "Fontes", path: "/fontes" },
       { icon: BookOpenText, label: "Conhecimento", path: "/conhecimento" },
     ],
   },
   {
+    label: "Criação & Crescimento",
+    items: [
+      { icon: Video, label: "Video Studio", path: "/video" },
+      { icon: FileSearch, label: "SEO & Local", path: "/seo" },
+      { icon: Megaphone, label: "Ads Intelligence", path: "/ads" },
+      { icon: ScrollText, label: "Relatórios IA", path: "/relatorios" },
+    ],
+  },
+  {
     label: "Distribuição & Governança",
     items: [
       { icon: Network, label: "Redes sociais", path: "/redes" },
-      { icon: ShieldCheck, label: "Compliance", path: "/compliance" },
+      { icon: ShieldCheck, label: "Compliance", path: "/governanca" },
       { icon: ShieldCheck, label: "DNA da marca", path: "/marca" },
       { icon: Workflow, label: "Arquitetura", path: "/roadmap" },
     ],
@@ -95,7 +93,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {sections.map(section => <div key={section.label} className="mb-4">
             <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-[.18em] text-[#8e9b90] group-data-[collapsible=icon]:hidden">{section.label}</p>
             <SidebarMenu>{section.items.map(item => {
-              const commandCenterPaths = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics", "/compliance"]);
               const active = location === item.path || (item.path === "/redes" && location === "/instagram") || (item.path === "/command-center" && commandCenterPaths.has(location));
               return <SidebarMenuItem key={item.path}><SidebarMenuButton onClick={() => setLocation(item.path)} isActive={active} tooltip={item.label} className="h-10 rounded-xl data-[active=true]:bg-[#c99550]/12 data-[active=true]:text-[#f1d29e] data-[active=true]:shadow-[inset_0_0_0_1px_rgba(201,149,80,.20)]"><item.icon className={active ? "text-[#e2ba7c]" : "text-[#829188]"} /><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem>;
             })}</SidebarMenu>
