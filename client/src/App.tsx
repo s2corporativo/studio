@@ -7,10 +7,16 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path={"/command-center"} component={Home} />
+      <Route path={"/inteligencia"} component={Home} />
+      <Route path={"/inbox"} component={Home} />
+      <Route path={"/leads"} component={Home} />
+      <Route path={"/concorrencia"} component={Home} />
+      <Route path={"/analytics"} component={Home} />
+      <Route path={"/compliance"} component={Home} />
       <Route path={"/conteudos"} component={Home} />
       <Route path={"/calendario"} component={Home} />
       <Route path={"/radar"} component={Home} />
@@ -24,24 +30,15 @@ function Router() {
       <Route path={"/roadmap"} component={Home} />
       <Route path={"/marca"} component={Home} />
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="dark"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
           <Router />
