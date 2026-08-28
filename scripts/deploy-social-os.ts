@@ -1,5 +1,5 @@
 import "dotenv/config";
-import mysql, { type RowDataPacket } from "mysql2/promise";
+import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
 
 const apply = process.argv.includes("--apply");
 const databaseUrl = process.env.DATABASE_URL;
@@ -25,7 +25,7 @@ const requiredAutomationColumns = [
   "updatedAt",
 ];
 
-async function tableExists(connection: mysql.Connection, tableName: string) {
+async function tableExists(connection: Connection, tableName: string) {
   const [rows] = await connection.query<RowDataPacket[]>(
     "SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
     [tableName],
@@ -33,7 +33,7 @@ async function tableExists(connection: mysql.Connection, tableName: string) {
   return Number(rows[0]?.total ?? 0) > 0;
 }
 
-async function indexExists(connection: mysql.Connection, tableName: string, indexName: string) {
+async function indexExists(connection: Connection, tableName: string, indexName: string) {
   const [rows] = await connection.query<RowDataPacket[]>(
     "SELECT COUNT(*) AS total FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?",
     [tableName, indexName],
@@ -41,7 +41,7 @@ async function indexExists(connection: mysql.Connection, tableName: string, inde
   return Number(rows[0]?.total ?? 0) > 0;
 }
 
-async function getColumns(connection: mysql.Connection, tableName: string) {
+async function getColumns(connection: Connection, tableName: string) {
   const [rows] = await connection.query<RowDataPacket[]>(
     "SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ?",
     [tableName],
