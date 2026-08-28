@@ -45,3 +45,7 @@ Antes do merge final devem existir evidências de:
 8. OAuth/teste não público do Instagram validado com credenciais oficiais quando disponíveis.
 
 O PR deve permanecer em draft até que um runner execute a suíte ou uma validação equivalente seja realizada em ambiente de build autorizado. Não há autorização implícita neste documento para publicar conteúdo, ativar anúncios, movimentar orçamento ou realizar deploy em produção.
+
+### Bloqueio atual
+
+No run mais recente inspecionado, o GitHub registrou `conclusion=startup_failure` e `total_count=0` em jobs. Isso significa que a falha ocorreu antes de qualquer etapa do workflow (`install`, `typecheck`, `test`, `build` ou validação de migrations).
