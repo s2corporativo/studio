@@ -17,6 +17,7 @@ export function assertInstagramScheduleReadiness(job: { status: string; confirme
 
 export async function scheduleConfirmedInstagramPublication(userId: number, jobId: number, scheduledAt: Date, sessionToken: string) {
   if (!ENV.isProduction) throw new Error("O agendamento automático será liberado depois de salvar esta versão e publicar o Social Studio.");
+  if (!sessionToken.trim()) throw new Error("O agendamento exige uma sessão web autenticada. Entre novamente no Studio antes de programar a publicação.");
   const job = await getPublicationJob(userId, jobId);
   assertInstagramScheduleReadiness(job);
   if (job.scheduleCronTaskUid) throw new Error("Esta publicação já possui uma execução agendada.");
@@ -32,7 +33,7 @@ export async function scheduleConfirmedInstagramPublication(userId: number, jobI
     }, sessionToken);
     await updatePublicationJob(job.id, { scheduledAt, scheduleCronTaskUid: created.taskUid, lastError: null });
     await updateStudioPost(userId, job.postId, { status: "scheduled", scheduledAt });
-    await recordPublicationAttempt(job.id, { stage: "schedule", outcome: "succeeded", externalReference: created.taskUid, detail: "Agendamento registrado com execução autenticada e idempotente." });
+    await recordPublicationAttempt(job.id, { stage: "schedule", outcome: "succeeded", externalReference: created.taskUid, detail: "Agendamento registrado com sessão explícita, execução autenticada e idempotente." });
     return { taskUid: created.taskUid, nextExecutionAt: created.nextExecutionAt ?? null };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao registrar o agendamento.";
