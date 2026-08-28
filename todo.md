@@ -48,8 +48,14 @@
 - [x] Exibir a galeria de artes no painel Biblioteca e validar o acesso em desktop e mobile.
 - [x] Garantir o encerramento limpo do importador de artes após a execução idempotente em lote.
 - [x] Sincronizar a versão atual do De Paula Social Studio com o repositório GitHub s2corporativo/studio.
-- [ ] Integrar de forma controlada o main remoto do Studio, preservando a versão atual e o histórico de dados.
-- [ ] Adequar as novas telas e o Design AI ao padrão verde-carvão, bronze, marfim e tipografia editorial do escritório.
-- [ ] Validar previamente e aplicar com segurança a migration de automação do Social OS.
-- [ ] Testar os fluxos do Social OS e revisar as telas integradas em desktop e mobile.
+- [x] Integrar de forma controlada o main remoto do Studio, preservando a versão atual e o histórico de dados.
+- [x] Adequar as novas telas e o Design AI ao padrão verde-carvão, bronze, marfim e tipografia editorial do escritório.
+- [x] Validar previamente e aplicar com segurança a migration de automação do Social OS.
+- [x] Testar os fluxos do Social OS e revisar as telas integradas em desktop e mobile.
+- [x] Revisar e ajustar visualmente todas as telas novas do Social OS ainda não verificadas para assegurar aderência ao padrão verde-carvão, bronze e marfim.
+- [x] Executar validação funcional dos fluxos integrados de Radar, Automação, navegação, geração de arte e redes sociais antes da publicação.
+- [x] Autenticar no Social Studio e revisar visualmente as telas internas reais em desktop e mobile, com evidências por rota protegida.
+- [x] Executar validação funcional autenticada de Radar, Automação, geração de arte e Redes/Instagram, registrando estados de sucesso ou bloqueio seguro.
+- [x] Corrigir a geração de rascunho a partir do Radar quando o serviço de IA retornar erro interno, preservando fonte e controles de revisão.
+- [x] Impedir espera indefinida no Design AI, com limite seguro, retorno claro de falha e nova tentativa possível.
 - [x] Auditar as alterações remotas recentes do repositório Studio antes de qualquer sincronização local.

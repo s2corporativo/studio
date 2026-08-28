@@ -19,7 +19,7 @@ export default function AutomationCenter({ settings }: { settings: any }) {
   return <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
     <form onSubmit={submit} className="saas-card p-6 sm:p-7">
       <div className="flex items-start justify-between gap-4">
-        <div><div className="saas-eyebrow"><Bot className="h-3.5 w-3.5" /> Piloto automático</div><h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">Defina o ritmo. O sistema prepara a operação.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Estas preferências persistem no banco e servem como política para planejamento, radar e publicação. A aprovação humana continua ativada por padrão.</p></div>
+        <div><div className="saas-eyebrow"><Bot className="h-3.5 w-3.5" /> Planejamento assistido</div><h2 className="mt-3 font-serif text-3xl tracking-tight text-[#f3ebdd]">Defina o ritmo. O sistema prepara a operação.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#aab6ad]">Estas preferências orientam planejamento e priorização de pautas. Elas não publicam conteúdo, não criam tarefas de envio e não substituem a revisão jurídica.</p></div>
         <Switch checked={Boolean(form.enabled)} onCheckedChange={enabled => setForm({ ...form, enabled })} />
       </div>
 
@@ -33,8 +33,8 @@ export default function AutomationCenter({ settings }: { settings: any }) {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <button type="button" onClick={() => setForm({ ...form, requireApproval: !form.requireApproval })} className="saas-toggle-card"><ShieldCheck className="h-5 w-5 text-emerald-300" /><div><strong>Aprovação humana</strong><small>{form.requireApproval ? "Obrigatória antes de publicar" : "Desativada"}</small></div><span className={form.requireApproval ? "is-on" : ""} /></button>
-        <button type="button" onClick={() => setForm({ ...form, refreshRadarDaily: !form.refreshRadarDaily })} className="saas-toggle-card"><Radar className="h-5 w-5 text-cyan-300" /><div><strong>Radar diário</strong><small>{form.refreshRadarDaily ? "Atualizar pautas automaticamente" : "Atualização manual"}</small></div><span className={form.refreshRadarDaily ? "is-on" : ""} /></button>
+        <div className="saas-toggle-card"><ShieldCheck className="h-5 w-5 text-[#e3bd7f]" /><div><strong>Aprovação jurídica</strong><small>Sempre obrigatória antes de qualquer publicação</small></div><span className="is-on" aria-label="Aprovação jurídica obrigatória" /></div>
+        <button type="button" onClick={() => setForm({ ...form, refreshRadarDaily: !form.refreshRadarDaily })} className="saas-toggle-card"><Radar className="h-5 w-5 text-[#e3bd7f]" /><div><strong>Priorizar Radar</strong><small>{form.refreshRadarDaily ? "Considerar pautas atuais ao atualizar" : "Atualização e pesquisa manuais"}</small></div><span className={form.refreshRadarDaily ? "is-on" : ""} /></button>
       </div>
 
       <div className="mt-7 flex flex-wrap gap-3">
@@ -46,11 +46,11 @@ export default function AutomationCenter({ settings }: { settings: any }) {
           {generateCampaign.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}Gerar plano agora
         </Button>
       </div>
-      {planMessage && <div className="mt-4 rounded-xl border border-violet-400/15 bg-violet-500/[.05] px-4 py-3 text-xs text-slate-300">{planMessage} <button type="button" onClick={() => setLocation("/calendario")} className="ml-2 font-semibold text-violet-300">Abrir calendário</button></div>}
+      {planMessage && <div className="mt-4 rounded-xl border border-[#c99550]/20 bg-[#c99550]/[.06] px-4 py-3 text-xs text-[#d9d0c4]">{planMessage} <button type="button" onClick={() => setLocation("/calendario")} className="ml-2 font-semibold text-[#e3bd7f]">Abrir calendário</button></div>}
     </form>
 
     <aside className="space-y-4">
-      {[{ icon: Radar, title: "1. Descobrir", text: "Radar busca temas recentes em fontes oficiais." }, { icon: WandSparkles, title: "2. Produzir", text: "IA prepara pauta, texto e direção visual vinculando a fonte." }, { icon: ShieldCheck, title: "3. Revisar", text: "Compliance e aprovação humana antecedem qualquer envio." }, { icon: CalendarRange, title: "4. Programar", text: "Conteúdo aprovado entra no calendário e na fila de publicação." }, { icon: Clock3, title: "5. Publicar", text: "A integração oficial executa no horário e registra falhas ou sucesso." }].map(({ icon: Icon, title, text }) => <div key={title} className="saas-card flex gap-4 p-5"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-300"><Icon className="h-5 w-5" /></div><div><p className="font-semibold text-slate-100">{title}</p><p className="mt-1 text-sm leading-5 text-slate-500">{text}</p></div></div>)}
+      {[{ icon: Radar, title: "1. Descobrir", text: "Radar consulta fontes oficiais quando acionado." }, { icon: WandSparkles, title: "2. Produzir", text: "IA prepara pauta, texto e direção visual vinculando a fonte." }, { icon: ShieldCheck, title: "3. Revisar", text: "Compliance e aprovação humana antecedem qualquer envio." }, { icon: CalendarRange, title: "4. Programar", text: "Conteúdo aprovado entra no calendário e na fila de publicação." }, { icon: Clock3, title: "5. Publicar", text: "A integração oficial só envia após conexão Meta, teste não público e confirmação expressa." }].map(({ icon: Icon, title, text }) => <div key={title} className="saas-card flex gap-4 p-5"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#c99550]/10 text-[#e3bd7f]"><Icon className="h-5 w-5" /></div><div><p className="font-semibold text-[#eee5d7]">{title}</p><p className="mt-1 text-sm leading-5 text-[#98a79d]">{text}</p></div></div>)}
     </aside>
   </div>;
 }

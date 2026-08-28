@@ -14,7 +14,7 @@ describe("score pré-publicação", () => {
       reviewDueAt: new Date(),
       mediaUrl: "https://example.com/arte.png",
       prohibitedTerms: "causa ganha, resultado garantido",
-    })).toEqual({ score: 100, passed: ["clareza", "CTA", "identidade", "legibilidade", "risco regulatório"], pending: [] });
+    })).toEqual({ score: 100, passed: ["clareza", "CTA", "compliance OAB", "legibilidade", "risco regulatório"], pending: [] });
   });
 
   it("identifica o risco regulatório quando falta fonte vinculada ou revisão", () => {

@@ -36,30 +36,30 @@
 
 :root {
   --background: #0c1715;
-  --foreground: #f8fafc;
-  --card: #0f172a;
-  --card-foreground: #f8fafc;
-  --popover: #0f172a;
-  --popover-foreground: #f8fafc;
-  --primary: #8b5cf6;
-  --primary-foreground: #0f172a;
+  --foreground: #f3ebdd;
+  --card: #12221e;
+  --card-foreground: #f3ebdd;
+  --popover: #12221e;
+  --popover-foreground: #f3ebdd;
+  --primary: #c99550;
+  --primary-foreground: #13221f;
   --secondary: #1b302b;
   --secondary-foreground: #f8fafc;
   --muted: #192724;
-  --muted-foreground: #94a3b8;
-  --accent: #223932;
+  --muted-foreground: #9aa89f;
+  --accent: #1a3029;
   --accent-foreground: #f4ecdd;
   --destructive: #e07a6e;
   --border: rgba(218, 191, 145, 0.17);
   --input: rgba(218, 191, 145, 0.12);
   --ring: #d7a765;
-  --sidebar: #050816;
-  --sidebar-foreground: #e8e2d6;
+  --sidebar: #08130f;
+  --sidebar-foreground: #eee5d7;
   --sidebar-border: rgba(218, 191, 145, 0.14);
-  --sidebar-accent: #182924;
+  --sidebar-accent: #173027;
   --sidebar-accent-foreground: #f7f0e4;
-  --sidebar-primary: #8b5cf6;
-  --sidebar-primary-foreground: #050816;
+  --sidebar-primary: #c99550;
+  --sidebar-primary-foreground: #13221f;
 }
 
 * { border-color: var(--border); }
@@ -100,65 +100,65 @@ body {
 
 .tiny-kicker { font-size: 0.64rem; letter-spacing: 0.19em; text-transform: uppercase; color: #c99a59; font-weight: 700; }
 
-/* Social OS — SaaS tech design system */
+/* Social OS — acabamento editorial De Paula Teixeira */
 :root {
-  --background: #050816;
-  --foreground: #f8fafc;
-  --card: #0b1120;
-  --card-foreground: #f8fafc;
-  --popover: #0b1120;
-  --popover-foreground: #f8fafc;
-  --primary: #8b5cf6;
-  --primary-foreground: #ffffff;
-  --secondary: #111827;
-  --secondary-foreground: #e2e8f0;
-  --muted: #0f172a;
-  --muted-foreground: #94a3b8;
-  --accent: #151c2f;
-  --accent-foreground: #f8fafc;
-  --border: rgba(148, 163, 184, 0.12);
-  --input: rgba(148, 163, 184, 0.12);
-  --ring: #8b5cf6;
-  --sidebar: #070b14;
-  --sidebar-foreground: #cbd5e1;
-  --sidebar-border: rgba(148, 163, 184, 0.08);
-  --sidebar-accent: rgba(139, 92, 246, 0.08);
-  --sidebar-accent-foreground: #ede9fe;
-  --sidebar-primary: #8b5cf6;
-  --sidebar-primary-foreground: #ffffff;
+  --background: #0c1715;
+  --foreground: #f3ebdd;
+  --card: #12221e;
+  --card-foreground: #f3ebdd;
+  --popover: #12221e;
+  --popover-foreground: #f3ebdd;
+  --primary: #c99550;
+  --primary-foreground: #13221f;
+  --secondary: #183027;
+  --secondary-foreground: #eee5d7;
+  --muted: #142720;
+  --muted-foreground: #9aa89f;
+  --accent: #193127;
+  --accent-foreground: #f4ecdd;
+  --border: rgba(218, 191, 145, 0.17);
+  --input: rgba(218, 191, 145, 0.12);
+  --ring: #d7a765;
+  --sidebar: #08130f;
+  --sidebar-foreground: #eee5d7;
+  --sidebar-border: rgba(218, 191, 145, 0.14);
+  --sidebar-accent: rgba(201, 149, 80, 0.10);
+  --sidebar-accent-foreground: #f4d39f;
+  --sidebar-primary: #c99550;
+  --sidebar-primary-foreground: #13221f;
 }
 
 body {
   background:
-    radial-gradient(circle at 80% -10%, rgba(124, 58, 237, .14), transparent 28rem),
-    radial-gradient(circle at 20% 110%, rgba(34, 211, 238, .07), transparent 30rem),
-    #050816;
+    radial-gradient(circle at 82% -12%, rgba(201, 149, 80, .13), transparent 29rem),
+    radial-gradient(circle at 18% 110%, rgba(53, 102, 75, .13), transparent 31rem),
+    #0c1715;
 }
 
-.saas-shell .font-serif { font-family: "Manrope", sans-serif; }
+.saas-shell .font-serif { font-family: "Cormorant Garamond", Georgia, serif; }
 .saas-shell .editorial-panel,
 .saas-card {
-  background: linear-gradient(145deg, rgba(15, 23, 42, .82), rgba(8, 13, 25, .9));
-  border: 1px solid rgba(148, 163, 184, .09);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 18px 50px rgba(0,0,0,.14);
-  backdrop-filter: blur(18px);
+  background: linear-gradient(145deg, rgba(24, 48, 39, .92), rgba(10, 24, 20, .96));
+  border: 1px solid rgba(218, 184, 125, .15);
+  box-shadow: inset 0 1px 0 rgba(255,248,231,.035), 0 18px 50px rgba(0,0,0,.18);
+  backdrop-filter: blur(14px);
 }
 
 .saas-hero {
   position: relative;
-  border: 1px solid rgba(139, 92, 246, .16);
+  border: 1px solid rgba(201, 149, 80, .26);
   background:
-    radial-gradient(circle at 85% 20%, rgba(34, 211, 238, .10), transparent 24rem),
-    radial-gradient(circle at 10% 120%, rgba(139, 92, 246, .20), transparent 30rem),
-    linear-gradient(145deg, rgba(15, 23, 42, .96), rgba(8, 13, 25, .98));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 24px 70px rgba(0,0,0,.2);
+    radial-gradient(circle at 85% 20%, rgba(218, 180, 118, .12), transparent 24rem),
+    radial-gradient(circle at 10% 120%, rgba(62, 109, 77, .20), transparent 30rem),
+    linear-gradient(145deg, rgba(22, 47, 38, .98), rgba(8, 20, 16, .98));
+  box-shadow: inset 0 1px 0 rgba(255,248,231,.04), 0 24px 70px rgba(0,0,0,.22);
 }
 
 .saas-glow-card {
   border-radius: 1.25rem;
-  border: 1px solid rgba(139, 92, 246, .16);
-  background: linear-gradient(145deg, rgba(124,58,237,.10), rgba(2,6,23,.48));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 0 60px rgba(124,58,237,.08);
+  border: 1px solid rgba(201, 149, 80, .18);
+  background: linear-gradient(145deg, rgba(201,149,80,.10), rgba(8,20,16,.52));
+  box-shadow: inset 0 1px 0 rgba(255,248,231,.03), 0 0 60px rgba(201,149,80,.06);
 }
 
 .saas-eyebrow {
@@ -166,10 +166,10 @@ body {
   align-items: center;
   gap: .45rem;
   border-radius: 999px;
-  border: 1px solid rgba(139, 92, 246, .16);
-  background: rgba(139, 92, 246, .07);
+  border: 1px solid rgba(201, 149, 80, .22);
+  background: rgba(201, 149, 80, .08);
   padding: .38rem .7rem;
-  color: #c4b5fd;
+  color: #e5bd7e;
   font-size: .66rem;
   font-weight: 700;
   letter-spacing: .08em;
@@ -178,7 +178,7 @@ body {
 
 .saas-section-label,
 .saas-shell .tiny-kicker {
-  color: #8b5cf6;
+  color: #d5a663;
   font-size: .65rem;
   font-weight: 700;
   letter-spacing: .14em;
@@ -190,10 +190,10 @@ body {
 .saas-field select,
 .saas-field textarea {
   width: 100%;
-  border: 1px solid rgba(148, 163, 184, .10);
+  border: 1px solid rgba(226, 196, 142, .18);
   border-radius: .85rem;
-  background: rgba(2, 6, 23, .52);
-  color: #e2e8f0;
+  background: rgba(6, 16, 14, .52);
+  color: #eee5d7;
   padding: .72rem .82rem;
   font-size: .8rem;
   outline: none;
@@ -204,38 +204,42 @@ body {
 .saas-field input:focus,
 .saas-field select:focus,
 .saas-field textarea:focus {
-  border-color: rgba(139, 92, 246, .62);
-  background: rgba(15, 23, 42, .72);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, .10);
+  border-color: rgba(210, 164, 91, .78);
+  background: rgba(12, 29, 23, .78);
+  box-shadow: 0 0 0 3px rgba(201, 149, 80, .11);
 }
 
 .saas-field { display: block; }
-.saas-field > span { display:block; margin-bottom:.5rem; color:#94a3b8; font-size:.68rem; font-weight:650; }
-.saas-field option { background:#0b1120; color:#e2e8f0; }
+.saas-field > span { display:block; margin-bottom:.5rem; color:#aeb8af; font-size:.68rem; font-weight:650; }
+.saas-field option { background:#12221e; color:#eee5d7; }
 
 .saas-button-primary {
-  border: 1px solid rgba(167, 139, 250, .28) !important;
-  background: linear-gradient(135deg, #7c3aed, #6366f1) !important;
-  color: #fff !important;
-  box-shadow: 0 10px 28px rgba(124,58,237,.20);
+  border: 1px solid rgba(240, 207, 151, .34) !important;
+  background: linear-gradient(135deg, #b9813f, #d4aa68) !important;
+  color: #14221e !important;
+  box-shadow: 0 10px 28px rgba(201,149,80,.18);
 }
 .saas-button-primary:hover { filter: brightness(1.08); }
 .saas-button-secondary {
-  border-color: rgba(148,163,184,.14) !important;
-  background: rgba(255,255,255,.025) !important;
-  color: #cbd5e1 !important;
+  border-color: rgba(218,191,145,.18) !important;
+  background: rgba(255,248,231,.035) !important;
+  color: #e8ddcd !important;
 }
 
 .saas-icon { display:flex; height:2.7rem; width:2.7rem; align-items:center; justify-content:center; border-radius:.9rem; }
-.saas-icon-cyan { background:rgba(34,211,238,.08); color:#67e8f9; }
-.saas-icon-violet { background:rgba(139,92,246,.10); color:#c4b5fd; }
-.saas-icon-blue { background:rgba(59,130,246,.10); color:#93c5fd; }
-.saas-icon-pink { background:rgba(236,72,153,.10); color:#f9a8d4; }
+.saas-icon-cyan { background:rgba(92,139,101,.11); color:#b9d2b6; }
+.saas-icon-violet { background:rgba(201,149,80,.12); color:#e5bd7e; }
+.saas-icon-blue { background:rgba(151,124,77,.12); color:#e3c58e; }
+.saas-icon-pink { background:rgba(170,113,86,.12); color:#e0b19c; }
 
-.saas-toggle-card { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.8rem; border:1px solid rgba(148,163,184,.08); border-radius:1rem; background:rgba(255,255,255,.018); padding:.9rem; text-align:left; }
-.saas-toggle-card strong { display:block; color:#e2e8f0; font-size:.78rem; }
-.saas-toggle-card small { display:block; margin-top:.16rem; color:#64748b; font-size:.66rem; }
-.saas-toggle-card > span { height:1.25rem; width:2.2rem; border-radius:999px; background:#1e293b; position:relative; }
-.saas-toggle-card > span::after { content:""; position:absolute; top:.18rem; left:.2rem; height:.88rem; width:.88rem; border-radius:999px; background:#64748b; transition:.18s; }
-.saas-toggle-card > span.is-on { background:rgba(124,58,237,.45); }
-.saas-toggle-card > span.is-on::after { transform:translateX(.9rem); background:#ddd6fe; }
+.saas-toggle-card { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.8rem; border:1px solid rgba(218,191,145,.10); border-radius:1rem; background:rgba(255,248,231,.018); padding:.9rem; text-align:left; }
+.saas-toggle-card strong { display:block; color:#eee5d7; font-size:.78rem; }
+.saas-toggle-card small { display:block; margin-top:.16rem; color:#87958c; font-size:.66rem; }
+.saas-toggle-card > span { height:1.25rem; width:2.2rem; border-radius:999px; background:#254237; position:relative; }
+.saas-toggle-card > span::after { content:""; position:absolute; top:.18rem; left:.2rem; height:.88rem; width:.88rem; border-radius:999px; background:#83958a; transition:.18s; }
+.saas-toggle-card > span.is-on { background:rgba(201,149,80,.58); }
+.saas-toggle-card > span.is-on::after { transform:translateX(.9rem); background:#fff2d9; }
+
+.saas-shell [class*="text-violet"], .saas-shell [class*="text-cyan"] { color: #e2ba7c !important; }
+.saas-shell [class*="bg-violet"], .saas-shell [class*="bg-cyan"] { background-color: rgba(201,149,80,.10) !important; }
+.saas-shell [class*="border-violet"], .saas-shell [class*="border-cyan"] { border-color: rgba(201,149,80,.22) !important; }

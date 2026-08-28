@@ -22,6 +22,7 @@ import { ENV } from "./env";
 // enum for GPT Image 2 (id: gpt-image-2). If omitted, forge falls back to Gemini 2.5 Flash.
 const DEFAULT_IMAGE_MODEL = "MODEL_GPT_IMAGE_2";
 const DEFAULT_IMAGE_QUALITY = "medium";
+const IMAGE_GENERATION_TIMEOUT_MS = 90_000;
 
 export type GenerateImageOptions = {
   prompt: string;
@@ -63,21 +64,30 @@ export async function generateImage(
   const quality =
     options.quality ?? (model === DEFAULT_IMAGE_MODEL ? DEFAULT_IMAGE_QUALITY : undefined);
 
-  const response = await fetch(fullUrl, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      "connect-protocol-version": "1",
-      authorization: `Bearer ${ENV.forgeApiKey}`,
-    },
-    body: JSON.stringify({
-      prompt: options.prompt,
-      original_images: options.originalImages || [],
-      model,
-      ...(quality ? { quality } : {}),
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(fullUrl, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        "connect-protocol-version": "1",
+        authorization: `Bearer ${ENV.forgeApiKey}`,
+      },
+      body: JSON.stringify({
+        prompt: options.prompt,
+        original_images: options.originalImages || [],
+        model,
+        ...(quality ? { quality } : {}),
+      }),
+      signal: AbortSignal.timeout(IMAGE_GENERATION_TIMEOUT_MS),
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new Error("A geração visual excedeu o tempo de resposta. Nenhuma arte foi anexada; tente novamente.");
+    }
+    throw new Error("Não foi possível iniciar a geração visual agora. Nenhuma arte foi anexada; tente novamente.");
+  }
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");

@@ -24,15 +24,15 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
 function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: any, style: string) {
   const width = ctx.canvas.width;
   const height = ctx.canvas.height;
-  const accent = style === "tech_premium" ? "#8b5cf6" : style === "minimal" ? "#cbd5e1" : "#d8b476";
+  const accent = style === "photographic" ? "#d8b476" : style === "minimal" ? "#e7dccb" : "#c99550";
   const overlay = ctx.createLinearGradient(0, height * 0.15, 0, height);
-  overlay.addColorStop(0, "rgba(2,6,23,.03)");
-  overlay.addColorStop(0.5, "rgba(2,6,23,.34)");
-  overlay.addColorStop(1, "rgba(2,6,23,.96)");
+  overlay.addColorStop(0, "rgba(7,20,15,.04)");
+  overlay.addColorStop(0.5, "rgba(7,20,15,.38)");
+  overlay.addColorStop(1, "rgba(7,20,15,.97)");
   ctx.fillStyle = overlay;
   ctx.fillRect(0, 0, width, height);
 
-  ctx.fillStyle = "rgba(7,11,20,.8)";
+  ctx.fillStyle = "rgba(10,26,20,.84)";
   ctx.beginPath();
   ctx.roundRect(70, 70, 270, 52, 26);
   ctx.fill();
@@ -40,13 +40,13 @@ function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: any, style: str
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.fillStyle = accent;
-  ctx.font = "700 22px Arial, sans-serif";
+  ctx.font = "700 22px Manrope, sans-serif";
   ctx.textBaseline = "middle";
   ctx.fillText(String(post.area ?? "DIREITO").toLocaleUpperCase("pt-BR").slice(0, 25), 96, 96);
 
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#fff";
-  ctx.font = "700 70px Arial, sans-serif";
+  ctx.fillStyle = "#f5edde";
+  ctx.font = "700 70px 'Cormorant Garamond', Georgia, serif";
   const titleLines = wrapText(ctx, String(post.title ?? "Conteúdo jurídico"), 900, 4);
   let y = 790 - Math.max(0, titleLines.length - 2) * 58;
   for (const line of titleLines) {
@@ -56,8 +56,8 @@ function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: any, style: str
 
   const hook = String(post.hook ?? post.keyStatement ?? "").trim();
   if (hook) {
-    ctx.fillStyle = "rgba(226,232,240,.9)";
-    ctx.font = "400 30px Arial, sans-serif";
+    ctx.fillStyle = "rgba(237,229,215,.9)";
+    ctx.font = "400 30px Manrope, sans-serif";
     y += 15;
     for (const line of wrapText(ctx, hook, 850, 2)) {
       ctx.fillText(line, 80, y);
@@ -67,21 +67,21 @@ function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: any, style: str
 
   ctx.fillStyle = accent;
   ctx.fillRect(78, 1184, 70, 5);
-  ctx.fillStyle = "#f8fafc";
-  ctx.font = "700 24px Arial, sans-serif";
+  ctx.fillStyle = "#f5edde";
+  ctx.font = "700 24px Manrope, sans-serif";
   ctx.fillText("DE PAULA TEIXEIRA", 78, 1240);
-  ctx.fillStyle = "rgba(148,163,184,.92)";
-  ctx.font = "500 18px Arial, sans-serif";
+  ctx.fillStyle = "rgba(190,202,190,.92)";
+  ctx.font = "500 18px Manrope, sans-serif";
   ctx.fillText("ADVOCACIA • CONTEÚDO INFORMATIVO", 78, 1275);
-  ctx.fillStyle = "#e2e8f0";
-  ctx.font = "700 34px Arial, sans-serif";
+  ctx.fillStyle = "#e6c080";
+  ctx.font = "700 34px 'Cormorant Garamond', Georgia, serif";
   ctx.textAlign = "right";
   ctx.fillText("DP", width - 78, 1256);
   ctx.textAlign = "left";
 }
 
 export default function ArtworkStudio({ post }: { post: any }) {
-  const [style, setStyle] = useState<"tech_premium" | "editorial" | "photographic" | "minimal">("tech_premium");
+  const [style, setStyle] = useState<"tech_premium" | "editorial" | "photographic" | "minimal">("editorial");
   const [direction, setDirection] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -135,10 +135,10 @@ export default function ArtworkStudio({ post }: { post: any }) {
   return <section className="saas-card p-5 sm:p-6">
     <div className="flex items-start justify-between gap-4">
       <div><div className="saas-eyebrow"><WandSparkles className="h-3.5 w-3.5" /> Design AI</div><h3 className="mt-3 text-xl font-semibold text-white">Criação visual profissional</h3><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">A IA cria o conceito visual sem texto; o sistema monta título, área e assinatura com precisão, evitando a aparência típica de arte gerada integralmente por IA.</p></div>
-      <ImagePlus className="h-5 w-5 text-violet-300" />
+      <ImagePlus className="h-5 w-5 text-[#e3bd7f]" />
     </div>
     <div className="mt-5 grid gap-3 md:grid-cols-[220px_1fr_auto]">
-      <select className="editorial-input" value={style} onChange={event => setStyle(event.target.value as typeof style)}><option value="tech_premium">SaaS tech premium</option><option value="editorial">Editorial sofisticado</option><option value="photographic">Fotográfico realista</option><option value="minimal">Minimal premium</option></select>
+      <select className="editorial-input" value={style} onChange={event => setStyle(event.target.value as typeof style)}><option value="tech_premium">Institucional contemporâneo</option><option value="editorial">Editorial sofisticado</option><option value="photographic">Fotográfico realista</option><option value="minimal">Minimal premium</option></select>
       <input className="editorial-input" value={direction} onChange={event => setDirection(event.target.value)} placeholder="Direção opcional: ambiente, textura, fotografia..." />
       <Button onClick={() => generate.mutate({ postId: post.id, style, direction: direction || null })} disabled={generate.isPending} className="saas-button-primary">{generate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}Gerar</Button>
     </div>

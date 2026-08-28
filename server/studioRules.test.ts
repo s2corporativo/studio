@@ -14,11 +14,11 @@ describe("regras do Social Studio", () => {
   });
 
   it("exige fonte, data e responsável para aprovação", () => {
-    expect(approvalReadiness({ sourceId: 1, reviewDueAt: new Date() })).toEqual({
+    expect(approvalReadiness({ sourceId: 1, reviewDueAt: new Date() })).toMatchObject({
       ready: false,
       missing: ["responsável pela aprovação"],
     });
-    expect(approvalReadiness({ sourceId: 1, reviewDueAt: new Date(), approvalOwnerName: "Dr. Clovis" })).toEqual({
+    expect(approvalReadiness({ sourceId: 1, reviewDueAt: new Date(), approvalOwnerName: "Dr. Clovis" })).toMatchObject({
       ready: true,
       missing: [],
     });

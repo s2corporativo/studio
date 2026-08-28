@@ -17,7 +17,7 @@ export async function generateLegalDraft(input: DraftGenerationInput) {
   const model = catalog.data.find(item => item.id === "gpt-5-mini")?.id ?? catalog.data[0]?.id;
   const response = await invokeLLM({
     model,
-    maxTokens: 1800,
+    maxCompletionTokens: 1800,
     reasoning: { effort: "minimal" },
     messages: [
       {

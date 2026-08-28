@@ -2,7 +2,7 @@ import "dotenv/config";
 import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
 
 const apply = process.argv.includes("--apply");
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL ?? "";
 
 if (!databaseUrl) {
   console.error("[deploy] DATABASE_URL não configurada.");
@@ -124,7 +124,10 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error(`[deploy] FALHA: ${error instanceof Error ? error.message : String(error)}`);
-  process.exit(1);
-});
+main().then(
+  () => process.exit(0),
+  error => {
+    console.error(`[deploy] FALHA: ${error instanceof Error ? error.message : String(error)}`);
+    process.exit(1);
+  },
+);
