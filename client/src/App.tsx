@@ -17,6 +17,13 @@ function Router() {
       <Route path={"/concorrencia"} component={Home} />
       <Route path={"/analytics"} component={Home} />
       <Route path={"/compliance"} component={Home} />
+      <Route path={"/video"} component={Home} />
+      <Route path={"/seo"} component={Home} />
+      <Route path={"/ads"} component={Home} />
+      <Route path={"/relatorios"} component={Home} />
+      <Route path={"/agentes"} component={Home} />
+      <Route path={"/memoria"} component={Home} />
+      <Route path={"/governanca"} component={Home} />
       <Route path={"/conteudos"} component={Home} />
       <Route path={"/calendario"} component={Home} />
       <Route path={"/radar"} component={Home} />
@@ -36,16 +43,7 @@ function Router() {
 }
 
 function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
-  );
+  return <ErrorBoundary><ThemeProvider defaultTheme="dark"><TooltipProvider><Toaster /><Router /></TooltipProvider></ThemeProvider></ErrorBoundary>;
 }
 
 export default App;
