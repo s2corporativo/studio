@@ -1,7 +1,5 @@
-import { parse as parseCookie } from "cookie";
 import type { Request, Response } from "express";
-import { COOKIE_NAME } from "@shared/const";
-import { createHeartbeatJob, updateHeartbeatJob } from "./_core/heartbeat";
+import { createHeartbeatJob, deleteHeartbeatJob } from "./_core/heartbeat";
 import { ENV } from "./_core/env";
 import { sdk } from "./_core/sdk";
 import { executeConfirmedInstagramPublication } from "./instagramPublicationService";
@@ -43,6 +41,19 @@ export async function scheduleConfirmedInstagramPublication(userId: number, jobI
   }
 }
 
+async function removeScheduledTask(taskUid: string, jobId?: number) {
+  try {
+    await deleteHeartbeatJob(taskUid, "");
+    if (jobId) await recordPublicationAttempt(jobId, { stage: "callback", outcome: "succeeded", externalReference: taskUid, detail: "Tarefa de agendamento removida após execução; não haverá recorrência anual residual." });
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Instagram schedule] heartbeat cleanup failed", { taskUid, message });
+    if (jobId) await recordPublicationAttempt(jobId, { stage: "callback", outcome: "failed", externalReference: taskUid, errorCode: "HEARTBEAT_CLEANUP_FAILED", detail: message.slice(0, 3_000) }).catch(() => undefined);
+    return false;
+  }
+}
+
 export async function runInstagramPublicationSchedule(req: Request, res: Response) {
   let taskUid: string | undefined;
   try {
@@ -54,24 +65,25 @@ export async function runInstagramPublicationSchedule(req: Request, res: Respons
     taskUid = user.taskUid;
     const job = await getPublicationJobByTaskUid(taskUid);
     if (!job) {
-      res.json({ ok: true, skipped: "orphan" });
+      const cleaned = await removeScheduledTask(taskUid);
+      res.json({ ok: true, skipped: "orphan", cleaned });
       return;
     }
     if (job.status === "published") {
-      await updateHeartbeatJob(taskUid, { enable: false }, "").catch(() => undefined);
-      res.json({ ok: true, skipped: "already-published" });
+      const cleaned = await removeScheduledTask(taskUid, job.id);
+      res.json({ ok: true, skipped: "already-published", cleaned });
       return;
     }
     if (job.status !== "queued" || !job.confirmedAt) {
-      await updateHeartbeatJob(taskUid, { enable: false }, "").catch(() => undefined);
-      res.json({ ok: true, skipped: "not-confirmed" });
+      const cleaned = await removeScheduledTask(taskUid, job.id);
+      res.json({ ok: true, skipped: "not-confirmed", cleaned });
       return;
     }
     await recordPublicationAttempt(job.id, { stage: "callback", outcome: "started", externalReference: taskUid, detail: "Execução agendada autenticada iniciada." });
     await executeConfirmedInstagramPublication(job.userId, job.id);
     await recordPublicationAttempt(job.id, { stage: "callback", outcome: "succeeded", externalReference: taskUid, detail: "Execução agendada concluída." });
-    await updateHeartbeatJob(taskUid, { enable: false }, "").catch(() => undefined);
-    res.json({ ok: true, jobId: job.id });
+    const cleaned = await removeScheduledTask(taskUid, job.id);
+    res.json({ ok: true, jobId: job.id, cleaned });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha inesperada em execução agendada.";
     console.error("[Instagram schedule] failed", { taskUid, message });
