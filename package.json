@@ -10,7 +10,7 @@
     "check": "tsc --noEmit",
     "format": "prettier --write .",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "node scripts/safe-generate-migration.mjs",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit migrate",
     "deploy:preflight": "tsx scripts/deploy-social-os.ts --check",
