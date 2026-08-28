@@ -47,3 +47,8 @@
 - [x] Organizar as artes importadas por área, tema, formato e sequência de carrossel na biblioteca interna.
 - [x] Exibir a galeria de artes no painel Biblioteca e validar o acesso em desktop e mobile.
 - [x] Garantir o encerramento limpo do importador de artes após a execução idempotente em lote.
+- [ ] Integrar de forma controlada o main remoto do Studio, preservando a versão atual e o histórico de dados.
+- [ ] Adequar as novas telas e o Design AI ao padrão verde-carvão, bronze, marfim e tipografia editorial do escritório.
+- [ ] Validar previamente e aplicar com segurança a migration de automação do Social OS.
+- [ ] Testar os fluxos do Social OS e revisar as telas integradas em desktop e mobile.
+- [x] Auditar as alterações remotas recentes do repositório Studio antes de qualquer sincronização local.
