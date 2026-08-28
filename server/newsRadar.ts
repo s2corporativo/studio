@@ -16,6 +16,7 @@ type XmlSource = {
   url: string;
   area: string;
   weight: number;
+  allowedHosts?: string[];
 };
 
 type HtmlLinkSource = {
@@ -25,6 +26,7 @@ type HtmlLinkSource = {
   area: string;
   weight: number;
   acceptedPathFragments: string[];
+  allowedHosts?: string[];
 };
 
 type OfficialSource = XmlSource | HtmlLinkSource;
@@ -36,6 +38,7 @@ const OFFICIAL_SOURCES: OfficialSource[] = [
     url: "https://res.stj.jus.br/hrestp-c-portalp/RSS.xml",
     area: "Cível e Consumidor",
     weight: 92,
+    allowedHosts: ["www.stj.jus.br", "processo.stj.jus.br", "scon.stj.jus.br"],
   },
   {
     kind: "xml",
@@ -43,6 +46,7 @@ const OFFICIAL_SOURCES: OfficialSource[] = [
     url: "https://processo.stj.jus.br/jurisprudencia/externo/InformativoFeed",
     area: "Jurisprudência",
     weight: 97,
+    allowedHosts: ["www.stj.jus.br", "scon.stj.jus.br"],
   },
   {
     kind: "xml",
@@ -50,6 +54,7 @@ const OFFICIAL_SOURCES: OfficialSource[] = [
     url: "https://scon.stj.jus.br/SCON/JurisprudenciaEmTesesFeed",
     area: "Jurisprudência",
     weight: 95,
+    allowedHosts: ["www.stj.jus.br", "processo.stj.jus.br"],
   },
   {
     kind: "xml",
@@ -104,7 +109,18 @@ function itemId(source: string, index: number, seed: string) {
   return `${source}-${index}-${Buffer.from(seed).toString("base64url").slice(0, 18)}`;
 }
 
-function parseXmlFeed(xml: string, source: XmlSource): RadarItem[] {
+function isAllowedSourceUrl(candidate: string, source: OfficialSource) {
+  try {
+    const url = new URL(candidate, source.url);
+    const sourceUrl = new URL(source.url);
+    const allowedHosts = new Set([sourceUrl.hostname, ...(source.allowedHosts ?? [])]);
+    return url.protocol === "https:" && allowedHosts.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function parseXmlFeed(xml: string, source: XmlSource): RadarItem[] {
   const blocks = [
     ...(xml.match(/<item\b[\s\S]*?<\/item>/gi) ?? []),
     ...(xml.match(/<entry\b[\s\S]*?<\/entry>/gi) ?? []),
@@ -112,7 +128,8 @@ function parseXmlFeed(xml: string, source: XmlSource): RadarItem[] {
 
   return blocks.slice(0, 12).map((block, index) => {
     const title = tag(block, "title");
-    const link = tag(block, "link") || atomLink(block);
+    const rawLink = tag(block, "link") || atomLink(block);
+    const link = isAllowedSourceUrl(rawLink, source) ? new URL(rawLink, source.url).toString() : "";
     const published = tag(block, "pubDate") || tag(block, "published") || tag(block, "updated");
     const summary = tag(block, "description") || tag(block, "summary") || tag(block, "content") || null;
     const parsedDate = published && !Number.isNaN(Date.parse(published)) ? Date.parse(published) : null;
@@ -133,7 +150,7 @@ function parseXmlFeed(xml: string, source: XmlSource): RadarItem[] {
   }).filter(item => item.title.length >= 8);
 }
 
-function parseHtmlLinks(html: string, source: HtmlLinkSource): RadarItem[] {
+export function parseHtmlLinks(html: string, source: HtmlLinkSource): RadarItem[] {
   const anchorPattern = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   const found: RadarItem[] = [];
   const seen = new Set<string>();
@@ -153,6 +170,7 @@ function parseHtmlLinks(html: string, source: HtmlLinkSource): RadarItem[] {
     }
 
     const parsed = new URL(url);
+    if (!isAllowedSourceUrl(url, source)) continue;
     if (!source.acceptedPathFragments.some(fragment => parsed.pathname.includes(fragment))) continue;
     if (seen.has(url)) continue;
     seen.add(url);

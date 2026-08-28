@@ -1,48 +1,25 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import {
-  BookOpenText,
-  Bot,
-  CalendarDays,
-  FilePenLine,
-  FolderKanban,
-  LayoutDashboard,
-  LibraryBig,
-  LogOut,
-  Network,
-  Radar,
-  ShieldCheck,
-  Sparkles,
-  Workflow,
+  BarChart3, BookOpenText, Bot, BrainCircuit, CalendarDays, FilePenLine, FileSearch,
+  FolderKanban, Inbox, LayoutDashboard, LibraryBig, LogOut, Megaphone, Network,
+  Radar, ScrollText, ShieldCheck, Sparkles, Target, Users, Video, Workflow,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
+
+const commandCenterPaths = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics", "/compliance"]);
 
 const sections = [
   {
     label: "Workspace",
     items: [
       { icon: LayoutDashboard, label: "Visão geral", path: "/" },
+      { icon: BrainCircuit, label: "Command Center", path: "/command-center" },
       { icon: Radar, label: "Radar jurídico", path: "/radar" },
       { icon: FilePenLine, label: "Conteúdos", path: "/conteudos" },
       { icon: CalendarDays, label: "Calendário", path: "/calendario" },
@@ -53,15 +30,32 @@ const sections = [
   {
     label: "Inteligência",
     items: [
+      { icon: Target, label: "Oportunidades", path: "/inteligencia" },
+      { icon: Inbox, label: "Inbox inteligente", path: "/inbox" },
+      { icon: Users, label: "Leads", path: "/leads" },
+      { icon: Network, label: "Concorrência", path: "/concorrencia" },
+      { icon: BarChart3, label: "Analytics", path: "/analytics" },
+      { icon: BrainCircuit, label: "Memória da marca", path: "/memoria" },
+      { icon: Bot, label: "Agentes IA", path: "/agentes" },
       { icon: LibraryBig, label: "Biblioteca", path: "/biblioteca" },
       { icon: BookOpenText, label: "Fontes", path: "/fontes" },
       { icon: BookOpenText, label: "Conhecimento", path: "/conhecimento" },
     ],
   },
   {
-    label: "Distribuição",
+    label: "Criação & Crescimento",
+    items: [
+      { icon: Video, label: "Video Studio", path: "/video" },
+      { icon: FileSearch, label: "SEO & Local", path: "/seo" },
+      { icon: Megaphone, label: "Ads Intelligence", path: "/ads" },
+      { icon: ScrollText, label: "Relatórios IA", path: "/relatorios" },
+    ],
+  },
+  {
+    label: "Distribuição & Governança",
     items: [
       { icon: Network, label: "Redes sociais", path: "/redes" },
+      { icon: ShieldCheck, label: "Compliance", path: "/governanca" },
       { icon: ShieldCheck, label: "DNA da marca", path: "/marca" },
       { icon: Workflow, label: "Arquitetura", path: "/roadmap" },
     ],
@@ -79,7 +73,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="saas-card w-full p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#c99550]/15 text-[#e7c58f] ring-1 ring-[#c99550]/25"><Sparkles className="h-6 w-6" /></div>
           <h1 className="mt-6 font-serif text-3xl tracking-tight">De Paula Social Studio</h1>
-          <p className="mt-2 text-sm leading-6 text-[#9aa89f]">Entre para acessar criação, agenda, radar jurídico e publicação responsável.</p>
+          <p className="mt-2 text-sm leading-6 text-[#9aa89f]">Entre para acessar inteligência, criação, agenda, publicação responsável e análise de desempenho.</p>
           <Button onClick={() => startLogin()} className="saas-button-primary mt-7 w-full">Entrar no Social Studio</Button>
         </div>
       </div>
@@ -99,7 +93,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {sections.map(section => <div key={section.label} className="mb-4">
             <p className="px-3 pb-2 text-[9px] font-bold uppercase tracking-[.18em] text-[#8e9b90] group-data-[collapsible=icon]:hidden">{section.label}</p>
             <SidebarMenu>{section.items.map(item => {
-              const active = location === item.path || (item.path === "/redes" && location === "/instagram");
+              const active = location === item.path || (item.path === "/redes" && location === "/instagram") || (item.path === "/command-center" && commandCenterPaths.has(location));
               return <SidebarMenuItem key={item.path}><SidebarMenuButton onClick={() => setLocation(item.path)} isActive={active} tooltip={item.label} className="h-10 rounded-xl data-[active=true]:bg-[#c99550]/12 data-[active=true]:text-[#f1d29e] data-[active=true]:shadow-[inset_0_0_0_1px_rgba(201,149,80,.20)]"><item.icon className={active ? "text-[#e2ba7c]" : "text-[#829188]"} /><span>{item.label}</span></SidebarMenuButton></SidebarMenuItem>;
             })}</SidebarMenu>
           </div>)}
@@ -113,7 +107,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </Sidebar>
       <SidebarInset className="min-w-0 bg-transparent">
         <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#daba7d]/10 bg-[#0c1715]/80 px-4 backdrop-blur-xl sm:px-6">
-          <div className="flex items-center gap-3"><SidebarTrigger className="text-[#9aa89f] hover:text-[#f3ebdd]" /><div className="hidden h-5 w-px bg-[#daba7d]/12 sm:block" /><div className="hidden text-xs text-[#93a096] sm:block">Marketing jurídico responsável</div></div>
+          <div className="flex items-center gap-3"><SidebarTrigger className="text-[#9aa89f] hover:text-[#f3ebdd]" /><div className="hidden h-5 w-px bg-[#daba7d]/12 sm:block" /><div className="hidden text-xs text-[#93a096] sm:block">Social Media OS · operação responsável</div></div>
           <div className="flex items-center gap-2"><div className="hidden items-center gap-2 rounded-full border border-[#c99550]/20 bg-[#c99550]/[.06] px-3 py-1.5 text-[10px] font-medium text-[#e5bd7e] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#c99550] shadow-[0_0_8px_rgba(201,149,80,.65)]" />Controle editorial ativo</div></div>
         </div>
         <main className="min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>

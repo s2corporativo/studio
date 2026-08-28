@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { spawnSync } from "node:child_process";
 import mysql, { type Connection, type RowDataPacket } from "mysql2/promise";
 
 const apply = process.argv.includes("--apply");
@@ -9,20 +10,35 @@ if (!databaseUrl) {
   process.exit(1);
 }
 
+const requiredTables = [
+  "brand_profiles",
+  "automation_settings",
+  "social_profiles",
+  "content_opportunities",
+  "post_versions",
+  "post_approval_bindings",
+  "campaign_runs",
+  "social_interactions",
+  "leads",
+  "competitors",
+  "content_metrics",
+  "creative_evaluations",
+  "automation_rules",
+  "audit_events",
+  "video_projects",
+  "seo_audits",
+  "ad_plans",
+  "performance_insights",
+  "brand_memory_items",
+  "agent_runs",
+  "compliance_checks",
+  "generated_reports",
+] as const;
+
 const requiredAutomationColumns = [
-  "id",
-  "userId",
-  "enabled",
-  "cadence",
-  "postsPerWeek",
-  "defaultPublishTime",
-  "planningHorizonDays",
-  "requireApproval",
-  "refreshRadarDaily",
-  "preferredAreas",
-  "preferredFormats",
-  "createdAt",
-  "updatedAt",
+  "id", "userId", "enabled", "cadence", "postsPerWeek", "defaultPublishTime",
+  "planningHorizonDays", "requireApproval", "refreshRadarDaily", "preferredAreas",
+  "preferredFormats", "createdAt", "updatedAt",
 ];
 
 async function tableExists(connection: Connection, tableName: string) {
@@ -49,6 +65,25 @@ async function getColumns(connection: Connection, tableName: string) {
   return new Set(rows.map(row => String(row.column_name)));
 }
 
+async function verifyFinalState(connection: Connection) {
+  const missingTables: string[] = [];
+  for (const table of requiredTables) if (!(await tableExists(connection, table))) missingTables.push(table);
+  if (missingTables.length) throw new Error(`Migration incompleta. Tabelas ausentes: ${missingTables.join(", ")}.`);
+
+  if (!(await indexExists(connection, "brand_profiles", "brand_profiles_user_unique"))) {
+    throw new Error("Índice brand_profiles_user_unique não foi encontrado após a migration.");
+  }
+
+  const automationColumns = await getColumns(connection, "automation_settings");
+  const missingAutomationColumns = requiredAutomationColumns.filter(column => !automationColumns.has(column));
+  if (missingAutomationColumns.length) {
+    throw new Error(`automation_settings incompatível. Colunas ausentes: ${missingAutomationColumns.join(", ")}.`);
+  }
+
+  const socialProfileColumns = await getColumns(connection, "instagram_connections");
+  if (!socialProfileColumns.has("socialProfileId")) throw new Error("instagram_connections.socialProfileId não foi aplicado.");
+}
+
 async function main() {
   const connection = await mysql.createConnection(databaseUrl);
   try {
@@ -64,63 +99,36 @@ async function main() {
     if (duplicates.length > 0) {
       console.error("[deploy] bloqueado: existem userId duplicados em brand_profiles.");
       for (const row of duplicates) console.error(`  userId=${row.userId} registros=${row.total}`);
-      throw new Error("Resolva as duplicidades de brand_profiles antes de aplicar a restrição UNIQUE.");
+      throw new Error("Resolva as duplicidades de brand_profiles antes da restrição UNIQUE.");
     }
 
-    const hasBrandUnique = await indexExists(connection, "brand_profiles", "brand_profiles_user_unique");
-    const hasAutomationTable = await tableExists(connection, "automation_settings");
-
-    if (hasAutomationTable) {
-      const columns = await getColumns(connection, "automation_settings");
-      const missing = requiredAutomationColumns.filter(column => !columns.has(column));
-      if (missing.length > 0) {
-        throw new Error(`automation_settings já existe, mas está incompatível. Colunas ausentes: ${missing.join(", ")}. Nenhuma alteração automática foi feita.`);
-      }
-    }
-
-    console.log(`[deploy] brand_profiles UNIQUE: ${hasBrandUnique ? "presente" : "pendente"}`);
-    console.log(`[deploy] automation_settings: ${hasAutomationTable ? "presente" : "pendente"}`);
+    const current = await Promise.all(requiredTables.map(async table => [table, await tableExists(connection, table)] as const));
+    const missingBefore = current.filter(([, exists]) => !exists).map(([table]) => table);
+    console.log(`[deploy] tabelas pendentes: ${missingBefore.length ? missingBefore.join(", ") : "nenhuma"}`);
 
     if (!apply) {
-      console.log(`[deploy] preflight seguro. needsMigration=${!hasBrandUnique || !hasAutomationTable}`);
+      console.log(`[deploy] preflight seguro. needsMigration=${missingBefore.length > 0}`);
       return;
     }
-
-    if (!hasBrandUnique) {
-      console.log("[deploy] adicionando índice único brand_profiles_user_unique...");
-      await connection.query("ALTER TABLE brand_profiles ADD CONSTRAINT brand_profiles_user_unique UNIQUE (userId)");
-    }
-
-    if (!hasAutomationTable) {
-      console.log("[deploy] criando automation_settings...");
-      await connection.query(`
-        CREATE TABLE automation_settings (
-          id int AUTO_INCREMENT NOT NULL,
-          userId int NOT NULL,
-          enabled boolean NOT NULL DEFAULT false,
-          cadence enum('daily','weekdays','custom') NOT NULL DEFAULT 'weekdays',
-          postsPerWeek int NOT NULL DEFAULT 5,
-          defaultPublishTime varchar(5) NOT NULL DEFAULT '18:30',
-          planningHorizonDays int NOT NULL DEFAULT 30,
-          requireApproval boolean NOT NULL DEFAULT true,
-          refreshRadarDaily boolean NOT NULL DEFAULT true,
-          preferredAreas text,
-          preferredFormats text,
-          createdAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          updatedAt timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          CONSTRAINT automation_settings_id PRIMARY KEY(id),
-          CONSTRAINT automation_settings_user_unique UNIQUE(userId)
-        )
-      `);
-    }
-
-    const finalBrandUnique = await indexExists(connection, "brand_profiles", "brand_profiles_user_unique");
-    const finalAutomationTable = await tableExists(connection, "automation_settings");
-    if (!finalBrandUnique || !finalAutomationTable) throw new Error("A verificação final da migration falhou.");
-
-    console.log("[deploy] migration Social OS aplicada e verificada sem reset ou exclusão de dados.");
   } finally {
     await connection.end();
+  }
+
+  console.log("[deploy] aplicando histórico oficial do Drizzle...");
+  const migration = spawnSync("pnpm", ["exec", "drizzle-kit", "migrate"], {
+    stdio: "inherit",
+    env: process.env,
+    shell: process.platform === "win32",
+  });
+  if (migration.error) throw migration.error;
+  if (migration.status !== 0) throw new Error(`drizzle-kit migrate encerrou com código ${migration.status ?? "desconhecido"}.`);
+
+  const verificationConnection = await mysql.createConnection(databaseUrl);
+  try {
+    await verifyFinalState(verificationConnection);
+    console.log("[deploy] histórico Drizzle aplicado e estrutura Social OS verificada sem reset ou exclusão de dados.");
+  } finally {
+    await verificationConnection.end();
   }
 }
 

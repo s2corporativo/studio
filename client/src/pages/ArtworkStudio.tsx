@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle2, ImagePlus, Loader2, WandSparkles } from "lucide-react";
+import { CheckCircle2, ImagePlus, Loader2, ShieldCheck, WandSparkles } from "lucide-react";
 import { useState } from "react";
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number) {
@@ -49,20 +49,14 @@ function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: any, style: str
   ctx.font = "700 70px 'Cormorant Garamond', Georgia, serif";
   const titleLines = wrapText(ctx, String(post.title ?? "Conteúdo jurídico"), 900, 4);
   let y = 790 - Math.max(0, titleLines.length - 2) * 58;
-  for (const line of titleLines) {
-    ctx.fillText(line, 78, y);
-    y += 78;
-  }
+  for (const line of titleLines) { ctx.fillText(line, 78, y); y += 78; }
 
   const hook = String(post.hook ?? post.keyStatement ?? "").trim();
   if (hook) {
     ctx.fillStyle = "rgba(237,229,215,.9)";
     ctx.font = "400 30px Manrope, sans-serif";
     y += 15;
-    for (const line of wrapText(ctx, hook, 850, 2)) {
-      ctx.fillText(line, 80, y);
-      y += 42;
-    }
+    for (const line of wrapText(ctx, hook, 850, 2)) { ctx.fillText(line, 80, y); y += 42; }
   }
 
   ctx.fillStyle = accent;
@@ -87,16 +81,17 @@ export default function ArtworkStudio({ post }: { post: any }) {
   const [message, setMessage] = useState<string | null>(null);
   const utils = trpc.useUtils();
   const generate = trpc.socialStudio.generatePostArtwork.useMutation({
-    onSuccess: data => {
-      setPreviewUrl(data.url);
-      setMessage("Conceito visual gerado. A tipografia e a assinatura serão aplicadas pelo Design Engine.");
-    },
+    onSuccess: data => { setPreviewUrl(data.url); setMessage("Conceito visual gerado. A tipografia e a assinatura serão aplicadas pelo Design Engine."); },
     onError: error => setMessage(error.message),
   });
   const upload = trpc.socialStudio.uploadPostMedia.useMutation({
-    onSuccess: async () => {
-      setMessage("Arte final 1080×1350 adicionada ao post e pronta para o fluxo de publicação.");
-      await utils.socialStudio.data.invalidate();
+    onSuccess: async () => { setMessage("Arte final 1080×1350 adicionada ao post. Execute o Brand Guardian antes da revisão final."); await utils.socialStudio.data.invalidate(); },
+    onError: error => setMessage(error.message),
+  });
+  const guardian = trpc.brandGuardian.evaluate.useMutation({
+    onSuccess: async result => {
+      await utils.socialGrowth.workspace.invalidate();
+      setMessage(`${result.passed ? "Brand Guardian aprovado" : "Brand Guardian exige revisão"}. Qualidade ${result.visualQuality}/100 · marca ${result.brandFit}/100 · legibilidade ${result.legibility}/100 · risco IA ${result.aiAppearanceRisk}/100 · risco jurídico ${result.legalAdvertisingRisk}/100. ${result.summary}`);
     },
     onError: error => setMessage(error.message),
   });
@@ -134,7 +129,7 @@ export default function ArtworkStudio({ post }: { post: any }) {
 
   return <section className="saas-card p-5 sm:p-6">
     <div className="flex items-start justify-between gap-4">
-      <div><div className="saas-eyebrow"><WandSparkles className="h-3.5 w-3.5" /> Design AI</div><h3 className="mt-3 text-xl font-semibold text-white">Criação visual profissional</h3><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">A IA cria o conceito visual sem texto; o sistema monta título, área e assinatura com precisão, evitando a aparência típica de arte gerada integralmente por IA.</p></div>
+      <div><div className="saas-eyebrow"><WandSparkles className="h-3.5 w-3.5" /> Design AI</div><h3 className="mt-3 text-xl font-semibold text-white">Criação visual profissional</h3><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">A IA cria o conceito visual sem texto; o sistema monta título, área e assinatura com precisão. O Brand Guardian multimodal avalia a arte final salva, não apenas o prompt.</p></div>
       <ImagePlus className="h-5 w-5 text-[#e3bd7f]" />
     </div>
     <div className="mt-5 grid gap-3 md:grid-cols-[220px_1fr_auto]">
@@ -143,6 +138,7 @@ export default function ArtworkStudio({ post }: { post: any }) {
       <Button onClick={() => generate.mutate({ postId: post.id, style, direction: direction || null })} disabled={generate.isPending} className="saas-button-primary">{generate.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}Gerar</Button>
     </div>
     {previewUrl && <div className="mt-5 grid gap-4 lg:grid-cols-[260px_1fr]"><img src={previewUrl} alt="Conceito visual gerado por IA" className="aspect-[4/5] w-full rounded-2xl object-cover" /><div className="flex flex-col justify-center"><p className="text-sm font-semibold text-slate-200">Conceito visual pronto</p><p className="mt-2 text-xs leading-5 text-slate-500">Ao confirmar, o Design Engine recorta para 4:5, aplica a composição institucional e envia um JPEG validado para a mídia do post.</p><Button onClick={attach} disabled={upload.isPending} variant="outline" className="saas-button-secondary mt-4 w-fit">{upload.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Usar no post</Button></div></div>}
+    <div className="mt-5 border-t border-white/[.06] pt-5"><Button onClick={() => guardian.mutate({ postId: post.id, mediaId: null })} disabled={guardian.isPending} variant="outline" className="saas-button-secondary">{guardian.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}Executar Brand Guardian</Button><p className="mt-2 text-[11px] leading-5 text-slate-500">Analisa a primeira mídia salva do post. Se não atingir os limites conservadores, a peça fica registrada como necessitando revisão humana.</p></div>
     {message && <p className="mt-4 text-xs leading-5 text-slate-400">{message}</p>}
   </section>;
 }
