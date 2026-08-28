@@ -9,6 +9,7 @@ import { socialCampaignRouter } from "./routers/socialCampaign";
 import { socialGrowthRouter } from "./routers/socialGrowth";
 import { socialIntelligenceRouter } from "./routers/socialIntelligence";
 import { socialAutomationRouter } from "./routers/socialAutomation";
+import { brandGuardianRouter } from "./routers/brandGuardian";
 
 export const appRouter = router({
   system: systemRouter,
@@ -27,6 +28,7 @@ export const appRouter = router({
   socialGrowth: socialGrowthRouter,
   socialIntelligence: socialIntelligenceRouter,
   socialAutomation: socialAutomationRouter,
+  brandGuardian: brandGuardianRouter,
 });
 
 export type AppRouter = typeof appRouter;
