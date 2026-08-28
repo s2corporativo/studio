@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { ENV } from "./env";
+import { sdk } from "./sdk";
 
 export function registerStorageProxy(app: Express) {
   app.get("/manus-storage/*", async (req, res) => {
@@ -7,6 +8,19 @@ export function registerStorageProxy(app: Express) {
     if (!key) {
       res.status(400).send("Missing storage key");
       return;
+    }
+
+    const isPrivateKnowledge = /(^|\/)conhecimento\//.test(key);
+    if (isPrivateKnowledge) {
+      try {
+        const user = await sdk.authenticateRequest(req);
+        if (!user) { res.status(401).send("Authentication required"); return; }
+        const expectedPrefix = `social-studio/${user.id}/conhecimento/`;
+        if (!key.startsWith(expectedPrefix)) { res.status(403).send("Forbidden"); return; }
+      } catch {
+        res.status(401).send("Authentication required");
+        return;
+      }
     }
 
     if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {

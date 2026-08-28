@@ -55,7 +55,29 @@ export const brandProfiles = mysqlTable("brand_profiles", {
   visualGuidelines: text("visualGuidelines"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, table => [
+  uniqueIndex("brand_profiles_user_unique").on(table.userId),
+]);
+
+export const automationCadences = ["daily", "weekdays", "custom"] as const;
+
+export const automationSettings = mysqlTable("automation_settings", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  enabled: boolean("enabled").default(false).notNull(),
+  cadence: mysqlEnum("cadence", automationCadences).default("weekdays").notNull(),
+  postsPerWeek: int("postsPerWeek").default(5).notNull(),
+  defaultPublishTime: varchar("defaultPublishTime", { length: 5 }).default("18:30").notNull(),
+  planningHorizonDays: int("planningHorizonDays").default(30).notNull(),
+  requireApproval: boolean("requireApproval").default(true).notNull(),
+  refreshRadarDaily: boolean("refreshRadarDaily").default(true).notNull(),
+  preferredAreas: text("preferredAreas"),
+  preferredFormats: text("preferredFormats"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("automation_settings_user_unique").on(table.userId),
+]);
 
 export const contentSources = mysqlTable("content_sources", {
   id: int("id").autoincrement().primaryKey(),
@@ -251,3 +273,4 @@ export type ContentMedia = typeof contentMedia.$inferSelect;
 export type AssetLibraryItem = typeof assetLibraryItems.$inferSelect;
 export type InstagramConnection = typeof instagramConnections.$inferSelect;
 export type PublicationJob = typeof publicationJobs.$inferSelect;
+export type AutomationSetting = typeof automationSettings.$inferSelect;

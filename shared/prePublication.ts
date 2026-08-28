@@ -1,3 +1,4 @@
+import { evaluateOabCompliance } from "./compliance";
 export type PrePublicationInput = {
   title?: string | null;
   hook?: string | null;
@@ -25,15 +26,11 @@ export function calculatePrePublicationScore(input: PrePublicationInput): PrePub
   const passed: string[] = [];
   const pending: string[] = [];
   const captionLength = input.caption?.trim().length ?? 0;
-  const forbidden = (input.prohibitedTerms ?? "")
-    .split(",")
-    .map((term) => term.trim().toLocaleLowerCase("pt-BR"))
-    .filter(Boolean);
-  const combinedText = `${input.title ?? ""} ${input.hook ?? ""} ${input.caption ?? ""} ${input.cta ?? ""}`.toLocaleLowerCase("pt-BR");
+  const complianceIssues = evaluateOabCompliance(input);
   const criteria = [
     { label: "clareza", valid: hasText(input.title) && hasText(input.hook) && captionLength >= 80 },
     { label: "CTA", valid: hasText(input.cta) },
-    { label: "identidade", valid: forbidden.every((term) => !combinedText.includes(term)) },
+    { label: "compliance OAB", valid: !complianceIssues.some(issue => issue.severity === "block") },
     { label: "legibilidade", valid: captionLength >= 80 && captionLength <= 2200 },
     { label: "risco regulatório", valid: Boolean(input.sourceId) && hasText(input.legalSource) && hasText(input.keyStatement) && Boolean(input.reviewDueAt) && hasText(input.mediaUrl) },
   ];

@@ -1,6 +1,6 @@
 import { decryptInstagramToken } from "./instagramCrypto";
 import { createInstagramTestContainer, getInstagramPublishingLimit, InstagramApiError, publishInstagramImages } from "./instagramApi";
-import { getInstagramConnection, getPublicationJob, recordPublicationAttempt, setInstagramConnectionError, updatePublicationJob, updateStudioPost, upsertInstagramConnection, type FrozenPublicationPayload } from "./socialStudioDb";
+import { claimQueuedPublicationJob, getInstagramConnection, getPublicationJob, recordPublicationAttempt, setInstagramConnectionError, updatePublicationJob, updateStudioPost, upsertInstagramConnection, type FrozenPublicationPayload } from "./socialStudioDb";
 
 function parseFrozenPayload(value: string): FrozenPublicationPayload {
   try {
@@ -90,7 +90,13 @@ export async function executeConfirmedInstagramPublication(userId: number, jobId
   }
   const payload = parseFrozenPayload(job.frozenPayload);
   const token = decryptInstagramToken(connection.accessTokenCiphertext);
-  await updatePublicationJob(job.id, { status: "processing", attemptCount: job.attemptCount + 1, lastError: null });
+  const claimed = await claimQueuedPublicationJob(userId, job.id);
+  if (!claimed) {
+    const latest = await getPublicationJob(userId, job.id);
+    if (latest.status === "published") return latest;
+    throw new Error("Esta publicação já está sendo processada por outra execução.");
+  }
+  await updatePublicationJob(job.id, { attemptCount: job.attemptCount + 1, lastError: null });
   await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "started", detail: "Confirmação humana validada; iniciando envio à Meta." });
   try {
     const limit = await getInstagramPublishingLimit(connection.instagramUserId, token);

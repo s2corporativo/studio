@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerInstagramOAuthRoutes } from "../instagramOAuth";
 import { runInstagramPublicationSchedule } from "../instagramSchedule";
 import { registerStorageProxy } from "./storageProxy";
+import { registerHealthRoutes } from "./health";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -33,14 +34,13 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  registerHealthRoutes(app);
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   registerInstagramOAuthRoutes(app);
   app.post("/api/scheduled/instagram-publication", runInstagramPublicationSchedule);
-  // tRPC API
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -48,7 +48,6 @@ async function startServer() {
       createContext,
     })
   );
-  // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
