@@ -9,6 +9,7 @@ import AssetLibrary from "./AssetLibrary";
 import ArtworkStudio from "./ArtworkStudio";
 import AutomationCenter from "./AutomationCenter";
 import { ContentDeskV4, StrategyBoardV2 } from "./EditorialTools";
+import GrowthWorkspace from "./GrowthWorkspace";
 import KnowledgePanel from "./KnowledgePanel";
 import MarketingRoadmap from "./MarketingRoadmap";
 import NetworkHub from "./NetworkHub";
@@ -22,6 +23,7 @@ function mutationError(error: { message: string }) {
 }
 
 const socialOsLocations = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics", "/compliance"]);
+const growthLocations = new Set(["/video", "/seo", "/ads", "/relatorios", "/agentes", "/memoria", "/governanca"]);
 
 export default function Home() {
   const { user } = useAuth();
@@ -60,6 +62,8 @@ export default function Home() {
     content = <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-violet-300" /></div>;
   } else if (dataQuery.isError || !data) {
     content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? "Não foi possível carregar o Social OS."}</div>;
+  } else if (growthLocations.has(location)) {
+    content = <GrowthWorkspace />;
   } else if (socialOsLocations.has(location)) {
     content = <SocialOsCommandCenter />;
   } else if (location === "/radar") {
@@ -84,23 +88,7 @@ export default function Home() {
     content = <CalendarPanel posts={data.posts} />;
   } else if (location === "/conteudos") {
     content = <div className="space-y-6">
-      <ContentDeskV4
-        topics={data.topics}
-        sources={data.sources}
-        brand={data.brand}
-        posts={data.posts}
-        selectedPost={selectedPost}
-        selectedTopicId={selectedTopicId}
-        onSelectTopic={(id: number) => setSelectedTopicId(id)}
-        onSelectPost={(id: number) => setSelectedPostId(id)}
-        onGenerate={(value: any) => generate.mutate(value)}
-        generating={generate.isPending}
-        onUpdate={(value: any) => updatePost.mutate(value)}
-        saving={updatePost.isPending}
-        onSendReview={(id: number) => sendReview.mutate({ id })}
-        onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes?: string) => decide.mutate({ id, decision, notes: notes || undefined })}
-        onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })}
-      />
+      <ContentDeskV4 topics={data.topics} sources={data.sources} brand={data.brand} posts={data.posts} selectedPost={selectedPost} selectedTopicId={selectedTopicId} onSelectTopic={(id: number) => setSelectedTopicId(id)} onSelectPost={(id: number) => setSelectedPostId(id)} onGenerate={(value: any) => generate.mutate(value)} generating={generate.isPending} onUpdate={(value: any) => updatePost.mutate(value)} saving={updatePost.isPending} onSendReview={(id: number) => sendReview.mutate({ id })} onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes?: string) => decide.mutate({ id, decision, notes: notes || undefined })} onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })} />
       {selectedPost && <ArtworkStudio key={selectedPost.id} post={selectedPost} />}
     </div>;
   } else {
