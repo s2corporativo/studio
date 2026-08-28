@@ -14,11 +14,14 @@ import MarketingRoadmap from "./MarketingRoadmap";
 import NetworkHub from "./NetworkHub";
 import NewsRadar from "./NewsRadar";
 import SaasOverview from "./SaasOverview";
+import SocialOsCommandCenter from "./SocialOsCommandCenter";
 import { BrandPanel, CalendarPanel, SourcesPanel } from "./StudioPanels";
 
 function mutationError(error: { message: string }) {
   toast.error(error.message || "Não foi possível concluir a operação.");
 }
+
+const socialOsLocations = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics", "/compliance"]);
 
 export default function Home() {
   const { user } = useAuth();
@@ -57,6 +60,8 @@ export default function Home() {
     content = <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-violet-300" /></div>;
   } else if (dataQuery.isError || !data) {
     content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? "Não foi possível carregar o Social OS."}</div>;
+  } else if (socialOsLocations.has(location)) {
+    content = <SocialOsCommandCenter />;
   } else if (location === "/radar") {
     content = <NewsRadar />;
   } else if (location === "/automacao") {
