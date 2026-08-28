@@ -47,7 +47,7 @@ export default function Home() {
   const schedule = trpc.socialGovernance.schedule.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Agendamento registrado com aprovação válida."); }, onError: mutationError });
   const addSource = trpc.socialStudio.addSource.useMutation({ onSuccess: async () => { await refresh(); toast.success("Fonte cadastrada."); }, onError: mutationError });
   const addKnowledge = trpc.socialStudio.addKnowledge.useMutation({ onSuccess: async () => { await refresh(); toast.success("Referência cadastrada."); }, onError: mutationError });
-  const uploadKnowledge = trpc.socialStudio.uploadKnowledge.useMutation({ onSuccess: async () => { await refresh(); toast.success("Documento armazenado."); }, onError: mutationError });
+  const uploadKnowledge = trpc.knowledgeSecurity.upload.useMutation({ onSuccess: async () => { await refresh(); toast.success("Documento validado e armazenado com segurança."); }, onError: mutationError });
   const updateBrand = trpc.socialStudio.updateBrand.useMutation({ onSuccess: async () => { await refresh(); toast.success("Brand OS atualizado."); }, onError: mutationError });
 
   const selectedPost = useMemo(() => data?.posts?.find(post => post.id === selectedPostId) ?? null, [data?.posts, selectedPostId]);
