@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { socialStudioRouter } from "./routers/socialStudio";
 import { socialOsRouter } from "./routers/socialOs";
+import { socialGovernanceRouter } from "./routers/socialGovernance";
 
 export const appRouter = router({
   system: systemRouter,
@@ -17,6 +18,7 @@ export const appRouter = router({
   }),
   socialStudio: socialStudioRouter,
   socialOs: socialOsRouter,
+  socialGovernance: socialGovernanceRouter,
 });
 
 export type AppRouter = typeof appRouter;
