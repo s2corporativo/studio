@@ -52,7 +52,7 @@ export function buildCampaignSlots(input: { startDate: Date; days: number; posts
     selectedIndexes.add(idx);
   }
   for (let idx = 0; selectedIndexes.size < target && idx < eligible.length; idx++) selectedIndexes.add(idx);
-  return [...selectedIndexes].sort((a, b) => a - b).map(idx => {
+  return Array.from(selectedIndexes).sort((a, b) => a - b).map(idx => {
     const value = eligible[idx];
     return localDateTimeToUtc(value.year, value.month, value.day, hour, minute, timezone);
   });

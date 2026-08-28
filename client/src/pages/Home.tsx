@@ -2,21 +2,25 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
-import AssetLibrary from "./AssetLibrary";
-import ArtworkStudio from "./ArtworkStudio";
-import AutomationCenter from "./AutomationCenter";
-import { ContentDeskV4, StrategyBoardV2 } from "./EditorialTools";
-import GrowthWorkspace from "./GrowthWorkspace";
-import KnowledgePanel from "./KnowledgePanel";
-import MarketingRoadmap from "./MarketingRoadmap";
-import NetworkHub from "./NetworkHub";
-import NewsRadar from "./NewsRadar";
-import SaasOverview from "./SaasOverview";
-import SocialOsCommandCenter from "./SocialOsCommandCenter";
-import { BrandPanel, CalendarPanel, SourcesPanel } from "./StudioPanels";
+
+const AssetLibrary = lazy(() => import("./AssetLibrary"));
+const ArtworkStudio = lazy(() => import("./ArtworkStudio"));
+const AutomationCenter = lazy(() => import("./AutomationCenter"));
+const ContentDeskV4 = lazy(() => import("./EditorialTools").then(module => ({ default: module.ContentDeskV4 })));
+const StrategyBoardV2 = lazy(() => import("./EditorialTools").then(module => ({ default: module.StrategyBoardV2 })));
+const GrowthWorkspace = lazy(() => import("./GrowthWorkspace"));
+const KnowledgePanel = lazy(() => import("./KnowledgePanel"));
+const MarketingRoadmap = lazy(() => import("./MarketingRoadmap"));
+const NetworkHub = lazy(() => import("./NetworkHub"));
+const NewsRadar = lazy(() => import("./NewsRadar"));
+const SaasOverview = lazy(() => import("./SaasOverview"));
+const SocialOsCommandCenter = lazy(() => import("./SocialOsCommandCenter"));
+const BrandPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.BrandPanel })));
+const CalendarPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.CalendarPanel })));
+const SourcesPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.SourcesPanel })));
 
 function mutationError(error: { message: string }) {
   toast.error(error.message || "Não foi possível concluir a operação.");
@@ -95,5 +99,5 @@ export default function Home() {
     content = <SaasOverview data={data} counts={counts} onCreate={() => setLocation("/conteudos")} onOpenCalendar={() => setLocation("/calendario")} onOpenRadar={() => setLocation("/radar")} onOpenAutomation={() => setLocation("/automacao")} onOpenNetworks={() => setLocation("/redes")} />;
   }
 
-  return <DashboardLayout><div className="saas-shell mx-auto w-full max-w-[1680px]">{content}</div></DashboardLayout>;
+  return <DashboardLayout><div className="saas-shell mx-auto w-full max-w-[1680px]"><Suspense fallback={<div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>}>{content}</Suspense></div></DashboardLayout>;
 }
