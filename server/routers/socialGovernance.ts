@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { approvalReadiness } from "../studioRules";
-import { getStudioData, getStudioPost } from "../socialStudioDb";
-import { bindApproval, rejectOrRequestChanges, safeUpdatePost } from "../socialOsGovernance";
+import { approvalReadiness, canSchedule } from "../studioRules";
+import { getStudioData, getStudioPost, updateStudioPost } from "../socialStudioDb";
+import { assertApprovalStillValid, bindApproval, rejectOrRequestChanges, safeUpdatePost } from "../socialOsGovernance";
 import { recordAuditEvent } from "../socialOsDb";
 
 export const socialGovernanceRouter = router({
@@ -47,5 +47,15 @@ export const socialGovernanceRouter = router({
     const decided = await rejectOrRequestChanges(ctx.user.id, input.id, reviewerName, input.decision, input.notes);
     await recordAuditEvent(ctx.user.id, `post.${input.decision}`, "content_post", input.id);
     return decided;
+  }),
+
+  schedule: protectedProcedure.input(z.object({ id: z.number().int().positive(), scheduledAt: z.date() })).mutation(async ({ ctx, input }) => {
+    const post = await getStudioPost(ctx.user.id, input.id);
+    const scheduleCheck = canSchedule(post.status, input.scheduledAt);
+    if (!scheduleCheck.allowed) throw new Error(scheduleCheck.reason);
+    await assertApprovalStillValid(ctx.user.id, post.id);
+    const scheduled = await updateStudioPost(ctx.user.id, post.id, { status: "scheduled", scheduledAt: input.scheduledAt });
+    await recordAuditEvent(ctx.user.id, "post.scheduled_with_valid_approval", "content_post", post.id, { scheduledAt: input.scheduledAt.toISOString() });
+    return scheduled;
   }),
 });
