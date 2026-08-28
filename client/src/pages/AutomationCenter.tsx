@@ -12,14 +12,14 @@ export default function AutomationCenter({ settings }: { settings: any }) {
   const [planMessage, setPlanMessage] = useState<string | null>(null);
   const utils = trpc.useUtils();
   const update = trpc.socialStudio.updateAutomation.useMutation({ onSuccess: async data => { setForm(data); await utils.socialStudio.data.invalidate(); } });
-  const generateCampaign = trpc.socialStudio.generateCampaign.useMutation({ onSuccess: async result => { setPlanMessage(`${result.count} conteúdos foram criados como rascunhos com datas-alvo.`); await utils.socialStudio.data.invalidate(); }, onError: error => setPlanMessage(error.message) });
+  const generateCampaign = trpc.socialCampaign.generate.useMutation({ onSuccess: async result => { setPlanMessage(`${result.count} conteúdos foram criados como rascunhos e distribuídos ao longo do período em America/Sao_Paulo${result.reused ? " (solicitação já processada; sem duplicação)" : ""}.`); await utils.socialStudio.data.invalidate(); }, onError: error => setPlanMessage(error.message) });
   useEffect(() => setForm(settings ?? form), [settings?.id]);
   const submit = (event: FormEvent) => { event.preventDefault(); update.mutate({ ...form, postsPerWeek: Number(form.postsPerWeek), planningHorizonDays: Number(form.planningHorizonDays), preferredAreas: form.preferredAreas || null, preferredFormats: form.preferredFormats || null }); };
 
   return <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
     <form onSubmit={submit} className="saas-card p-6 sm:p-7">
       <div className="flex items-start justify-between gap-4">
-        <div><div className="saas-eyebrow"><Bot className="h-3.5 w-3.5" /> Planejamento assistido</div><h2 className="mt-3 font-serif text-3xl tracking-tight text-[#f3ebdd]">Defina o ritmo. O sistema prepara a operação.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#aab6ad]">Estas preferências orientam planejamento e priorização de pautas. Elas não publicam conteúdo, não criam tarefas de envio e não substituem a revisão jurídica.</p></div>
+        <div><div className="saas-eyebrow"><Bot className="h-3.5 w-3.5" /> Planejamento assistido</div><h2 className="mt-3 font-serif text-3xl tracking-tight text-[#f3ebdd]">Defina o ritmo. O sistema prepara a operação.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#aab6ad]">As preferências orientam pautas e formatos. O plano é distribuído pelo período, respeita o fuso de São Paulo, evita duplicação por idempotência e permanece como rascunho até revisão.</p></div>
         <Switch checked={Boolean(form.enabled)} onCheckedChange={enabled => setForm({ ...form, enabled })} />
       </div>
 
@@ -42,7 +42,7 @@ export default function AutomationCenter({ settings }: { settings: any }) {
           {update.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar automação
         </Button>
         <select className="editorial-input !w-auto" value={planDays} onChange={e => setPlanDays(Number(e.target.value) as 7 | 15 | 30)}><option value={7}>Planejar 7 dias</option><option value={15}>Planejar 15 dias</option><option value={30}>Planejar 30 dias</option></select>
-        <Button type="button" disabled={generateCampaign.isPending} onClick={() => { const start = new Date(); start.setDate(start.getDate() + 1); generateCampaign.mutate({ days: planDays, startDate: start, postsPerWeek: Number(form.postsPerWeek), defaultPublishTime: form.defaultPublishTime, objective: "Autoridade e atualidade" }); }} className="saas-button-primary">
+        <Button type="button" disabled={generateCampaign.isPending} onClick={() => { const start = new Date(); start.setDate(start.getDate() + 1); generateCampaign.mutate({ idempotencyKey: crypto.randomUUID(), days: planDays, startDate: start, postsPerWeek: Number(form.postsPerWeek), defaultPublishTime: form.defaultPublishTime, objective: "Autoridade e atualidade", timezone: "America/Sao_Paulo" }); }} className="saas-button-primary">
           {generateCampaign.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}Gerar plano agora
         </Button>
       </div>
@@ -50,7 +50,7 @@ export default function AutomationCenter({ settings }: { settings: any }) {
     </form>
 
     <aside className="space-y-4">
-      {[{ icon: Radar, title: "1. Descobrir", text: "Radar consulta fontes oficiais quando acionado." }, { icon: WandSparkles, title: "2. Produzir", text: "IA prepara pauta, texto e direção visual vinculando a fonte." }, { icon: ShieldCheck, title: "3. Revisar", text: "Compliance e aprovação humana antecedem qualquer envio." }, { icon: CalendarRange, title: "4. Programar", text: "Conteúdo aprovado entra no calendário e na fila de publicação." }, { icon: Clock3, title: "5. Publicar", text: "A integração oficial só envia após conexão Meta, teste não público e confirmação expressa." }].map(({ icon: Icon, title, text }) => <div key={title} className="saas-card flex gap-4 p-5"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#c99550]/10 text-[#e3bd7f]"><Icon className="h-5 w-5" /></div><div><p className="font-semibold text-[#eee5d7]">{title}</p><p className="mt-1 text-sm leading-5 text-[#98a79d]">{text}</p></div></div>)}
+      {[{ icon: Radar, title: "1. Descobrir", text: "Radar consulta fontes oficiais quando acionado." }, { icon: WandSparkles, title: "2. Produzir", text: "IA prepara pauta, texto e direção visual vinculando a fonte." }, { icon: ShieldCheck, title: "3. Revisar", text: "Compliance e aprovação humana antecedem qualquer envio." }, { icon: CalendarRange, title: "4. Programar", text: "Conteúdo aprovado entra no calendário e na fila de publicação." }, { icon: Clock3, title: "5. Publicar", text: "A integração oficial só envia após conexão, testes e confirmação exigida pelo fluxo." }].map(({ icon: Icon, title, text }) => <div key={title} className="saas-card flex gap-4 p-5"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#c99550]/10 text-[#e3bd7f]"><Icon className="h-5 w-5" /></div><div><p className="font-semibold text-[#eee5d7]">{title}</p><p className="mt-1 text-sm leading-5 text-[#98a79d]">{text}</p></div></div>)}
     </aside>
   </div>;
 }
