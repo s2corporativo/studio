@@ -12,20 +12,13 @@ function parseCsv(value?: string | null) {
 }
 
 function datePartsInZone(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric", month: "2-digit", day: "2-digit",
-  }).formatToParts(date);
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
   const value = Object.fromEntries(parts.map(part => [part.type, part.value]));
   return { year: Number(value.year), month: Number(value.month), day: Number(value.day) };
 }
 
 function offsetAt(date: Date, timeZone: string) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
-  }).formatToParts(date);
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(date);
   const value = Object.fromEntries(parts.map(part => [part.type, part.value]));
   const asUtc = Date.UTC(Number(value.year), Number(value.month) - 1, Number(value.day), Number(value.hour), Number(value.minute), Number(value.second));
   return asUtc - date.getTime();
@@ -65,6 +58,10 @@ export function buildCampaignSlots(input: { startDate: Date; days: number; posts
   });
 }
 
+function affectedRows(result: unknown) {
+  return Number((result as any)?.[0]?.affectedRows ?? 0);
+}
+
 export async function generateCampaignSafely(userId: number, input: {
   idempotencyKey: string;
   days: 7 | 15 | 30;
@@ -76,62 +73,68 @@ export async function generateCampaignSafely(userId: number, input: {
 }) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  const [existing] = await db.select().from(campaignRuns).where(and(eq(campaignRuns.userId, userId), eq(campaignRuns.idempotencyKey, input.idempotencyKey))).limit(1);
-  if (existing?.status === "generated") return { campaignRunId: existing.id, count: existing.generatedCount, reused: true };
-  if (existing?.status === "planning") throw new Error("Este planejamento já está em processamento.");
 
-  const studio = await getStudioData(userId);
-  if (!studio.topics.length) throw new Error("Cadastre pelo menos uma pauta antes de gerar o plano.");
-  const preferredAreas = parseCsv(studio.automation?.preferredAreas);
-  const preferredFormats = parseCsv(studio.automation?.preferredFormats);
-  const filteredTopics = studio.topics.filter(topic => {
-    const areaOk = preferredAreas.size === 0 || preferredAreas.has(topic.area.toLowerCase());
-    const formatOk = preferredFormats.size === 0 || preferredFormats.has(topic.suggestedFormat.toLowerCase());
-    return topic.isActive && areaOk && formatOk;
-  });
-  const topics = filteredTopics.length ? filteredTopics : studio.topics.filter(topic => topic.isActive);
-  if (!topics.length) throw new Error("Nenhuma pauta ativa corresponde às preferências configuradas.");
+  const lookup = () => db.select().from(campaignRuns).where(and(eq(campaignRuns.userId, userId), eq(campaignRuns.idempotencyKey, input.idempotencyKey))).limit(1);
+  let [run] = await lookup();
+  if (run?.status === "generated") return { campaignRunId: run.id, count: run.generatedCount, reused: true };
+  if (run?.status === "planning") throw new Error("Este planejamento já está em processamento.");
 
-  const timezone = input.timezone ?? DEFAULT_TIMEZONE;
-  const slots = buildCampaignSlots({
-    startDate: input.startDate,
-    days: input.days,
-    postsPerWeek: input.postsPerWeek,
-    publishTime: input.defaultPublishTime,
-    weekdaysOnly: studio.automation?.cadence === "weekdays",
-    timezone,
-  });
-
-  const generated = [] as Array<{ topic: (typeof topics)[number]; draft: Awaited<ReturnType<typeof generateLegalDraft>>; scheduledAt: Date }>;
-  for (let index = 0; index < slots.length; index++) {
-    const topic = topics[index % topics.length];
-    const draft = await generateLegalDraft({
-      area: topic.area,
-      topic: topic.title,
-      audience: topic.audience,
-      format: topic.suggestedFormat,
-      objective: input.objective,
-      legalSource: topic.sourceUrl,
-      primaryCta: studio.brand?.primaryCta,
-      toneOfVoice: studio.brand?.toneOfVoice,
-      prohibitedTerms: studio.brand?.prohibitedTerms,
-    });
-    generated.push({ topic, draft, scheduledAt: slots[index] });
-  }
-
-  try {
-    return await db.transaction(async tx => {
-      const runResult = await tx.insert(campaignRuns).values({
+  if (run?.status === "failed") {
+    const reset = await db.update(campaignRuns).set({ status: "planning", generatedCount: 0, errorMessage: null, updatedAt: new Date() })
+      .where(and(eq(campaignRuns.id, run.id), eq(campaignRuns.userId, userId), eq(campaignRuns.status, "failed")));
+    if (affectedRows(reset) !== 1) {
+      [run] = await lookup();
+      if (run?.status === "generated") return { campaignRunId: run.id, count: run.generatedCount, reused: true };
+      throw new Error("Este planejamento já foi retomado por outra execução.");
+    }
+  } else if (!run) {
+    try {
+      const inserted = await db.insert(campaignRuns).values({
         userId,
         idempotencyKey: input.idempotencyKey,
         name: `Plano ${input.days} dias`,
         horizonDays: input.days,
         postsPerWeek: input.postsPerWeek,
-        timezone,
+        timezone: input.timezone ?? DEFAULT_TIMEZONE,
         status: "planning",
       });
-      const runId = Number(runResult[0].insertId);
-      const createdIds: number[] = [];
+      const id = Number(inserted[0].insertId);
+      [run] = await db.select().from(campaignRuns).where(eq(campaignRuns.id, id)).limit(1);
+    } catch (error) {
+      [run] = await lookup();
+      if (run?.status === "generated") return { campaignRunId: run.id, count: run.generatedCount, reused: true };
+      if (run?.status === "planning") throw new Error("Este planejamento já está em processamento por outra execução.");
+      throw error;
+    }
+  }
+  if (!run) throw new Error("Não foi possível reservar a execução da campanha.");
+
+  try {
+    const studio = await getStudioData(userId);
+    if (!studio.topics.length) throw new Error("Cadastre pelo menos uma pauta antes de gerar o plano.");
+    const preferredAreas = parseCsv(studio.automation?.preferredAreas);
+    const preferredFormats = parseCsv(studio.automation?.preferredFormats);
+    const filteredTopics = studio.topics.filter(topic => {
+      const areaOk = preferredAreas.size === 0 || preferredAreas.has(topic.area.toLowerCase());
+      const formatOk = preferredFormats.size === 0 || preferredFormats.has(topic.suggestedFormat.toLowerCase());
+      return topic.isActive && areaOk && formatOk;
+    });
+    const topics = filteredTopics.length ? filteredTopics : studio.topics.filter(topic => topic.isActive);
+    if (!topics.length) throw new Error("Nenhuma pauta ativa corresponde às preferências configuradas.");
+
+    const timezone = input.timezone ?? DEFAULT_TIMEZONE;
+    const slots = buildCampaignSlots({ startDate: input.startDate, days: input.days, postsPerWeek: input.postsPerWeek, publishTime: input.defaultPublishTime, weekdaysOnly: studio.automation?.cadence === "weekdays", timezone });
+    if (!slots.length) throw new Error("Não foi possível criar datas elegíveis para a campanha.");
+
+    const generated: Array<{ topic: (typeof topics)[number]; draft: Awaited<ReturnType<typeof generateLegalDraft>>; scheduledAt: Date }> = [];
+    for (let index = 0; index < slots.length; index++) {
+      const topic = topics[index % topics.length];
+      const draft = await generateLegalDraft({ area: topic.area, topic: topic.title, audience: topic.audience, format: topic.suggestedFormat, objective: input.objective, legalSource: topic.sourceUrl, primaryCta: studio.brand?.primaryCta, toneOfVoice: studio.brand?.toneOfVoice, prohibitedTerms: studio.brand?.prohibitedTerms });
+      generated.push({ topic, draft, scheduledAt: slots[index] });
+    }
+
+    const createdIds = await db.transaction(async tx => {
+      const ids: number[] = [];
       for (let index = 0; index < generated.length; index++) {
         const { topic, draft, scheduledAt } = generated[index];
         const result = await tx.insert(contentPosts).values({
@@ -143,7 +146,7 @@ export async function generateCampaignSafely(userId: number, input: {
           audience: topic.audience,
           strategicObjective: input.objective,
           contentPillar: "Planejamento automático",
-          campaign: `Plano ${input.days} dias #${runId}`,
+          campaign: `Plano ${input.days} dias #${run!.id}`,
           funnelStage: index % 4 === 0 ? "relationship" : index % 3 === 0 ? "consideration" : "discovery",
           templateKey: topic.suggestedFormat === "carousel" ? "carrossel_didatico" : topic.suggestedFormat === "reel" ? "reel_roteiro" : "noticia_comentada",
           title: draft.title,
@@ -158,15 +161,17 @@ export async function generateCampaignSafely(userId: number, input: {
           scheduledAt,
           status: "draft",
         });
-        createdIds.push(Number(result[0].insertId));
+        ids.push(Number(result[0].insertId));
       }
-      await tx.update(campaignRuns).set({ status: "generated", generatedCount: createdIds.length, updatedAt: new Date() }).where(eq(campaignRuns.id, runId));
-      return { campaignRunId: runId, count: createdIds.length, createdIds, startDate: slots[0] ?? null, endDate: slots.at(-1) ?? null, timezone, reused: false };
+      await tx.update(campaignRuns).set({ status: "generated", generatedCount: ids.length, errorMessage: null, updatedAt: new Date() })
+        .where(and(eq(campaignRuns.id, run!.id), eq(campaignRuns.userId, userId), eq(campaignRuns.status, "planning")));
+      return ids;
     });
+    return { campaignRunId: run.id, count: createdIds.length, createdIds, startDate: slots[0], endDate: slots.at(-1) ?? slots[0], timezone, reused: false };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Falha desconhecida ao persistir campanha.";
-    const [failedRun] = await db.select().from(campaignRuns).where(and(eq(campaignRuns.userId, userId), eq(campaignRuns.idempotencyKey, input.idempotencyKey))).limit(1);
-    if (failedRun) await db.update(campaignRuns).set({ status: "failed", errorMessage: message, updatedAt: new Date() }).where(eq(campaignRuns.id, failedRun.id));
+    const message = error instanceof Error ? error.message : "Falha desconhecida ao gerar campanha.";
+    await db.update(campaignRuns).set({ status: "failed", errorMessage: message.slice(0, 5000), updatedAt: new Date() })
+      .where(and(eq(campaignRuns.id, run.id), eq(campaignRuns.userId, userId), eq(campaignRuns.status, "planning")));
     throw error;
   }
 }
