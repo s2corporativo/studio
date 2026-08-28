@@ -26,7 +26,11 @@ export function registerHealthRoutes(app: Express) {
     const checks = {
       runtimeEnv: Boolean(ENV.appId && ENV.cookieSecret && ENV.databaseUrl && ENV.oAuthServerUrl),
       database: false,
-      socialOsMigration: false,
+      automationSettings: false,
+      socialProfiles: false,
+      governance: false,
+      socialOsCore: false,
+      growthModules: false,
     };
 
     try {
@@ -34,8 +38,27 @@ export function registerHealthRoutes(app: Express) {
       if (db) {
         await db.execute(sql`SELECT 1`);
         checks.database = true;
-        await db.execute(sql.raw("SELECT 1 FROM automation_settings LIMIT 1"));
-        checks.socialOsMigration = true;
+
+        await db.execute(sql.raw("SELECT id, userId, postsPerWeek, requireApproval FROM automation_settings LIMIT 1"));
+        checks.automationSettings = true;
+
+        await db.execute(sql.raw("SELECT id, userId, network, state FROM social_profiles LIMIT 1"));
+        checks.socialProfiles = true;
+
+        await db.execute(sql.raw("SELECT id, postId, contentHash FROM post_versions LIMIT 1"));
+        await db.execute(sql.raw("SELECT id, postId, versionId, contentHash FROM post_approval_bindings LIMIT 1"));
+        checks.governance = true;
+
+        await db.execute(sql.raw("SELECT id, userId, totalScore FROM content_opportunities LIMIT 1"));
+        await db.execute(sql.raw("SELECT id, userId, idempotencyKey, timezone FROM campaign_runs LIMIT 1"));
+        await db.execute(sql.raw("SELECT id, userId, kind, status FROM social_interactions LIMIT 1"));
+        checks.socialOsCore = true;
+
+        await db.execute(sql.raw("SELECT id, userId, status FROM video_projects LIMIT 1"));
+        await db.execute(sql.raw("SELECT id, userId, scope, score FROM seo_audits LIMIT 1"));
+        await db.execute(sql.raw("SELECT id, userId, platform, status FROM ad_plans LIMIT 1"));
+        await db.execute(sql.raw("SELECT id, userId, checkType, result FROM compliance_checks LIMIT 1"));
+        checks.growthModules = true;
       }
     } catch (error) {
       console.warn("[Readiness] check failed", error instanceof Error ? error.message : error);
@@ -44,6 +67,7 @@ export function registerHealthRoutes(app: Express) {
     const ready = Object.values(checks).every(Boolean);
     res.status(ready ? 200 : 503).json({
       status: ready ? "ready" : "not_ready",
+      service: "depaula-social-os",
       checks,
       integrations: integrationState(),
       timestamp: new Date().toISOString(),
