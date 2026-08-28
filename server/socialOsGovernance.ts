@@ -1,10 +1,9 @@
 import { createHash } from "node:crypto";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
-import { contentPosts, publicationJobs } from "../drizzle/schema";
+import { contentPosts, publicationJobs, type ContentPost } from "../drizzle/schema";
 import { postApprovalBindings, postVersions } from "../drizzle/socialOsSchema";
 import { getDb } from "./db";
-import { getStudioPost, recordDecision, updateStudioPost } from "./socialStudioDb";
-import type { ContentPost } from "../drizzle/schema";
+import { getPostMedia, getStudioPost, recordDecision, updateStudioPost } from "./socialStudioDb";
 
 const materialFields = [
   "sourceId", "strategicObjective", "contentPillar", "campaign", "funnelStage", "templateKey",
@@ -13,7 +12,17 @@ const materialFields = [
 
 type EditablePatch = Partial<Pick<ContentPost, typeof materialFields[number] | "reviewDueAt">>;
 
-function snapshot(post: ContentPost) {
+type ApprovalMedia = Array<{
+  id: number;
+  url: string;
+  mimeType: string | null;
+  byteSize: number | null;
+  width: number | null;
+  height: number | null;
+  sortOrder: number;
+}>;
+
+function postSnapshot(post: ContentPost) {
   return {
     sourceId: post.sourceId,
     area: post.area,
@@ -36,24 +45,40 @@ function snapshot(post: ContentPost) {
   };
 }
 
-export function hashPost(post: ContentPost) {
-  return createHash("sha256").update(JSON.stringify(snapshot(post))).digest("hex");
+function approvalSnapshot(post: ContentPost, media: ApprovalMedia) {
+  return {
+    post: postSnapshot(post),
+    media: media.map(item => ({
+      id: item.id,
+      url: item.url,
+      mimeType: item.mimeType,
+      byteSize: item.byteSize,
+      width: item.width,
+      height: item.height,
+      sortOrder: item.sortOrder,
+    })),
+  };
+}
+
+export function hashApprovalSnapshot(post: ContentPost, media: ApprovalMedia) {
+  return createHash("sha256").update(JSON.stringify(approvalSnapshot(post, media))).digest("hex");
 }
 
 async function createVersion(userId: number, post: ContentPost, reason: string) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
+  const media = await getPostMedia(userId, post.id) as ApprovalMedia;
   const [latest] = await db.select({ version: postVersions.version }).from(postVersions)
     .where(and(eq(postVersions.userId, userId), eq(postVersions.postId, post.id)))
     .orderBy(desc(postVersions.version)).limit(1);
   const version = (latest?.version ?? 0) + 1;
-  const contentHash = hashPost(post);
+  const contentHash = hashApprovalSnapshot(post, media);
   const result = await db.insert(postVersions).values({
     userId,
     postId: post.id,
     version,
     contentHash,
-    snapshotJson: JSON.stringify(snapshot(post)),
+    snapshotJson: JSON.stringify(approvalSnapshot(post, media)),
     changeReason: reason,
     createdByUserId: userId,
   });
@@ -66,6 +91,11 @@ export async function safeUpdatePost(userId: number, postId: number, patch: Edit
   const before = await getStudioPost(userId, postId);
   if (before.status === "published") throw new Error("Conteúdo já publicado é imutável. Duplique-o para criar uma nova versão.");
 
+  const [processingJob] = await db.select({ id: publicationJobs.id }).from(publicationJobs)
+    .where(and(eq(publicationJobs.userId, userId), eq(publicationJobs.postId, postId), eq(publicationJobs.status, "processing")))
+    .limit(1);
+  if (processingJob) throw new Error("A publicação deste conteúdo já está em processamento. Aguarde a conclusão antes de editar.");
+
   const materialChange = materialFields.some(field => field in patch && patch[field] !== before[field]);
   const governancePatch: Partial<ContentPost> = { ...patch };
   if (materialChange && ["review", "approved", "scheduled"].includes(before.status)) {
@@ -77,7 +107,7 @@ export async function safeUpdatePost(userId: number, postId: number, patch: Edit
     await db.update(postApprovalBindings).set({ invalidatedAt: new Date(), invalidationReason: "Conteúdo alterado após revisão/aprovação." })
       .where(and(eq(postApprovalBindings.userId, userId), eq(postApprovalBindings.postId, postId), isNull(postApprovalBindings.invalidatedAt)));
     await db.update(publicationJobs).set({ status: "cancelled", lastError: "Cancelado automaticamente: conteúdo alterado após aprovação." })
-      .where(and(eq(publicationJobs.userId, userId), eq(publicationJobs.postId, postId), inArray(publicationJobs.status, ["pending_confirmation", "queued", "processing"])));
+      .where(and(eq(publicationJobs.userId, userId), eq(publicationJobs.postId, postId), inArray(publicationJobs.status, ["pending_confirmation", "queued"])));
   }
 
   const updated = await updateStudioPost(userId, postId, governancePatch);
@@ -113,11 +143,12 @@ export async function rejectOrRequestChanges(userId: number, postId: number, rev
 export async function assertApprovalStillValid(userId: number, postId: number) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
-  const post = await getStudioPost(userId, postId);
+  const [post, media] = await Promise.all([getStudioPost(userId, postId), getPostMedia(userId, postId)]);
   const [binding] = await db.select().from(postApprovalBindings)
     .where(and(eq(postApprovalBindings.userId, userId), eq(postApprovalBindings.postId, postId), isNull(postApprovalBindings.invalidatedAt)))
     .orderBy(desc(postApprovalBindings.approvedAt)).limit(1);
   if (!binding) throw new Error("Não existe aprovação válida para a versão atual.");
-  if (binding.contentHash !== hashPost(post)) throw new Error("O conteúdo mudou após a aprovação. Uma nova aprovação é obrigatória.");
+  const currentHash = hashApprovalSnapshot(post, media as ApprovalMedia);
+  if (binding.contentHash !== currentHash) throw new Error("O texto ou a mídia mudou após a aprovação. Uma nova aprovação é obrigatória.");
   return binding;
 }
