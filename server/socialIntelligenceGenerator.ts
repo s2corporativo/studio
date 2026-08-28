@@ -2,7 +2,9 @@ import { invokeLLM, listLLMModels } from "./_core/llm";
 
 async function modelId() {
   const catalog = await listLLMModels();
-  return catalog.data.find(item => item.id === "gpt-5-mini")?.id ?? catalog.data[0]?.id;
+  const model = catalog.data.find(item => item.id === "gpt-5-mini")?.id ?? catalog.data[0]?.id;
+  if (!model) throw new Error("Nenhum modelo de IA está disponível para o Social OS.");
+  return model;
 }
 
 async function invokeJson<T>(name: string, system: string, user: string, schema: Record<string, unknown>, maxCompletionTokens = 1800) {
@@ -134,8 +136,8 @@ export async function generateAdPlanningBrief(input: {
   landingPageUrl?: string | null;
 }) {
   return invokeJson<{
-    audience: Record<string, unknown>;
-    location: Record<string, unknown>;
+    audience: { summary: string; segments: string[]; exclusions: string[] };
+    location: { summary: string; regions: string[] };
     conversionEvent: string;
     successMetric: string;
     maxAcceptableCostGuidance: string;
@@ -149,8 +151,25 @@ export async function generateAdPlanningBrief(input: {
     {
       type: "object",
       properties: {
-        audience: { type: "object", additionalProperties: true },
-        location: { type: "object", additionalProperties: true },
+        audience: {
+          type: "object",
+          properties: {
+            summary: { type: "string" },
+            segments: { type: "array", items: { type: "string" } },
+            exclusions: { type: "array", items: { type: "string" } },
+          },
+          required: ["summary", "segments", "exclusions"],
+          additionalProperties: false,
+        },
+        location: {
+          type: "object",
+          properties: {
+            summary: { type: "string" },
+            regions: { type: "array", items: { type: "string" } },
+          },
+          required: ["summary", "regions"],
+          additionalProperties: false,
+        },
         conversionEvent: { type: "string" },
         successMetric: { type: "string" },
         maxAcceptableCostGuidance: { type: "string" },
