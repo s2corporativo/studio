@@ -3,16 +3,15 @@ SET @brand_unique_exists := (
   WHERE constraint_schema = DATABASE()
     AND table_name = 'brand_profiles'
     AND constraint_name = 'brand_profiles_user_unique'
-);
+);--> statement-breakpoint
 SET @brand_unique_sql := IF(
   @brand_unique_exists = 0,
   'ALTER TABLE `brand_profiles` ADD CONSTRAINT `brand_profiles_user_unique` UNIQUE (`userId`)',
   'SELECT 1'
-);
-PREPARE brand_unique_stmt FROM @brand_unique_sql;
-EXECUTE brand_unique_stmt;
-DEALLOCATE PREPARE brand_unique_stmt;
-
+);--> statement-breakpoint
+PREPARE brand_unique_stmt FROM @brand_unique_sql;--> statement-breakpoint
+EXECUTE brand_unique_stmt;--> statement-breakpoint
+DEALLOCATE PREPARE brand_unique_stmt;--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS `automation_settings` (
   `id` int AUTO_INCREMENT NOT NULL,
   `userId` int NOT NULL,
