@@ -32,7 +32,7 @@ describe("serviço de publicação confirmada", () => {
     vi.mocked(getPublicationJob).mockResolvedValue(queuedJob);
     vi.mocked(claimQueuedPublicationJob).mockResolvedValue(true);
     vi.mocked(getInstagramConnection).mockResolvedValue(connection);
-    vi.mocked(getInstagramPublishingLimit).mockResolvedValue({ data: [{ quota_usage: 1, config: { quota_total: 100 } }] });
+    vi.mocked(getInstagramPublishingLimit).mockResolvedValue({ data: [{ quota_usage: 1, config: { quota_total: 50 } }] });
     vi.mocked(createInstagramTestContainer).mockResolvedValue({ containerId: "test-container-1" });
     vi.mocked(publishInstagramImages).mockResolvedValue({ containerId: "container-1", mediaId: "media-1", permalink: "https://www.instagram.com/p/example/" });
     vi.mocked(updatePublicationJob).mockResolvedValue(queuedJob);
@@ -62,6 +62,13 @@ describe("serviço de publicação confirmada", () => {
     vi.mocked(claimQueuedPublicationJob).mockResolvedValue(false);
     await expect(executeConfirmedInstagramPublication(5, 91)).rejects.toThrow("já está sendo processada");
     expect(publishInstagramImages).not.toHaveBeenCalled();
+  });
+
+  it("usa 50 como fallback conservador quando a Meta não retorna quota_total", async () => {
+    vi.mocked(getPublicationJob).mockResolvedValue({ ...queuedJob, status: "pending_confirmation", confirmedAt: null });
+    vi.mocked(getInstagramPublishingLimit).mockResolvedValue({ data: [{ quota_usage: 1 }] });
+    await testInstagramPublication(5, 91);
+    expect(recordPublicationAttempt).toHaveBeenCalledWith(91, expect.objectContaining({ stage: "preflight", outcome: "succeeded", detail: "Teste autorizado; limite atual 1/50." }));
   });
 
   it("registra falha da Meta na trilha de auditoria e encerra o job em falha", async () => {

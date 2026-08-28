@@ -40,7 +40,7 @@ export function registerInstagramOAuthRoutes(app: Express) {
       }
       const callbackUrl = getInstagramRedirectUri(req);
       const token = await exchangeInstagramAuthorizationCode(code, callbackUrl);
-      const profile = await getInstagramProfile(token.instagramUserId, token.accessToken);
+      const profile = await getInstagramProfile(token.accessToken);
       await upsertInstagramConnection(sessionUser.id, {
         instagramUserId: profile.id ?? profile.user_id ?? token.instagramUserId,
         username: profile.username ?? null,
