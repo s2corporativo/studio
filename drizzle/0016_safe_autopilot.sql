@@ -1,0 +1,36 @@
+CREATE TABLE IF NOT EXISTS `autonomy_profiles` (
+  `id` int AUTO_INCREMENT NOT NULL,
+  `userId` int NOT NULL,
+  `level` enum('manual','assisted','semi_automatic','autopilot') NOT NULL DEFAULT 'assisted',
+  `allowAutoResearch` boolean NOT NULL DEFAULT true,
+  `allowAutoDraft` boolean NOT NULL DEFAULT false,
+  `allowAutoSchedule` boolean NOT NULL DEFAULT false,
+  `requireHumanForLegalContent` boolean NOT NULL DEFAULT true,
+  `requireHumanForExternalPublish` boolean NOT NULL DEFAULT true,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `autonomy_profiles_id` PRIMARY KEY(`id`),
+  UNIQUE INDEX `autonomy_profiles_user_unique` (`userId`)
+);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `automation_executions` (
+  `id` int AUTO_INCREMENT NOT NULL,
+  `userId` int NOT NULL,
+  `ruleId` int NOT NULL,
+  `fingerprint` varchar(64) NOT NULL,
+  `entityType` varchar(80) NOT NULL,
+  `entityId` varchar(120) NOT NULL,
+  `triggerSnapshotJson` text NOT NULL,
+  `actionSnapshotJson` text NOT NULL,
+  `status` enum('pending_approval','queued','running','completed','skipped','failed') NOT NULL DEFAULT 'pending_approval',
+  `requiresHumanApproval` boolean NOT NULL DEFAULT true,
+  `approvedByUserId` int,
+  `approvedAt` timestamp NULL,
+  `resultJson` text,
+  `errorMessage` text,
+  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT `automation_executions_id` PRIMARY KEY(`id`),
+  UNIQUE INDEX `automation_executions_fingerprint_unique` (`userId`,`fingerprint`),
+  INDEX `automation_executions_user_status_idx` (`userId`,`status`),
+  INDEX `automation_executions_rule_idx` (`userId`,`ruleId`)
+);
