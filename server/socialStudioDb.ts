@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { and, asc, desc, eq } from "drizzle-orm";
 import {
   approvalLogs,
@@ -31,7 +32,9 @@ const defaultTopics = [
   ["Compliance", "Assédio: política que sai do papel", "Empresas e lideranças", "alta", "carousel", "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/lei/l14457.htm"],
 ] as const;
 
-export async function ensureStudioDefaults(userId: number) {
+const studioDefaultsInFlight = new Map<number, Promise<void>>();
+
+async function initializeStudioDefaults(userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
 
@@ -107,6 +110,14 @@ export async function ensureStudioDefaults(userId: number) {
       isVerified: true,
     });
   }
+}
+
+export async function ensureStudioDefaults(userId: number) {
+  const existing = studioDefaultsInFlight.get(userId);
+  if (existing) return existing;
+  const task = initializeStudioDefaults(userId).finally(() => studioDefaultsInFlight.delete(userId));
+  studioDefaultsInFlight.set(userId, task);
+  return task;
 }
 
 export async function getStudioData(userId: number) {
@@ -242,13 +253,7 @@ export async function recordDecision(userId: number, postId: number, reviewerNam
   const post = await getStudioPost(userId, postId);
   const status: ContentStatus = decision === "approved" ? "approved" : decision === "rejected" ? "rejected" : "draft";
   await db.insert(approvalLogs).values({ postId, reviewerId: userId, reviewerName, decision, notes });
-  await db.update(contentPosts).set({
-    status,
-    approvalOwnerId: userId,
-    approvalOwnerName: reviewerName,
-    approvalNotes: notes ?? null,
-    updatedAt: new Date(),
-  }).where(eq(contentPosts.id, post.id));
+  await db.update(contentPosts).set({ status, approvalOwnerId: userId, approvalOwnerName: reviewerName, approvalNotes: notes ?? null, updatedAt: new Date() }).where(eq(contentPosts.id, post.id));
   return getStudioPost(userId, postId);
 }
 
@@ -266,11 +271,7 @@ export async function addPostMedia(userId: number, postId: number, values: Omit<
   const existing = await getPostMedia(userId, postId);
   const sortOrder = existing.length;
   const result = await db.insert(contentMedia).values({ ...values, userId, postId, sortOrder });
-  if (!post.mediaUrl) {
-    await db.update(contentPosts).set({ mediaUrl: values.url, updatedAt: new Date() }).where(eq(contentPosts.id, postId));
-  } else {
-    await db.update(contentPosts).set({ updatedAt: new Date() }).where(eq(contentPosts.id, postId));
-  }
+  await db.update(contentPosts).set({ ...(post.mediaUrl ? {} : { mediaUrl: values.url }), updatedAt: new Date() }).where(eq(contentPosts.id, postId));
   const [media] = await db.select().from(contentMedia).where(eq(contentMedia.id, Number(result[0].insertId))).limit(1);
   return media;
 }
@@ -382,24 +383,39 @@ export async function createPublicationRequest(userId: number, payload: FrozenPu
   if (!db) throw new Error("Banco de dados indisponível.");
   const connection = await getInstagramConnection(userId);
   if (!connection) throw new Error("A conta profissional do Instagram não está conectada.");
-  const keySource = JSON.stringify({ postId: payload.postId, media: payload.media.map((item) => item.id), caption: payload.caption });
-  const idempotencyKey = Buffer.from(keySource).toString("base64url").slice(0, 128);
+  const keySource = {
+    postId: payload.postId,
+    title: payload.title,
+    format: payload.format,
+    caption: payload.caption,
+    altText: payload.altText,
+    media: payload.media.map(item => ({ id: item.id, url: item.url, mimeType: item.mimeType, byteSize: item.byteSize, width: item.width, height: item.height })),
+  };
+  const idempotencyKey = createHash("sha256").update(JSON.stringify(keySource)).digest("hex");
   const [existing] = await db.select().from(publicationJobs).where(and(eq(publicationJobs.userId, userId), eq(publicationJobs.idempotencyKey, idempotencyKey))).limit(1);
   if (existing) {
     if (existing.status === "failed" || existing.status === "cancelled") {
-      await db.update(publicationJobs).set({ status: "pending_confirmation", confirmedAt: null, confirmedByUserId: null, scheduledAt: null, scheduleCronTaskUid: null, lastError: null, updatedAt: new Date() }).where(eq(publicationJobs.id, existing.id));
+      await db.update(publicationJobs).set({
+        frozenPayload: JSON.stringify(payload),
+        connectionId: connection.id,
+        status: "pending_confirmation",
+        confirmedAt: null,
+        confirmedByUserId: null,
+        scheduledAt: null,
+        scheduleCronTaskUid: null,
+        testContainerId: null,
+        testedAt: null,
+        containerId: null,
+        mediaId: null,
+        permalink: null,
+        lastError: null,
+        updatedAt: new Date(),
+      }).where(eq(publicationJobs.id, existing.id));
       return getPublicationJob(userId, existing.id);
     }
     return existing;
   }
-  const result = await db.insert(publicationJobs).values({
-    userId,
-    postId: payload.postId,
-    connectionId: connection.id,
-    status: "pending_confirmation",
-    idempotencyKey,
-    frozenPayload: JSON.stringify(payload),
-  });
+  const result = await db.insert(publicationJobs).values({ userId, postId: payload.postId, connectionId: connection.id, status: "pending_confirmation", idempotencyKey, frozenPayload: JSON.stringify(payload) });
   const [job] = await db.select().from(publicationJobs).where(eq(publicationJobs.id, Number(result[0].insertId))).limit(1);
   return job;
 }
