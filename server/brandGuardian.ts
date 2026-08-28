@@ -20,9 +20,9 @@ export async function evaluatePostCreative(userId: number, postId: number, media
   const userContent: MessageContent[] = [
     {
       type: "text",
-      text: `Marca: ${studio.brand?.brandName ?? "não definida"}\nDiretrizes visuais: ${studio.brand?.visualGuidelines ?? "não definidas"}\nTom: ${studio.brand?.toneOfVoice ?? "profissional"}\nTermos proibidos: ${studio.brand?.prohibitedTerms ?? "promessas de resultado e sensacionalismo"}\nTítulo do post: ${post.title}\nGancho: ${post.hook ?? ""}\nLegenda: ${post.caption ?? ""}\nCTA: ${post.cta ?? ""}\nAlt text: ${post.altText ?? ""}\nQuantidade de peças: ${assets.length}. Avalie o conjunto completo e considere como resultado geral o pior problema relevante encontrado em qualquer peça. Em carrosséis, verifique também consistência visual entre páginas.`,
+      text: `Marca: ${studio.brand?.brandName ?? "não definida"}\nDiretrizes visuais: ${studio.brand?.visualGuidelines ?? "não definidas"}\nTom: ${studio.brand?.toneOfVoice ?? "profissional"}\nTermos proibidos: ${studio.brand?.prohibitedTerms ?? "promessas de resultado e sensacionalismo"}\nTítulo do post: ${post.title}\nGancho: ${post.hook ?? ""}\nLegenda: ${post.caption ?? ""}\nCTA: ${post.cta ?? ""}\nAlt text: ${post.altText ?? ""}\nQuantidade de peças: ${assets.length}. As imagens seguintes estão na ordem do carrossel. Avalie o conjunto completo e considere como resultado geral o pior problema relevante encontrado em qualquer peça. Em carrosséis, verifique também consistência visual entre páginas.`,
     },
-    ...assets.map((asset, index) => ({ type: "image_url" as const, image_url: { url: asset.url, detail: "high" as const }, name: `Peça ${index + 1}` } as MessageContent)),
+    ...assets.map(asset => ({ type: "image_url" as const, image_url: { url: asset.url, detail: "high" as const } })),
   ];
 
   const response = await invokeLLM({
