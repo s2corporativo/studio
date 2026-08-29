@@ -11,10 +11,11 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:meta-credentials": "RUN_META_CREDENTIALS_CHECK=true vitest run server/instagramMetaCredentials.integration.test.ts",
+    "release:gate": "node scripts/release-gate.mjs",
     "db:generate": "node scripts/safe-generate-migration.mjs",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit migrate",
-    "deploy:preflight": "tsx scripts/deploy-social-os.ts --check",
+    "deploy:preflight": "pnpm release:gate && tsx scripts/deploy-social-os.ts --check",
     "deploy:migrate:social-os": "tsx scripts/deploy-social-os.ts --apply",
     "smoke:production": "node scripts/smoke-production.mjs"
   },
