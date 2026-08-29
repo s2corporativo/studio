@@ -5,10 +5,11 @@ import { getFacebookPagesConfigFromEnv, normalizeMetaGraphVersion, publishFacebo
 import { assertApprovalStillValid } from "./socialOsGovernance";
 import { getStudioPost } from "./socialStudioDb";
 import { recordAuditEvent } from "./socialOsDb";
-import { claimExternalPublicationJob, completeExternalPublicationJob, failExternalPublicationJob, getExternalPublicationJob, getOrCreateExternalPublicationJob } from "./externalPublicationDb";
+import { claimExternalPublicationJob, completeExternalPublicationJob, failExternalPublicationJob, getExternalPublicationJob, getOrCreateExternalPublicationJob, quarantineExternalPublicationJob } from "./externalPublicationDb";
 
 async function parseJson(response: Response) { return response.json().catch(() => ({})); }
 function safeFacebookError(status: number, body: unknown) { const data = body && typeof body === "object" ? body as Record<string, unknown> : {}; const error = data.error && typeof data.error === "object" ? data.error as Record<string, unknown> : {}; const code = typeof error.code === "number" ? error.code : undefined; return `A Meta recusou a verificação da Página (HTTP ${status}${code !== undefined ? `, código ${code}` : ""}).`; }
+export function isUncertainExternalOutcome(error: unknown) { return error instanceof TypeError || (error instanceof Error && ["AbortError", "TimeoutError"].includes(error.name)); }
 
 type FacebookFrozenPayload = { version: 1; pageId: string; externalConnectionId: number; message: string; link: string | null; approvalHash: string };
 
@@ -39,6 +40,8 @@ export async function confirmAndPublishFacebookJob(input: { userId: number; jobI
   if (job.provider !== "facebook") throw new Error("O job informado não pertence ao Facebook.");
   if (job.status === "published") return { jobId: job.id, status: job.status, externalPostId: job.externalPostId, idempotent: true };
   if (job.status === "processing") throw new Error("A publicação já está em processamento.");
+  if (job.status === "unknown_outcome") throw new Error("O resultado externo deste job é incerto. Verifique a Página antes de qualquer nova tentativa para evitar publicação duplicada.");
+  if (job.status === "cancelled") throw new Error("Este job de publicação foi cancelado.");
   const approval = await assertApprovalStillValid(input.userId, job.postId);
   if (approval.contentHash !== job.approvalHash) throw new Error("A aprovação atual não corresponde ao conteúdo congelado neste job. Solicite uma nova publicação.");
   const payload = JSON.parse(job.frozenPayload) as FacebookFrozenPayload;
@@ -60,7 +63,12 @@ export async function confirmAndPublishFacebookJob(input: { userId: number; jobI
     return { jobId: completed.id, status: completed.status, externalPostId: completed.externalPostId, idempotent: false };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha desconhecida na publicação do Facebook.";
-    await failExternalPublicationJob(input.userId, job.id, message);
+    if (isUncertainExternalOutcome(error)) {
+      await quarantineExternalPublicationJob(input.userId, job.id, "Resultado externo incerto por falha de transporte. Reconciliação manual obrigatória antes de nova tentativa.");
+      await recordAuditEvent(input.userId, "facebook.publication.unknown_outcome", "external_publication_job", job.id, { postId: job.postId, pageId: payload.pageId });
+    } else {
+      await failExternalPublicationJob(input.userId, job.id, message);
+    }
     throw error;
   }
 }
