@@ -2,12 +2,31 @@ import type { Express } from "express";
 import { ENV } from "./env";
 import { sdk } from "./sdk";
 
+const STUDIO_STORAGE_PREFIX = "social-studio/";
+
+function isValidStudioKey(key: string) {
+  if (!key.startsWith(STUDIO_STORAGE_PREFIX)) return false;
+  if (key.includes("\\") || key.includes("\0")) return false;
+  const segments = key.split("/");
+  return segments.every(segment => segment !== ".." && segment !== ".");
+}
+
+function safeRedirectUrl(value: unknown) {
+  if (typeof value !== "string" || !value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url : null;
+  } catch {
+    return null;
+  }
+}
+
 export function registerStorageProxy(app: Express) {
   app.get("/manus-storage/*key", async (req, res) => {
     const rawKey = (req.params as Record<string, string | string[] | undefined>).key;
     const key = Array.isArray(rawKey) ? rawKey.join("/") : rawKey;
-    if (!key) {
-      res.status(400).send("Missing storage key");
+    if (!key || !isValidStudioKey(key)) {
+      res.status(400).send("Invalid storage key");
       return;
     }
 
@@ -41,22 +60,37 @@ export function registerStorageProxy(app: Express) {
       });
 
       if (!forgeResp.ok) {
-        const body = await forgeResp.text().catch(() => "");
-        console.error(`[StorageProxy] forge error: ${forgeResp.status} ${body}`);
+        console.error(JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: "error",
+          event: "storage_proxy.presign_failed",
+          status: forgeResp.status,
+        }));
         res.status(502).send("Storage backend error");
         return;
       }
 
-      const { url } = (await forgeResp.json()) as { url: string };
-      if (!url) {
-        res.status(502).send("Empty signed URL from backend");
+      const payload = (await forgeResp.json()) as { url?: unknown };
+      const redirectUrl = safeRedirectUrl(payload.url);
+      if (!redirectUrl) {
+        console.error(JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: "error",
+          event: "storage_proxy.invalid_signed_url",
+        }));
+        res.status(502).send("Invalid signed URL from backend");
         return;
       }
 
       res.set("Cache-Control", "no-store");
-      res.redirect(307, url);
-    } catch (err) {
-      console.error("[StorageProxy] failed:", err);
+      res.redirect(307, redirectUrl.toString());
+    } catch (error) {
+      console.error(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: "error",
+        event: "storage_proxy.failed",
+        errorType: error instanceof Error ? error.name : "UnknownError",
+      }));
       res.status(502).send("Storage proxy error");
     }
   });
