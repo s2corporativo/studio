@@ -13,3 +13,4 @@ export function getExternalOAuthOrigin(req: Request) {
 }
 
 export function getFacebookRedirectUri(req: Request) { return `${getExternalOAuthOrigin(req)}/api/facebook/oauth/callback`; }
+export function getLinkedInRedirectUri(req: Request) { return `${getExternalOAuthOrigin(req)}/api/linkedin/oauth/callback`; }
