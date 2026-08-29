@@ -87,7 +87,9 @@ export async function runInstagramPublicationSchedule(req: Request, res: Respons
     res.json({ ok: true, jobId: job.id, cleaned });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha inesperada em execução agendada.";
-    console.error("[Instagram schedule] failed", { taskUid, message });
-    res.status(500).json({ error: message, context: { taskUid }, timestamp: new Date().toISOString() });
+    const job = taskUid ? await getPublicationJobByTaskUid(taskUid).catch(() => null) : null;
+    if (job) await recordPublicationAttempt(job.id, { stage: "callback", outcome: "failed", externalReference: taskUid, errorCode: "SCHEDULE_EXECUTION_FAILED", detail: message.slice(0, 3_000) }).catch(() => undefined);
+    console.error("[Instagram schedule] failed", { taskUid, code: "SCHEDULE_EXECUTION_FAILED" });
+    res.status(500).json({ error: "scheduled-publication-failed", timestamp: new Date().toISOString() });
   }
 }

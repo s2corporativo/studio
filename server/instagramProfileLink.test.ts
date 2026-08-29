@@ -17,12 +17,7 @@ vi.mock("./socialStudioDb", async importOriginal => {
 });
 vi.mock("./instagramApi", async importOriginal => {
   const actual = await importOriginal<typeof import("./instagramApi")>();
-  return {
-    ...actual,
-    isInstagramMetaConfigured: mocks.isInstagramMetaConfigured,
-    validateInstagramMetaCredentials: mocks.validateInstagramMetaCredentials,
-    buildInstagramBusinessLoginUrl: mocks.buildInstagramBusinessLoginUrl,
-  };
+  return { ...actual, isInstagramMetaConfigured: mocks.isInstagramMetaConfigured, validateInstagramMetaCredentials: mocks.validateInstagramMetaCredentials, buildInstagramBusinessLoginUrl: mocks.buildInstagramBusinessLoginUrl };
 });
 vi.mock("./instagramOAuthState", async importOriginal => {
   const actual = await importOriginal<typeof import("./instagramOAuthState")>();

@@ -12,7 +12,7 @@ import {
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 
-const commandCenterPaths = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics", "/compliance"]);
+const commandCenterPaths = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics"]);
 
 const sections = [
   {

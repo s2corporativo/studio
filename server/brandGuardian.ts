@@ -1,4 +1,5 @@
 import { invokeLLM, listLLMModels, type MessageContent } from "./_core/llm";
+import { pickPreferredLlmModel } from "./_core/modelPreference";
 import { addCreativeEvaluation, recordAuditEvent } from "./socialOsDb";
 import { addComplianceCheck } from "./socialGrowthDb";
 import { getPostMedia, getStudioData, getStudioPost } from "./socialStudioDb";
@@ -16,7 +17,7 @@ export async function evaluatePostCreative(userId: number, postId: number, media
   if (assets.some(asset => !/^https:\/\//i.test(asset.url))) throw new Error("O Brand Guardian exige URLs HTTPS acessíveis para analisar as imagens.");
 
   const catalog = await listLLMModels();
-  const model = catalog.data.find(item => item.id === "gpt-5-mini")?.id ?? catalog.data[0]?.id;
+  const model = pickPreferredLlmModel(catalog);
   const userContent: MessageContent[] = [
     {
       type: "text",

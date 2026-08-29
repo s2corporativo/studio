@@ -44,6 +44,29 @@ O endpoint real de geração de campanhas passou a chamar o serviço transaciona
 
 Nenhuma senha, token, App Secret, dado de cliente ou conteúdo sigiloso foi exposto, exportado ou armazenado no repositório. O relato técnico da Meta se limita ao status HTTP e ao código `101`, suficientes para diagnóstico sem revelar credenciais.
 
+## Auditoria de estabilidade — 29/08/2026
+
+A auditoria percorreu as **28 rotas registradas** na aplicação publicada, incluindo Command Center, inteligência, conteúdo, automação, calendário, distribuição, growth, governança e rota 404. Todas responderam HTTP 200 no servidor de produção. O endpoint `/api/ready` também retornou `status: "ready"`, com `runtimeEnv`, banco, automação, perfis sociais, governança, núcleo Social OS e módulos de crescimento em estado verdadeiro.
+
+| Verificação | Resultado | Observação |
+|---|---|---|
+| TypeScript | Aprovado | `pnpm check` sem erros |
+| Testes automatizados | Aprovado | 72 testes aprovados e 1 teste externo Meta conscientemente ignorado |
+| Build | Aprovado | Artefatos de cliente e servidor gerados com sucesso |
+| Auditoria de dependências | Aprovado | Nenhuma vulnerabilidade crítica ou alta conhecida em dependências de produção |
+| Preflight TiDB | Aprovado | Nenhuma migration pendente |
+| Estrutura crítica do banco | Aprovada | Tabelas de conteúdo, mídia, aprovação, perfis, conexão e publicação presentes |
+| Cron de publicação | Protegido | Requisição externa recebeu HTTP 403; execução exige autenticação de tarefa agendada |
+| Interface crítica | Aprovada | Início, conteúdo, Instagram, governança e 404 revisados visualmente |
+
+Foram encontradas e corrigidas quatro falhas internas: o mock de teste OAuth passou a simular a validação aprovada sem relaxar a proteção real; o endpoint cron deixou de devolver detalhes internos em respostas de erro; a rota legada `/compliance` passou a redirecionar para `/governanca`; e a paleta residual foi unificada em verde profundo, bronze e marfim, inclusive na tela 404 e no fluxo editorial. A nova suíte contém 72 testes aprovados.
+
+Como observação de desempenho, o fornecedor compartilhado ainda gera um aviso de tamanho bruto no build (**687,79 kB** minificado), mas pesa **206,43 KiB gzip** e o carregamento inicial completo permanece abaixo da meta interna de 500 KiB gzip. Não há erro funcional ou regressão de carregamento associada ao aviso.
+
+### Validação da versão publicada
+
+O checkpoint corretivo `cde69dd2` foi publicado e revalidado no domínio de produção. O smoke test confirmou health, readiness e as rotas principais; uma varredura adicional confirmou HTTP 200 em todas as 28 rotas registradas, inclusive `/compliance`, que redireciona corretamente para governança. A resposta externa não autenticada ao endpoint de cron é HTTP 403, preservando o bloqueio de publicação fora da infraestrutura agendada.
+
 ## Próximo passo concreto
 
 Atualize o **App ID** correspondente ao DPT no formulário seguro já disponibilizado e, se o App Secret tiver sido regenerado, atualize também o Secret pareado. Após responder **“credenciais atualizadas”**, será executada uma única validação técnica sem OAuth, mídia ou publicação pública.
