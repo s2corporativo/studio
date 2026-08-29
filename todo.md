@@ -88,7 +88,7 @@
 - [x] Revisar segurança de segredos, SSRF, IDOR, endpoints, upload, erros e chamadas externas.
 - [ ] Testar de forma controlada os módulos internos do Social Media OS e as integrações externas somente quando houver credenciais oficiais.
 - [x] Corrigir falhas objetivas, registrar evidências e consolidar a branch somente após todos os critérios de liberação aprovados.
-- [ ] Publicar a versão consolidada, executar health, readiness e smoke tests no domínio de produção e registrar rollback aplicável.
+- [x] Publicar a versão consolidada, executar health, readiness e smoke tests no domínio de produção e registrar rollback aplicável.
 - [x] Corrigir a dependência inexistente input-otp@^4.0.3 e reconciliar o lockfile sem remover recursos de interface.
 - [x] Reduzir o bundle inicial acima de 500 kB com carregamento sob demanda das rotas do Social Media OS.
 - [x] Separar dependências de terceiros em chunks de fornecedor para reduzir o bundle inicial residual acima de 500 kB.
@@ -103,6 +103,7 @@
 - [x] Distinguir nos endpoints operacionais a presença de configuração Meta da validação efetiva das credenciais externas.
 - [x] Medir e registrar o payload inicial real da rota principal após code splitting e corrigir qualquer carregamento acima da meta estabelecida.
 - [x] Formalizar no histórico uma migration incremental compatível com o baseline TiDB para as estruturas Social Media OS já aplicadas.
-- [ ] Corrigir a divisão manual de bundles que criou ciclo entre React e fornecedor genérico, impedindo a montagem do cliente em produção.
-- [ ] Republicar o frontend com a divisão de bundles corrigida e confirmar no domínio publicado que `#root` monta a interface real.
-- [ ] Reexecutar o smoke test no domínio publicado e registrar a evidência de health, readiness e rotas após o redeploy.
+- [x] Corrigir a divisão manual de bundles que criou ciclo entre React e fornecedor genérico, impedindo a montagem do cliente em produção.
+- [x] Republicar o frontend com a divisão de bundles corrigida e confirmar no domínio publicado que `#root` monta a interface real.
+- [x] Reexecutar o smoke test no domínio publicado e registrar a evidência de health, readiness e rotas após o redeploy.
+- [x] Registrar no histórico técnico a decisão de rollback aplicável após a validação de produção.
