@@ -103,3 +103,6 @@
 - [x] Distinguir nos endpoints operacionais a presença de configuração Meta da validação efetiva das credenciais externas.
 - [x] Medir e registrar o payload inicial real da rota principal após code splitting e corrigir qualquer carregamento acima da meta estabelecida.
 - [x] Formalizar no histórico uma migration incremental compatível com o baseline TiDB para as estruturas Social Media OS já aplicadas.
+- [ ] Corrigir a divisão manual de bundles que criou ciclo entre React e fornecedor genérico, impedindo a montagem do cliente em produção.
+- [ ] Republicar o frontend com a divisão de bundles corrigida e confirmar no domínio publicado que `#root` monta a interface real.
+- [ ] Reexecutar o smoke test no domínio publicado e registrar a evidência de health, readiness e rotas após o redeploy.

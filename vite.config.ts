@@ -171,10 +171,11 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
-          if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/") || id.includes("/wouter/")) return "vendor-react";
-          if (id.includes("/@tanstack/") || id.includes("/@trpc/") || id.includes("/superjson/")) return "vendor-data";
-          if (id.includes("/@radix-ui/") || id.includes("/framer-motion/") || id.includes("/lucide-react/") || id.includes("/sonner/")) return "vendor-ui";
-          if (id.includes("/recharts/") || id.includes("/d3-")) return "vendor-charts";
+          // A segmentação anterior separava React do fornecedor genérico, mas
+          // bibliotecas de interface transitivas cruzavam ambos os grupos. Isso
+          // produzia um ciclo ESM em produção (`vendor-react ↔ vendor`) e impedia
+          // a montagem de `#root`. Um fornecedor compartilhado único preserva o
+          // lazy loading das rotas e elimina a inicialização circular.
           return "vendor";
         },
       },
