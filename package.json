@@ -11,11 +11,12 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:meta-credentials": "RUN_META_CREDENTIALS_CHECK=true vitest run server/instagramMetaCredentials.integration.test.ts",
+    "release:gate": "node scripts/release-gate.mjs",
     "db:generate": "node scripts/safe-generate-migration.mjs",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit migrate",
-    "deploy:preflight": "tsx scripts/deploy-social-os.ts --check",
-    "deploy:migrate:social-os": "tsx scripts/deploy-social-os.ts --apply",
+    "deploy:preflight": "pnpm release:gate && tsx scripts/deploy-social-os.ts --check",
+    "deploy:migrate:social-os": "pnpm release:gate && tsx scripts/deploy-social-os.ts --apply",
     "smoke:production": "node scripts/smoke-production.mjs"
   },
   "dependencies": {
@@ -63,7 +64,7 @@
     "embla-carousel-react": "^8.6.0",
     "express": "^5.2.1",
     "framer-motion": "^12.23.22",
-    "input-otp": "^1.5.0",
+    "input-otp": "^1.4.0",
     "jose": "6.1.0",
     "lucide-react": "^0.453.0",
     "mysql2": "^3.15.0",
@@ -111,11 +112,7 @@
   },
   "packageManager": "pnpm@10.4.1+sha512.c753b6c3ad7afa13af388fa6d808035a008e30ea9993f58c6663e2bc5ff21679aa834db094987129aa4d488b86df57f7b634981b2f827cdcacc698cc0cfb88af",
   "pnpm": {
-    "patchedDependencies": {
-      "wouter@3.7.1": "patches/wouter@3.7.1.patch"
-    },
-    "overrides": {
-      "tailwindcss>nanoid": "3.3.7"
-    }
+    "patchedDependencies": { "wouter@3.7.1": "patches/wouter@3.7.1.patch" },
+    "overrides": { "tailwindcss>nanoid": "3.3.7" }
   }
 }
