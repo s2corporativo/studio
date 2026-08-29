@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { getBrandProfile } from "../brandProfileDb";
 import { protectedProcedure, router } from "../_core/trpc";
 import { approvalReadiness, canSchedule } from "../studioRules";
-import { getInstagramConnection, getPostMedia, getStudioData, getStudioPost, recordPublicationAttempt, updateStudioPost, type FrozenPublicationPayload } from "../socialStudioDb";
+import { getInstagramConnection, getPostMedia, getStudioPost, recordPublicationAttempt, updateStudioPost, type FrozenPublicationPayload } from "../socialStudioDb";
 import { assertApprovalStillValid, bindApproval, rejectOrRequestChanges, safeUpdatePost } from "../socialOsGovernance";
 import { recordAuditEvent } from "../socialOsDb";
 import { createSecurePublicationRequest } from "../securePublicationDb";
@@ -41,8 +42,8 @@ export const socialGovernanceRouter = router({
   })).mutation(async ({ ctx, input }) => {
     const reviewerName = ctx.user.name ?? "Responsável";
     if (input.decision === "approved") {
-      const [post, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.id), getStudioData(ctx.user.id)]);
-      const result = approvalReadiness({ ...post, approvalOwnerName: reviewerName, prohibitedTerms: brand?.prohibitedTerms });
+      const [post, brand] = await Promise.all([getStudioPost(ctx.user.id, input.id), getBrandProfile(ctx.user.id)]);
+      const result = approvalReadiness({ ...post, approvalOwnerName: reviewerName, prohibitedTerms: brand.prohibitedTerms });
       if (!result.ready) throw new Error(`Aprovação bloqueada: inclua ${result.missing.join(", ")}.`);
       const approved = await bindApproval(ctx.user.id, input.id, reviewerName, input.notes);
       await recordAuditEvent(ctx.user.id, "post.version_approved", "content_post", input.id);
@@ -65,14 +66,14 @@ export const socialGovernanceRouter = router({
 
   requestInstagramPublication: protectedProcedure.input(z.object({ postId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const binding = await assertApprovalStillValid(ctx.user.id, input.postId);
-    const [post, media, connection, { brand }] = await Promise.all([
+    const [post, media, connection, brand] = await Promise.all([
       getStudioPost(ctx.user.id, input.postId),
       getPostMedia(ctx.user.id, input.postId),
       getInstagramConnection(ctx.user.id),
-      getStudioData(ctx.user.id),
+      getBrandProfile(ctx.user.id),
     ]);
     const publicOrigin = getInstagramOAuthOrigin(ctx.req);
-    const preflight = preflightInstagramPublication({ post, media, connection, metaConfigured: isInstagramMetaConfigured(), origin: publicOrigin, prohibitedTerms: brand?.prohibitedTerms });
+    const preflight = preflightInstagramPublication({ post, media, connection, metaConfigured: isInstagramMetaConfigured(), origin: publicOrigin, prohibitedTerms: brand.prohibitedTerms });
     if (!preflight.allowed) throw new Error(`Publicação bloqueada: ${preflight.issues.join("; ")}.`);
     const payload: FrozenPublicationPayload = {
       postId: post.id,
