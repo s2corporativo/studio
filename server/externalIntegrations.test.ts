@@ -9,23 +9,38 @@ describe("external integration readiness", () => {
     expect(statuses.find(item => item.id === "facebook")?.state).toBe("awaiting_credentials");
   });
 
-  it("reports Instagram as ready for OAuth only when protected app configuration exists", () => {
-    const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "app-id", metaInstagramAppSecret: "secret" }, { state: "pending", lastError: null });
+  it("does not treat protected Instagram variables as externally validated by themselves", () => {
+    const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "configured-id", metaInstagramAppSecret: "configured-value" }, null);
     const instagram = statuses.find(item => item.id === "instagram");
-    expect(instagram?.state).toBe("ready_for_oauth");
+    expect(instagram?.state).toBe("configured_unvalidated");
     expect(instagram?.connected).toBe(false);
     expect(instagram?.missingConfiguration).toEqual([]);
   });
 
+  it("reports Instagram as ready for OAuth only after the persisted connection enters pending state", () => {
+    const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "configured-id", metaInstagramAppSecret: "configured-value" }, { state: "pending", lastError: null });
+    const instagram = statuses.find(item => item.id === "instagram");
+    expect(instagram?.state).toBe("ready_for_oauth");
+    expect(instagram?.connected).toBe(false);
+  });
+
   it("reports Instagram as connected only from the persisted official connection state", () => {
-    const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "app-id", metaInstagramAppSecret: "secret" }, { state: "connected", lastError: null });
+    const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "configured-id", metaInstagramAppSecret: "configured-value" }, { state: "connected", lastError: null });
     const instagram = statuses.find(item => item.id === "instagram");
     expect(instagram?.state).toBe("connected");
     expect(instagram?.connected).toBe(true);
   });
 
-  it("does not claim unsupported connectors are operational just because credentials exist", () => {
-    const statuses = buildExternalIntegrationStatuses({ linkedinClientId: "client", linkedinClientSecret: "secret" }, null);
+  it("does not expose a persisted provider error detail", () => {
+    const detail = "provider-detail-placeholder";
+    const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "configured-id", metaInstagramAppSecret: "configured-value" }, { state: "error", lastError: detail });
+    const instagram = statuses.find(item => item.id === "instagram");
+    expect(instagram?.state).toBe("error");
+    expect(JSON.stringify(instagram)).not.toContain(detail);
+  });
+
+  it("does not claim unsupported connectors are operational just because configuration exists", () => {
+    const statuses = buildExternalIntegrationStatuses({ linkedinClientId: "configured-id", linkedinClientSecret: "configured-value" }, null);
     const linkedin = statuses.find(item => item.id === "linkedin");
     expect(linkedin?.configured).toBe(true);
     expect(linkedin?.state).toBe("connector_planned");
@@ -33,10 +48,10 @@ describe("external integration readiness", () => {
     expect(linkedin?.capabilities.publish).toBe(false);
   });
 
-  it("never exposes credential values in the returned readiness payload", () => {
-    const secret = "super-secret-value";
-    const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "app", metaInstagramAppSecret: secret }, null);
-    expect(JSON.stringify(statuses)).not.toContain(secret);
+  it("does not return protected configuration values", () => {
+    const protectedValue = "protected-placeholder-value";
+    const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "configured-id", metaInstagramAppSecret: protectedValue }, null);
+    expect(JSON.stringify(statuses)).not.toContain(protectedValue);
     expect(JSON.stringify(statuses)).toContain("META_FACEBOOK_APP_ID");
   });
 });
