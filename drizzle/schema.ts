@@ -73,6 +73,7 @@ export const automationSettings = mysqlTable("automation_settings", {
   defaultPublishTime: varchar("defaultPublishTime", { length: 5 }).default("18:30").notNull(),
   planningHorizonDays: int("planningHorizonDays").default(30).notNull(),
   requireApproval: boolean("requireApproval").default(true).notNull(),
+  allowSelfApproval: boolean("allowSelfApproval").default(true).notNull(),
   refreshRadarDaily: boolean("refreshRadarDaily").default(true).notNull(),
   preferredAreas: text("preferredAreas"),
   preferredFormats: text("preferredFormats"),
