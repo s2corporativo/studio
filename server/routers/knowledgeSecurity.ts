@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { badRequest } from "../_core/publicErrors";
 import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
 import { createKnowledgeMaterial } from "../socialStudioDb";
@@ -64,11 +65,11 @@ export const knowledgeSecurityRouter = router({
     isVerified: z.boolean(),
   })).mutation(async ({ ctx, input }) => {
     const bytes = Buffer.from(input.base64, "base64");
-    if (bytes.byteLength === 0 || bytes.byteLength > 5 * 1024 * 1024) throw new Error("O arquivo deve ter até 5 MB.");
+    if (bytes.byteLength === 0 || bytes.byteLength > 5 * 1024 * 1024) badRequest("O arquivo deve ter até 5 MB.");
     const detected = detectKnowledgeFile(bytes);
-    if (!detected) throw new Error("Formato inválido ou conteúdo incompatível. Um ZIP genérico não é aceito como DOCX.");
+    if (!detected) badRequest("Formato inválido ou conteúdo incompatível. Um ZIP genérico não é aceito como DOCX.");
     const claim = input.mimeType.toLocaleLowerCase("pt-BR");
-    if (!detected.claims.some(value => claim.includes(value))) throw new Error("O tipo informado pelo navegador não corresponde ao conteúdo real do arquivo.");
+    if (!detected.claims.some(value => claim.includes(value))) badRequest("O tipo informado pelo navegador não corresponde ao conteúdo real do arquivo.");
     const safeName = input.title.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "material";
     const stored = await storagePut(`social-studio/${ctx.user.id}/conhecimento/${safeName}-${Date.now()}${detected.extension}`, bytes, detected.mimeType);
     const material = await createKnowledgeMaterial(ctx.user.id, { title: input.title, materialType: input.materialType, url: stored.url, storageKey: stored.key, mimeType: detected.mimeType, notes: input.notes, isVerified: input.isVerified });
