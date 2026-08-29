@@ -13,6 +13,7 @@ import { brandGuardianRouter } from "./routers/brandGuardian";
 import { knowledgeSecurityRouter } from "./routers/knowledgeSecurity";
 import { instagramIntegrityRouter } from "./routers/instagramIntegrity";
 import { externalIntegrationsRouter } from "./routers/externalIntegrations";
+import { facebookPagesRouter } from "./routers/facebookPages";
 
 export const appRouter = router({
   system: systemRouter,
@@ -35,6 +36,7 @@ export const appRouter = router({
   knowledgeSecurity: knowledgeSecurityRouter,
   instagramIntegrity: instagramIntegrityRouter,
   externalIntegrations: externalIntegrationsRouter,
+  facebookPages: facebookPagesRouter,
 });
 
 export type AppRouter = typeof appRouter;
