@@ -107,3 +107,8 @@
 - [x] Republicar o frontend com a divisão de bundles corrigida e confirmar no domínio publicado que `#root` monta a interface real.
 - [x] Reexecutar o smoke test no domínio publicado e registrar a evidência de health, readiness e rotas após o redeploy.
 - [x] Registrar no histórico técnico a decisão de rollback aplicável após a validação de produção.
+- [x] Expor no teste externo apenas o código e a categoria sanitizados de erro Meta para orientar a correção das credenciais sem revelar segredos.
+- [ ] Reconciliar o App ID seguro com o aplicativo DPT confirmado no painel Meta e repetir apenas a validação técnica mínima.
+- [x] Auditar o estado atual do GitHub Actions e registrar se o `startup_failure` é bloqueio de infraestrutura ou de workflow.
+- [ ] Consolidar o relatório técnico de liberação com classificação funcional dos módulos e bloqueios externos comprovados.
+- [ ] Adicionar acionamento manual ao workflow CI ativo e executá-lo para comprovar a validação do YAML atual no GitHub Actions.
