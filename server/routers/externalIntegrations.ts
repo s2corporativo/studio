@@ -10,7 +10,7 @@ export const externalIntegrationsRouter = router({
       integrations,
       connectedCount: integrations.filter(item => item.connected).length,
       readyForOAuthCount: integrations.filter(item => item.state === "ready_for_oauth").length,
-      blockedCount: integrations.filter(item => item.state === "awaiting_credentials" || item.state === "connector_planned" || item.state === "error").length,
+      blockedCount: integrations.filter(item => item.state === "awaiting_credentials" || item.state === "configured_unvalidated" || item.state === "connector_planned" || item.state === "error").length,
     };
   }),
 });
