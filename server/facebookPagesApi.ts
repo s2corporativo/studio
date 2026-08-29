@@ -72,6 +72,18 @@ async function parseJson(response: Response) {
   return response.json().catch(() => ({}));
 }
 
+async function postForm(fetchImpl: typeof fetch, url: URL, values: Record<string, string>) {
+  const response = await fetchImpl(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(values).toString(),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const body = await parseJson(response) as { access_token?: string; expires_in?: number };
+  if (!response.ok || !body.access_token) throw new Error(safeProviderError(response.status, body));
+  return { accessToken: body.access_token, expiresIn: body.expires_in ?? null };
+}
+
 export async function exchangeFacebookAuthorizationCode(input: {
   config: FacebookPagesApiConfig;
   redirectUri: string;
@@ -80,15 +92,27 @@ export async function exchangeFacebookAuthorizationCode(input: {
 }) {
   if (!input.code.trim()) throw new Error("Código OAuth ausente.");
   const fetchImpl = input.fetchImpl ?? fetch;
-  const url = graphUrl(input.config.apiVersion, "oauth/access_token");
-  url.searchParams.set("client_id", input.config.appId);
-  url.searchParams.set("client_secret", input.config.appSecret);
-  url.searchParams.set("redirect_uri", assertHttps(input.redirectUri, "Redirect URI").toString());
-  url.searchParams.set("code", input.code);
-  const response = await fetchImpl(url, { signal: AbortSignal.timeout(15_000) });
-  const body = await parseJson(response) as { access_token?: string; expires_in?: number };
-  if (!response.ok || !body.access_token) throw new Error(safeProviderError(response.status, body));
-  return { accessToken: body.access_token, expiresIn: body.expires_in ?? null };
+  return postForm(fetchImpl, graphUrl(input.config.apiVersion, "oauth/access_token"), {
+    client_id: input.config.appId,
+    client_secret: input.config.appSecret,
+    redirect_uri: assertHttps(input.redirectUri, "Redirect URI").toString(),
+    code: input.code,
+  });
+}
+
+export async function exchangeFacebookLongLivedUserToken(input: {
+  config: FacebookPagesApiConfig;
+  shortLivedUserAccessToken: string;
+  fetchImpl?: typeof fetch;
+}) {
+  if (!input.shortLivedUserAccessToken.trim()) throw new Error("User access token temporário ausente.");
+  const fetchImpl = input.fetchImpl ?? fetch;
+  return postForm(fetchImpl, graphUrl(input.config.apiVersion, "oauth/access_token"), {
+    grant_type: "fb_exchange_token",
+    client_id: input.config.appId,
+    client_secret: input.config.appSecret,
+    fb_exchange_token: input.shortLivedUserAccessToken,
+  });
 }
 
 export async function listManagedFacebookPages(input: {
