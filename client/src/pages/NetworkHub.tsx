@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { Facebook, Instagram, Linkedin, LockKeyhole, MapPin, Megaphone, Network, Search, ShieldCheck, Video, Youtube } from "lucide-react";
+import FacebookPagesPanel from "./FacebookPagesPanel";
 import InstagramDesk from "./InstagramDesk";
 import SocialProfileManager from "./SocialProfileManager";
 
@@ -77,6 +78,7 @@ export default function NetworkHub() {
     </section>}
 
     <SocialProfileManager />
+    <FacebookPagesPanel />
     <InstagramDesk />
   </div>;
 }
