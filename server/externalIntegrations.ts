@@ -128,19 +128,19 @@ const definitions: Record<ExternalIntegrationId, IntegrationDefinition> = {
   },
 };
 
-const envNames: Record<keyof ExternalIntegrationConfig, string> = {
-  metaInstagramAppId: "META_INSTAGRAM_APP_ID",
-  metaInstagramAppSecret: "META_INSTAGRAM_APP_SECRET",
-  metaFacebookAppId: "META_FACEBOOK_APP_ID",
-  metaFacebookAppSecret: "META_FACEBOOK_APP_SECRET",
-  linkedinClientId: "LINKEDIN_CLIENT_ID",
-  linkedinClientSecret: "LINKEDIN_CLIENT_SECRET",
-  tiktokClientKey: "TIKTOK_CLIENT_KEY",
-  tiktokClientSecret: "TIKTOK_CLIENT_SECRET",
-  googleOAuthClientId: "GOOGLE_OAUTH_CLIENT_ID",
-  googleOAuthClientSecret: "GOOGLE_OAUTH_CLIENT_SECRET",
-  metaAdsAppId: "META_ADS_APP_ID",
-  metaAdsAppSecret: "META_ADS_APP_SECRET",
+const configurationLabels: Record<keyof ExternalIntegrationConfig, string> = {
+  metaInstagramAppId: "App ID",
+  metaInstagramAppSecret: "App Secret",
+  metaFacebookAppId: "App ID",
+  metaFacebookAppSecret: "App Secret",
+  linkedinClientId: "Client ID",
+  linkedinClientSecret: "Client Secret",
+  tiktokClientKey: "Client Key",
+  tiktokClientSecret: "Client Secret",
+  googleOAuthClientId: "OAuth Client ID",
+  googleOAuthClientSecret: "OAuth Client Secret",
+  metaAdsAppId: "App ID",
+  metaAdsAppSecret: "App Secret",
 };
 
 export function getExternalIntegrationConfigFromEnv(): ExternalIntegrationConfig {
@@ -168,21 +168,23 @@ export function buildExternalIntegrationStatuses(config: ExternalIntegrationConf
   return externalIntegrationIds.map(id => {
     const definition = definitions[id];
     const { required, implemented, ...publicDefinition } = definition;
-    const missingConfiguration = required.filter(key => !isPresent(config[key])).map(key => envNames[key]);
+    const missingConfiguration = required.filter(key => !isPresent(config[key])).map(key => configurationLabels[key]);
     const configured = missingConfiguration.length === 0;
 
     if (id === "instagram") {
       if (instagramConnection?.state === "connected") {
         return { ...publicDefinition, configured, connected: true, missingConfiguration, state: "connected" };
       }
-      if (instagramConnection?.state === "error") {
+      if (instagramConnection?.state === "error" || instagramConnection?.state === "expired") {
         return {
           ...publicDefinition,
           configured,
           connected: false,
           missingConfiguration,
           state: "error",
-          detail: "A conexão oficial do Instagram está em erro. Revise as credenciais/OAuth antes de tentar publicar.",
+          detail: instagramConnection.state === "expired"
+            ? "A autorização oficial do Instagram expirou. Reconecte a conta antes de agendar ou publicar."
+            : "A conexão oficial do Instagram está em erro. Revise as credenciais/OAuth antes de tentar publicar.",
         };
       }
       if (!configured) {
@@ -197,7 +199,7 @@ export function buildExternalIntegrationStatuses(config: ExternalIntegrationConf
         connected: false,
         missingConfiguration,
         state: "configured_unvalidated",
-        detail: "As variáveis protegidas existem, mas a configuração externa ainda não foi validada. Não trate esta integração como pronta para OAuth ou publicação.",
+        detail: "A configuração protegida existe, mas a plataforma externa ainda não a validou. Não trate esta integração como pronta para OAuth ou publicação.",
       };
     }
 
