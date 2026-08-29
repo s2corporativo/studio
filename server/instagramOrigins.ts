@@ -1,9 +1,29 @@
 import type { Request } from "express";
 
-const PRODUCTION_ORIGIN = "https://depaulasoc-5hpbpodx.manus.space";
+const DEFAULT_PRODUCTION_ORIGIN = "https://depaulasoc-5hpbpodx.manus.space";
+
+function normalizePublicOrigin(value: string) {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error("PUBLIC_APP_ORIGIN deve ser uma origem HTTPS válida.");
+  }
+
+  if (parsed.protocol !== "https:") throw new Error("PUBLIC_APP_ORIGIN deve usar HTTPS.");
+  if (parsed.username || parsed.password) throw new Error("PUBLIC_APP_ORIGIN não pode conter credenciais.");
+  if (parsed.search || parsed.hash) throw new Error("PUBLIC_APP_ORIGIN não pode conter query string ou fragmento.");
+  if (parsed.pathname !== "/") throw new Error("PUBLIC_APP_ORIGIN deve conter apenas a origem, sem caminho adicional.");
+  return parsed.origin;
+}
+
+function productionOrigin() {
+  const configured = process.env.PUBLIC_APP_ORIGIN?.trim();
+  return normalizePublicOrigin(configured || DEFAULT_PRODUCTION_ORIGIN);
+}
 
 export function getInstagramOAuthOrigin(req: Request) {
-  if (process.env.NODE_ENV === "production") return PRODUCTION_ORIGIN;
+  if (process.env.NODE_ENV === "production") return productionOrigin();
   const forwardedHost = req.get("x-forwarded-host");
   const host = forwardedHost || req.get("host");
   const forwardedProto = req.get("x-forwarded-proto")?.split(",")[0];
