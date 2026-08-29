@@ -1,8 +1,9 @@
 import { invokeLLM, listLLMModels } from "./_core/llm";
+import { pickPreferredLlmModel } from "./_core/modelPreference";
 
 async function modelId() {
   const catalog = await listLLMModels();
-  const model = catalog.data.find(item => item.id === "gpt-5-mini")?.id ?? catalog.data[0]?.id;
+  const model = pickPreferredLlmModel(catalog);
   if (!model) throw new Error("Nenhum modelo de IA está disponível para o Social OS.");
   return model;
 }
