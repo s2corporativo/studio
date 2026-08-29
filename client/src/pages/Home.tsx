@@ -31,7 +31,7 @@ const socialOsLocations = new Set(["/command-center", "/inteligencia", "/inbox",
 const growthLocations = new Set(["/video", "/seo", "/ads", "/relatorios", "/agentes", "/memoria", "/governanca"]);
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth({ redirectOnUnauthenticated: true });
   const [location, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const dataQuery = trpc.socialStudio.data.useQuery(undefined, { enabled: Boolean(user), staleTime: 30_000 });
@@ -69,7 +69,9 @@ export default function Home() {
   }, [data?.posts]);
 
   let content: React.ReactNode;
-  if (!user || dataQuery.isLoading) {
+  if (authLoading || !user) {
+    content = <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>;
+  } else if (dataQuery.isLoading) {
     content = <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>;
   } else if (dataQuery.isError || !data) {
     content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? "Não foi possível carregar o Social OS."}</div>;
