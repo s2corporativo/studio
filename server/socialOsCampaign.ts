@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { contentPosts } from "../drizzle/schema";
 import { campaignRuns } from "../drizzle/socialOsSchema";
 import { getDb } from "./db";
-import { getStudioData } from "./socialStudioDb";
+import { getCampaignPlanningContext } from "./studioPlanningContextDb";
 import { generateLegalDraft } from "./socialStudioGenerator";
 
 const DEFAULT_TIMEZONE = "America/Sao_Paulo";
@@ -114,7 +114,7 @@ export async function generateCampaignSafely(userId: number, input: {
   if (!run) throw new Error("Não foi possível reservar a execução da campanha.");
 
   try {
-    const studio = await getStudioData(userId);
+    const studio = await getCampaignPlanningContext(userId);
     if (!studio.topics.length) throw new Error("Cadastre pelo menos uma pauta antes de gerar o plano.");
     const preferredAreas = parseCsv(studio.automation?.preferredAreas);
     const preferredFormats = parseCsv(studio.automation?.preferredFormats);
