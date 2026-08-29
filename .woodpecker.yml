@@ -1,0 +1,20 @@
+# CI oficial fora do GitHub Actions (Woodpecker self-hosted).
+# Mantém o Studio alinhado ao padrão já usado pelo EJC na mesma infraestrutura.
+when:
+  - event: push
+    branch: main
+  - event: pull_request
+  - event: manual
+
+steps:
+  validate:
+    image: node:22-bookworm
+    commands:
+      - corepack enable
+      - corepack prepare pnpm@10.4.1 --activate
+      - pnpm --version
+      - pnpm install --frozen-lockfile
+      - pnpm check
+      - pnpm test
+      - pnpm build
+      - node scripts/validate-migrations.mjs
