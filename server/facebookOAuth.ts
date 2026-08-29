@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { encryptExternalToken } from "./externalTokenCrypto";
-import { exchangeFacebookAuthorizationCode, getFacebookPagesConfigFromEnv, listManagedFacebookPages } from "./facebookPagesApi";
+import { exchangeFacebookAuthorizationCode, exchangeFacebookLongLivedUserToken, getFacebookPagesConfigFromEnv, listManagedFacebookPages } from "./facebookPagesApi";
 import { getExternalOAuthOrigin, getFacebookRedirectUri } from "./externalOrigins";
 import { verifyExternalOAuthState } from "./externalOAuthState";
 import { chooseFacebookPage, upsertExternalConnection } from "./externalConnectionsDb";
@@ -58,8 +58,9 @@ export function registerFacebookOAuthRoutes(app: Express) {
       const config = getFacebookPagesConfigFromEnv();
       if (!config) throw new Error("A integração do Facebook ainda não possui configuração completa no ambiente seguro.");
       const callbackUrl = getFacebookRedirectUri(req);
-      const userToken = await exchangeFacebookAuthorizationCode({ config, redirectUri: callbackUrl, code });
-      const pages = await listManagedFacebookPages({ apiVersion: config.apiVersion, userAccessToken: userToken.accessToken });
+      const shortLivedUserToken = await exchangeFacebookAuthorizationCode({ config, redirectUri: callbackUrl, code });
+      const longLivedUserToken = await exchangeFacebookLongLivedUserToken({ config, shortLivedUserAccessToken: shortLivedUserToken.accessToken });
+      const pages = await listManagedFacebookPages({ apiVersion: config.apiVersion, userAccessToken: longLivedUserToken.accessToken });
       if (pages.length === 0) throw new Error("Nenhuma Página administrada foi retornada pela Meta para esta autorização.");
 
       const profileId = state.profileId;
@@ -77,7 +78,7 @@ export function registerFacebookOAuthRoutes(app: Express) {
           accessTokenCiphertext: encryptExternalToken("facebook", page.accessToken),
           tokenExpiresAt: null,
           permissions: JSON.stringify(page.tasks),
-          metadataJson: JSON.stringify({ source: "facebook_pages_oauth" }),
+          metadataJson: JSON.stringify({ source: "facebook_pages_oauth", userTokenPersisted: false }),
           state: pages.length === 1 ? "connected" : "pending",
           lastError: null,
           connectedAt: pages.length === 1 ? new Date() : null,
