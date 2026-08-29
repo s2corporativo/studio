@@ -12,7 +12,7 @@ export const externalIntegrationIds = [
 ] as const;
 
 export type ExternalIntegrationId = (typeof externalIntegrationIds)[number];
-export type ExternalIntegrationState = "connected" | "ready_for_oauth" | "awaiting_credentials" | "connector_planned" | "error";
+export type ExternalIntegrationState = "connected" | "ready_for_oauth" | "configured_unvalidated" | "awaiting_credentials" | "connector_planned" | "error";
 
 export type ExternalIntegrationStatus = {
   id: ExternalIntegrationId;
@@ -185,12 +185,19 @@ export function buildExternalIntegrationStatuses(config: ExternalIntegrationConf
           detail: "A conexão oficial do Instagram está em erro. Revise as credenciais/OAuth antes de tentar publicar.",
         };
       }
+      if (!configured) {
+        return { ...publicDefinition, configured: false, connected: false, missingConfiguration, state: "awaiting_credentials" };
+      }
+      if (instagramConnection?.state === "pending") {
+        return { ...publicDefinition, configured: true, connected: false, missingConfiguration, state: "ready_for_oauth" };
+      }
       return {
         ...publicDefinition,
-        configured,
+        configured: true,
         connected: false,
         missingConfiguration,
-        state: configured ? "ready_for_oauth" : "awaiting_credentials",
+        state: "configured_unvalidated",
+        detail: "As variáveis protegidas existem, mas a configuração externa ainda não foi validada. Não trate esta integração como pronta para OAuth ou publicação.",
       };
     }
 
