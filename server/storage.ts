@@ -3,22 +3,19 @@
 // Downloads return /manus-storage/{key} paths served via 307 redirect.
 
 import { ENV } from "./_core/env";
+import { normalizeStudioStorageKey, safeHttpsUrl } from "./storagePolicy";
 
 function getForgeConfig() {
   const forgeUrl = ENV.forgeApiUrl;
   const forgeKey = ENV.forgeApiKey;
 
   if (!forgeUrl || !forgeKey) {
-    throw new Error(
-      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY",
-    );
+    throw new Error("Storage não configurado no ambiente seguro.");
   }
 
-  return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
-}
-
-function normalizeKey(relKey: string): string {
-  return relKey.replace(/^\/+/, "");
+  const parsedUrl = safeHttpsUrl(forgeUrl);
+  if (!parsedUrl) throw new Error("Endpoint de storage inválido.");
+  return { forgeUrl: parsedUrl.toString().replace(/\/+$/, ""), forgeKey };
 }
 
 function appendHashSuffix(relKey: string): string {
@@ -28,15 +25,20 @@ function appendHashSuffix(relKey: string): string {
   return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
 }
 
+function toUploadBlob(data: Buffer | Uint8Array | string, contentType: string) {
+  if (typeof data === "string") return new Blob([data], { type: contentType });
+  const arrayBuffer = Uint8Array.from(data).buffer;
+  return new Blob([arrayBuffer], { type: contentType });
+}
+
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
   contentType = "application/octet-stream",
 ): Promise<{ key: string; url: string }> {
   const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = appendHashSuffix(normalizeKey(relKey));
+  const key = appendHashSuffix(normalizeStudioStorageKey(relKey));
 
-  // 1. Get presigned PUT URL from Forge
   const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
   presignUrl.searchParams.set("path", key);
 
@@ -45,40 +47,34 @@ export async function storagePut(
   });
 
   if (!presignResp.ok) {
-    const msg = await presignResp.text().catch(() => presignResp.statusText);
-    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
+    throw new Error(`Não foi possível preparar o upload (${presignResp.status}).`);
   }
 
-  const { url: s3Url } = (await presignResp.json()) as { url: string };
-  if (!s3Url) throw new Error("Forge returned empty presign URL");
+  const payload = (await presignResp.json()) as { url?: unknown };
+  const uploadUrl = safeHttpsUrl(payload.url);
+  if (!uploadUrl) throw new Error("O backend de storage retornou uma URL de upload inválida.");
 
-  // 2. PUT file directly to S3
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
-
-  const uploadResp = await fetch(s3Url, {
+  const uploadResp = await fetch(uploadUrl, {
     method: "PUT",
     headers: { "Content-Type": contentType },
-    body: blob,
+    body: toUploadBlob(data, contentType),
   });
 
   if (!uploadResp.ok) {
-    throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
+    throw new Error(`Falha ao enviar o arquivo ao storage (${uploadResp.status}).`);
   }
 
   return { key, url: `/manus-storage/${key}` };
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
-  const key = normalizeKey(relKey);
+  const key = normalizeStudioStorageKey(relKey);
   return { key, url: `/manus-storage/${key}` };
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
   const { forgeUrl, forgeKey } = getForgeConfig();
-  const key = normalizeKey(relKey);
+  const key = normalizeStudioStorageKey(relKey);
 
   const getUrl = new URL("v1/storage/presign/get", forgeUrl + "/");
   getUrl.searchParams.set("path", key);
@@ -88,10 +84,11 @@ export async function storageGetSignedUrl(relKey: string): Promise<string> {
   });
 
   if (!resp.ok) {
-    const msg = await resp.text().catch(() => resp.statusText);
-    throw new Error(`Storage signed URL failed (${resp.status}): ${msg}`);
+    throw new Error(`Não foi possível obter a URL do arquivo (${resp.status}).`);
   }
 
-  const { url } = (await resp.json()) as { url: string };
-  return url;
+  const payload = (await resp.json()) as { url?: unknown };
+  const signedUrl = safeHttpsUrl(payload.url);
+  if (!signedUrl) throw new Error("O backend de storage retornou uma URL inválida.");
+  return signedUrl.toString();
 }
