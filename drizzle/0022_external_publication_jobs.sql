@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS `external_publication_jobs` (
   `approvalHash` varchar(64) NOT NULL,
   `idempotencyKey` varchar(64) NOT NULL,
   `frozenPayload` text NOT NULL,
-  `status` enum('pending_confirmation','processing','published','failed','cancelled') NOT NULL DEFAULT 'pending_confirmation',
+  `status` enum('pending_confirmation','processing','published','failed','unknown_outcome','cancelled') NOT NULL DEFAULT 'pending_confirmation',
   `confirmedByUserId` int,
   `confirmedAt` timestamp NULL,
   `attemptCount` int NOT NULL DEFAULT 0,
