@@ -1,16 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("./_core/env", async importOriginal => {
+  const actual = await importOriginal<typeof import("./_core/env")>();
+  return { ...actual, ENV: { ...actual.ENV, metaInstagramAppId: "test-meta-app-id", metaInstagramAppSecret: "test-meta-app-secret" } };
+});
+
 import { validateInstagramMetaCredentials } from "./instagramApi";
 
 describe("validação técnica de credenciais Meta", () => {
-  beforeEach(() => {
-    vi.stubEnv("META_INSTAGRAM_APP_ID", "test-meta-app-id");
-    vi.stubEnv("META_INSTAGRAM_APP_SECRET", "test-meta-app-secret");
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    vi.unstubAllEnvs();
-  });
+  afterEach(() => vi.unstubAllGlobals());
 
   it("aceita somente uma resposta de token com estrutura válida", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ access_token: "x".repeat(24) }), { status: 200 })));
