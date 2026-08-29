@@ -50,3 +50,10 @@ export async function failExternalPublicationJob(userId: number, jobId: number, 
   await db.update(externalPublicationJobs).set({ status: "failed", lastError: message.slice(0, 2000), updatedAt: new Date() }).where(and(eq(externalPublicationJobs.id, jobId), eq(externalPublicationJobs.userId, userId), eq(externalPublicationJobs.status, "processing")));
   return getExternalPublicationJob(userId, jobId);
 }
+
+export async function quarantineExternalPublicationJob(userId: number, jobId: number, message: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await db.update(externalPublicationJobs).set({ status: "unknown_outcome", lastError: message.slice(0, 2000), updatedAt: new Date() }).where(and(eq(externalPublicationJobs.id, jobId), eq(externalPublicationJobs.userId, userId), eq(externalPublicationJobs.status, "processing")));
+  return getExternalPublicationJob(userId, jobId);
+}
