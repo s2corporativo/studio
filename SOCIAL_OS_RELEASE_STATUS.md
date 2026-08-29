@@ -63,6 +63,10 @@ Foram encontradas e corrigidas quatro falhas internas: o mock de teste OAuth pas
 
 Como observação de desempenho, o fornecedor compartilhado ainda gera um aviso de tamanho bruto no build (**687,79 kB** minificado), mas pesa **206,43 KiB gzip** e o carregamento inicial completo permanece abaixo da meta interna de 500 KiB gzip. Não há erro funcional ou regressão de carregamento associada ao aviso.
 
+### Validação da versão publicada
+
+O checkpoint corretivo `cde69dd2` foi publicado e revalidado no domínio de produção. O smoke test confirmou health, readiness e as rotas principais; uma varredura adicional confirmou HTTP 200 em todas as 28 rotas registradas, inclusive `/compliance`, que redireciona corretamente para governança. A resposta externa não autenticada ao endpoint de cron é HTTP 403, preservando o bloqueio de publicação fora da infraestrutura agendada.
+
 ## Próximo passo concreto
 
 Atualize o **App ID** correspondente ao DPT no formulário seguro já disponibilizado e, se o App Secret tiver sido regenerado, atualize também o Secret pareado. Após responder **“credenciais atualizadas”**, será executada uma única validação técnica sem OAuth, mídia ou publicação pública.

@@ -120,10 +120,10 @@
 - [x] Tipar explicitamente as props de SourcesPanel, BrandPanel, KnowledgePanel, CalendarPanel e demais componentes usados por Home.tsx, removendo `any` residual dos contratos públicos.
 - [x] Revalidar TypeScript e a suíte após eliminar `any` dos componentes compostos pela página principal.
 - [x] Conectar a mutação de geração de campanhas ao serviço transacional idempotente e impedir criações parciais ou duplicadas no endpoint real.
-- [ ] Executar auditoria abrangente de rotas, fluxos críticos, backend, banco, segurança, logs e interface publicada.
+- [x] Executar auditoria abrangente de rotas, fluxos críticos, backend, banco, segurança, logs e interface publicada.
 - [x] Corrigir e revalidar toda falha reproduzível identificada na auditoria de estabilidade.
 - [x] Corrigir os testes de vínculo OAuth para simular a validação Meta aprovada sem desabilitar o bloqueio real de credenciais inválidas.
-- [ ] Registrar e publicar o resultado técnico da auditoria de estabilidade, separando bloqueios internos de pendências externas.
+- [x] Registrar e publicar o resultado técnico da auditoria de estabilidade, separando bloqueios internos de pendências externas.
 - [x] Sanitizar a resposta de erro do endpoint cron de Instagram para não retornar detalhes internos, preservando-os somente na trilha de auditoria.
 - [x] Substituir todos os acentos azul, ciano e violeta residuais pela paleta institucional bronze, verde profundo e marfim nas telas do Social Media OS.
 - [x] Corrigir a inconsistência entre a rota interna `/compliance` e o item visível de navegação “Compliance”, que aponta para `/governanca`.
