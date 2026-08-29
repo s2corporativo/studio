@@ -1,25 +1,7 @@
 import type { Express } from "express";
+import { isValidStudioKey, safeHttpsUrl } from "../storagePolicy";
 import { ENV } from "./env";
 import { sdk } from "./sdk";
-
-const STUDIO_STORAGE_PREFIX = "social-studio/";
-
-export function isValidStudioKey(key: string) {
-  if (!key.startsWith(STUDIO_STORAGE_PREFIX)) return false;
-  if (key.includes("\\") || key.includes("\0")) return false;
-  const segments = key.split("/");
-  return segments.every(segment => segment !== ".." && segment !== ".");
-}
-
-export function safeRedirectUrl(value: unknown) {
-  if (typeof value !== "string" || !value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" ? url : null;
-  } catch {
-    return null;
-  }
-}
 
 export function registerStorageProxy(app: Express) {
   app.get("/manus-storage/*key", async (req, res) => {
@@ -71,7 +53,7 @@ export function registerStorageProxy(app: Express) {
       }
 
       const payload = (await forgeResp.json()) as { url?: unknown };
-      const redirectUrl = safeRedirectUrl(payload.url);
+      const redirectUrl = safeHttpsUrl(payload.url);
       if (!redirectUrl) {
         console.error(JSON.stringify({
           timestamp: new Date().toISOString(),
