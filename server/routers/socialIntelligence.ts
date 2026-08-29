@@ -7,7 +7,7 @@ import { getDb } from "../db";
 import { fetchCurrentRadar } from "../newsRadar";
 import { auditSeoPage } from "../seoAuditService";
 import { createAdPlan, createReport, createSeoAudit, createVideoProject, addInsight, startAgentRun, completeAgentRun } from "../socialGrowthDb";
-import { getStudioData } from "../socialStudioDb";
+import { getBrandAutomationContext } from "../studioPlanningContextDb";
 import { classifySocialInteraction, assessContentOpportunity, generateAdPlanningBrief, generatePerformanceNarrative, generateVideoBrief } from "../socialIntelligenceGenerator";
 import { listInteractions, listOpportunities, recordAuditEvent, saveOpportunity, updateInteraction } from "../socialOsDb";
 
@@ -26,7 +26,7 @@ async function withAgentRun<T>(userId: number, agentType: "strategist" | "resear
 
 export const socialIntelligenceRouter = router({
   refreshRadarOpportunities: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(8).default(5) })).mutation(async ({ ctx, input }) => withAgentRun(ctx.user.id, "researcher", "content_opportunity", `Atualizar até ${input.limit} oportunidades a partir do radar oficial.`, async () => {
-    const [radar, studio, existing] = await Promise.all([fetchCurrentRadar(), getStudioData(ctx.user.id), listOpportunities(ctx.user.id)]);
+    const [radar, studio, existing] = await Promise.all([fetchCurrentRadar(), getBrandAutomationContext(ctx.user.id), listOpportunities(ctx.user.id)]);
     const knownUrls = new Set(existing.map(item => item.sourceUrl).filter(Boolean));
     const candidates = radar.filter(item => !knownUrls.has(item.url)).slice(0, input.limit);
     const created = [];
