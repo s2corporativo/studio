@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { randomUUID } from "node:crypto";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
@@ -13,6 +14,9 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 
 const GLOBAL_BODY_LIMIT = "10mb";
+const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,100}$/;
+
+type RequestWithId = express.Request & { requestId?: string };
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -38,7 +42,13 @@ async function startServer() {
   const server = createServer(app);
 
   app.disable("x-powered-by");
-  app.use((_req, res, next) => {
+  app.use((req, res, next) => {
+    const incomingRequestId = req.header("x-request-id")?.trim();
+    const requestId = incomingRequestId && REQUEST_ID_PATTERN.test(incomingRequestId)
+      ? incomingRequestId
+      : randomUUID();
+    (req as RequestWithId).requestId = requestId;
+    res.setHeader("X-Request-ID", requestId);
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -59,6 +69,19 @@ async function startServer() {
     createExpressMiddleware({
       router: appRouter,
       createContext,
+      onError({ error, path, type, ctx, req }) {
+        const requestId = (req as RequestWithId).requestId ?? null;
+        console.error(JSON.stringify({
+          timestamp: new Date().toISOString(),
+          level: "error",
+          event: "trpc.error",
+          requestId,
+          path: path ?? null,
+          procedureType: type,
+          errorCode: error.code,
+          userId: ctx?.user?.id ?? null,
+        }));
+      },
     })
   );
   if (process.env.NODE_ENV === "development") {
