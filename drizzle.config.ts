@@ -11,6 +11,7 @@ export default defineConfig({
     "./drizzle/socialOsSchema.ts",
     "./drizzle/socialGrowthSchema.ts",
     "./drizzle/socialAutomationSchema.ts",
+    "./drizzle/externalConnectionsSchema.ts",
   ],
   out: "./drizzle",
   dialect: "mysql",
