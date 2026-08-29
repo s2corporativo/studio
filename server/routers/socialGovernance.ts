@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { badRequest, conflict } from "../_core/publicErrors";
 import { protectedProcedure, router } from "../_core/trpc";
 import { approvalReadiness, canSchedule } from "../studioRules";
 import { getInstagramConnection, getPostMedia, getStudioData, getStudioPost, recordPublicationAttempt, updateStudioPost, type FrozenPublicationPayload } from "../socialStudioDb";
@@ -43,7 +44,7 @@ export const socialGovernanceRouter = router({
     if (input.decision === "approved") {
       const [post, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.id), getStudioData(ctx.user.id)]);
       const result = approvalReadiness({ ...post, approvalOwnerName: reviewerName, prohibitedTerms: brand?.prohibitedTerms });
-      if (!result.ready) throw new Error(`Aprovação bloqueada: inclua ${result.missing.join(", ")}.`);
+      if (!result.ready) badRequest(`Aprovação bloqueada: inclua ${result.missing.join(", ")}.`);
       const approved = await bindApproval(ctx.user.id, input.id, reviewerName, input.notes);
       await recordAuditEvent(ctx.user.id, "post.version_approved", "content_post", input.id);
       return approved;
@@ -56,7 +57,7 @@ export const socialGovernanceRouter = router({
   schedule: protectedProcedure.input(z.object({ id: z.number().int().positive(), scheduledAt: z.date() })).mutation(async ({ ctx, input }) => {
     const post = await getStudioPost(ctx.user.id, input.id);
     const scheduleCheck = canSchedule(post.status, input.scheduledAt);
-    if (!scheduleCheck.allowed) throw new Error(scheduleCheck.reason);
+    if (!scheduleCheck.allowed) conflict(scheduleCheck.reason);
     await assertApprovalStillValid(ctx.user.id, post.id);
     const scheduled = await updateStudioPost(ctx.user.id, post.id, { status: "scheduled", scheduledAt: input.scheduledAt });
     await recordAuditEvent(ctx.user.id, "post.scheduled_with_valid_approval", "content_post", post.id, { scheduledAt: input.scheduledAt.toISOString() });
@@ -73,7 +74,7 @@ export const socialGovernanceRouter = router({
     ]);
     const publicOrigin = getInstagramOAuthOrigin(ctx.req);
     const preflight = preflightInstagramPublication({ post, media, connection, metaConfigured: isInstagramMetaConfigured(), origin: publicOrigin, prohibitedTerms: brand?.prohibitedTerms });
-    if (!preflight.allowed) throw new Error(`Publicação bloqueada: ${preflight.issues.join("; ")}.`);
+    if (!preflight.allowed) badRequest(`Publicação bloqueada: ${preflight.issues.join("; ")}.`);
     const payload: FrozenPublicationPayload = {
       postId: post.id,
       title: post.title,
