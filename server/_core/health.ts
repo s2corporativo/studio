@@ -82,7 +82,12 @@ export function registerHealthRoutes(app: Express) {
         checks.growthModules = true;
       }
     } catch (error) {
-      console.warn("[Readiness] check failed", error instanceof Error ? error.message : error);
+      console.warn(JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: "warn",
+        event: "readiness.check_failed",
+        errorType: error instanceof Error ? error.name : "UnknownError",
+      }));
     }
 
     const ready = Object.values(checks).every(Boolean);
