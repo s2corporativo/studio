@@ -29,12 +29,21 @@ function mutationError(error: { message: string }) {
 
 const socialOsLocations = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics", "/compliance"]);
 const growthLocations = new Set(["/video", "/seo", "/ads", "/relatorios", "/agentes", "/memoria", "/governanca"]);
+const standaloneLocations = new Set(["/radar", "/redes", "/instagram"]);
+
+function ModuleLoading() {
+  return <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>;
+}
 
 export default function Home() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const utils = trpc.useUtils();
-  const dataQuery = trpc.socialStudio.data.useQuery(undefined, { enabled: Boolean(user), staleTime: 30_000 });
+  const isStandaloneModule = growthLocations.has(location) || socialOsLocations.has(location) || standaloneLocations.has(location);
+  const dataQuery = trpc.socialStudio.data.useQuery(undefined, {
+    enabled: Boolean(user) && !isStandaloneModule,
+    staleTime: 30_000,
+  });
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
 
@@ -69,20 +78,22 @@ export default function Home() {
   }, [data?.posts]);
 
   let content: React.ReactNode;
-  if (!user || dataQuery.isLoading) {
-    content = <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>;
-  } else if (dataQuery.isError || !data) {
-    content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? "Não foi possível carregar o Social OS."}</div>;
+  if (!user) {
+    content = <ModuleLoading />;
   } else if (growthLocations.has(location)) {
     content = <GrowthWorkspace />;
   } else if (socialOsLocations.has(location)) {
     content = <SocialOsCommandCenter />;
   } else if (location === "/radar") {
     content = <NewsRadar />;
-  } else if (location === "/automacao") {
-    content = <AutomationCenter settings={data.automation} />;
   } else if (location === "/redes" || location === "/instagram") {
     content = <NetworkHub />;
+  } else if (dataQuery.isLoading) {
+    content = <ModuleLoading />;
+  } else if (dataQuery.isError || !data) {
+    content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? "Não foi possível carregar os dados deste módulo."}</div>;
+  } else if (location === "/automacao") {
+    content = <AutomationCenter settings={data.automation} />;
   } else if (location === "/biblioteca") {
     content = <AssetLibrary assets={data.assets} />;
   } else if (location === "/conhecimento") {
@@ -106,5 +117,5 @@ export default function Home() {
     content = <SaasOverview data={data} counts={counts} onCreate={() => setLocation("/conteudos")} onOpenCalendar={() => setLocation("/calendario")} onOpenRadar={() => setLocation("/radar")} onOpenAutomation={() => setLocation("/automacao")} onOpenNetworks={() => setLocation("/redes")} />;
   }
 
-  return <DashboardLayout><div className="saas-shell mx-auto w-full max-w-[1680px]"><Suspense fallback={<div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>}>{content}</Suspense></div></DashboardLayout>;
+  return <DashboardLayout><div className="saas-shell mx-auto w-full max-w-[1680px]"><Suspense fallback={<ModuleLoading />}>{content}</Suspense></div></DashboardLayout>;
 }
