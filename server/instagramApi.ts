@@ -16,6 +16,28 @@ export class InstagramApiError extends Error {
 
 export function isInstagramMetaConfigured() { return Boolean(ENV.metaInstagramAppId && ENV.metaInstagramAppSecret); }
 
+export type InstagramCredentialValidation = { configured: boolean; validated: boolean; code?: string };
+
+export async function validateInstagramMetaCredentials(): Promise<InstagramCredentialValidation> {
+  if (!isInstagramMetaConfigured()) return { configured: false, validated: false, code: "META_NOT_CONFIGURED" };
+  const { appId, appSecret } = requireMetaConfig();
+  const url = new URL("https://graph.facebook.com/oauth/access_token");
+  url.searchParams.set("client_id", appId);
+  url.searchParams.set("client_secret", appSecret);
+  url.searchParams.set("grant_type", "client_credentials");
+
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+    const body = await response.json().catch(() => ({})) as { access_token?: string; error?: { code?: number }; code?: number };
+    if (!response.ok) return { configured: true, validated: false, code: String(body.error?.code ?? body.code ?? "META_CREDENTIALS_REJECTED") };
+    return typeof body.access_token === "string" && body.access_token.length > 20
+      ? { configured: true, validated: true }
+      : { configured: true, validated: false, code: "META_INVALID_TOKEN_RESPONSE" };
+  } catch {
+    return { configured: true, validated: false, code: "META_VALIDATION_UNAVAILABLE" };
+  }
+}
+
 function requireMetaConfig() {
   if (!isInstagramMetaConfigured()) throw new InstagramApiError("A aplicação Meta ainda não foi configurada no ambiente seguro.", "META_NOT_CONFIGURED");
   return { appId: ENV.metaInstagramAppId, appSecret: ENV.metaInstagramAppSecret };

@@ -5,7 +5,7 @@ import { generateLegalDraft } from "../socialStudioGenerator";
 import { createContentSource, createKnowledgeMaterial, createPublicationRequest, createSocialProfile, createStudioPost, getInstagramConnection, getInstagramStudioData, getOrCreateContentSource, getPostMedia, getPublicationJob, getSocialProfiles, getStudioData, getStudioPost, linkInstagramProfileToConnection, recordDecision, recordPublicationAttempt, removeSocialProfile, updateAutomationSettings, updateBrandProfile, updatePublicationJob, updateSocialProfile, updateStudioPost, addPostMedia, removePostMedia, type FrozenPublicationPayload } from "../socialStudioDb";
 import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
-import { buildInstagramBusinessLoginUrl, isInstagramMetaConfigured } from "../instagramApi";
+import { buildInstagramBusinessLoginUrl, isInstagramMetaConfigured, validateInstagramMetaCredentials } from "../instagramApi";
 import { createInstagramOAuthState } from "../instagramOAuthState";
 import { getInstagramOAuthOrigin, getInstagramRedirectUri } from "../instagramOrigins";
 import { buildInstagramCaption, preflightInstagramPublication } from "../instagramRules";
@@ -17,6 +17,7 @@ import { generateImage } from "../_core/imageGeneration";
 import { fetchCurrentRadar } from "../newsRadar";
 import { publicSocialProfileHandle, publicSocialProfileUrl, socialNetworkInput } from "../socialProfilePolicy";
 import { assertApprovalStillValid, assertPostMediaCanChange } from "../socialOsGovernance";
+import { generateCampaignSafely } from "../socialOsCampaign";
 
 const statusSchema = z.enum(contentStatuses);
 const formatSchema = z.enum(editorialFormats);
@@ -94,59 +95,14 @@ export const socialStudioRouter = router({
     });
   }),
   generateCampaign: protectedProcedure.input(z.object({
+    idempotencyKey: z.string().uuid(),
     days: z.union([z.literal(7), z.literal(15), z.literal(30)]),
     startDate: z.date(),
     postsPerWeek: z.number().int().min(1).max(7),
     defaultPublishTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     objective: z.string().min(2).max(180).default("Autoridade"),
-  })).mutation(async ({ ctx, input }) => {
-    const studio = await getStudioData(ctx.user.id);
-    if (!studio.topics.length) throw new Error("Cadastre pelo menos uma pauta antes de gerar o plano.");
-    const maxSlots = Math.min(input.days, Math.max(1, Math.round(input.days / 7 * input.postsPerWeek)));
-    const [hours, minutes] = input.defaultPublishTime.split(":").map(Number);
-    const dates: Date[] = [];
-    for (let i = 0; i < input.days && dates.length < maxSlots; i++) {
-      const date = new Date(input.startDate);
-      date.setDate(date.getDate() + i);
-      if (studio.automation?.cadence === "weekdays" && (date.getDay() === 0 || date.getDay() === 6)) continue;
-      date.setHours(hours, minutes, 0, 0);
-      dates.push(date);
-    }
-    const created = [] as any[];
-    for (let index = 0; index < dates.length; index++) {
-      const topic = studio.topics[index % studio.topics.length];
-      const source = topic.sourceUrl ? await getOrCreateContentSource(ctx.user.id, { title: `Fonte oficial — ${topic.area}`, sourceType: "legislação / fonte oficial", url: topic.sourceUrl, notes: `Fonte associada automaticamente à pauta: ${topic.title}.` }) : null;
-      const generated = await generateLegalDraft({
-        area: topic.area,
-        topic: topic.title,
-        audience: topic.audience,
-        format: topic.suggestedFormat,
-        objective: input.objective,
-        legalSource: topic.sourceUrl,
-        primaryCta: studio.brand?.primaryCta,
-        toneOfVoice: studio.brand?.toneOfVoice,
-        prohibitedTerms: studio.brand?.prohibitedTerms,
-      });
-      created.push(await createStudioPost(ctx.user.id, {
-        topicId: topic.id,
-        sourceId: source?.id ?? null,
-        area: topic.area,
-        format: topic.suggestedFormat,
-        audience: topic.audience,
-        strategicObjective: input.objective,
-        contentPillar: "Planejamento automático",
-        campaign: `Plano ${input.days} dias`,
-        funnelStage: index % 4 === 0 ? "relationship" : index % 3 === 0 ? "consideration" : "discovery",
-        templateKey: topic.suggestedFormat === "carousel" ? "carrossel_didatico" : topic.suggestedFormat === "reel" ? "reel_roteiro" : "noticia_comentada",
-        title: generated.title, hook: generated.hook, caption: generated.caption, cta: generated.cta, hashtags: generated.hashtags, altText: generated.altText,
-        keyStatement: generated.hook, legalSource: topic.sourceUrl ?? null,
-        reviewDueAt: new Date(dates[index].getTime() + 30 * 24 * 60 * 60 * 1000),
-        scheduledAt: dates[index],
-        status: "draft",
-      }));
-    }
-    return { created, count: created.length, startDate: dates[0] ?? null, endDate: dates.at(-1) ?? null };
-  }),
+    timezone: z.string().min(3).max(80).default("America/Sao_Paulo"),
+  })).mutation(({ ctx, input }) => generateCampaignSafely(ctx.user.id, input)),
   generatePostArtwork: protectedProcedure.input(z.object({
     postId: z.number(),
     style: z.enum(["tech_premium", "editorial", "photographic", "minimal"]).default("tech_premium"),
@@ -166,11 +122,13 @@ export const socialStudioRouter = router({
   }),
 
   instagramData: protectedProcedure.query(async ({ ctx }) => {
-    const [studio, instagram] = await Promise.all([getStudioData(ctx.user.id), getInstagramStudioData(ctx.user.id)]);
-    return { ...instagram, posts: studio.posts, media: studio.media, brand: studio.brand, metaConfigured: isInstagramMetaConfigured() };
+    const [studio, instagram, metaCredentials] = await Promise.all([getStudioData(ctx.user.id), getInstagramStudioData(ctx.user.id), validateInstagramMetaCredentials()]);
+    return { ...instagram, posts: studio.posts, media: studio.media, brand: studio.brand, metaConfigured: metaCredentials.validated, metaCredentialsConfigured: metaCredentials.configured, metaValidationCode: metaCredentials.code };
   }),
   beginInstagramConnection: protectedProcedure.input(z.object({ profileId: z.number().int().positive().optional() }).optional()).mutation(async ({ ctx, input }) => {
     if (!isInstagramMetaConfigured()) throw new Error("A aplicação Meta ainda não está acessível ou suas credenciais não foram configuradas no ambiente seguro.");
+    const metaCredentials = await validateInstagramMetaCredentials();
+    if (!metaCredentials.validated) throw new Error(`A validação técnica das credenciais Meta ainda não foi aprovada (${metaCredentials.code ?? "META_CREDENTIALS_REJECTED"}). Corrija o App ID e o App Secret no cofre seguro antes do OAuth.`);
     const profiles = await getSocialProfiles(ctx.user.id);
     const activeInstagramProfiles = profiles.filter(profile => profile.network === "instagram" && profile.state !== "inactive");
     const profileId = input?.profileId ?? (activeInstagramProfiles.length === 1 ? activeInstagramProfiles[0]?.id : undefined);

@@ -6,11 +6,15 @@ import { Bot, CheckCircle2, Loader2, Play, RefreshCw, ShieldCheck } from "lucide
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+const autonomyLevels = ["manual", "assisted", "semi_automatic", "autopilot"] as const;
+type AutonomyLevel = typeof autonomyLevels[number];
+type AutopilotForm = { level: AutonomyLevel; allowAutoResearch: boolean; allowAutoDraft: boolean; allowAutoSchedule: boolean };
+
 export default function AutopilotPanel() {
   const utils = trpc.useUtils();
   const profile = trpc.socialAutomation.profile.useQuery();
   const executions = trpc.socialAutomation.executions.useQuery();
-  const [form, setForm] = useState({ level: "assisted", allowAutoResearch: true, allowAutoDraft: false, allowAutoSchedule: false });
+  const [form, setForm] = useState<AutopilotForm>({ level: "assisted", allowAutoResearch: true, allowAutoDraft: false, allowAutoSchedule: false });
 
   useEffect(() => {
     if (profile.data) setForm({
@@ -33,14 +37,14 @@ export default function AutopilotPanel() {
       <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Bot className="h-5 w-5 text-[#e2ba7c]" />Autopilot seguro</CardTitle></CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <label className="saas-field"><span>Nível de autonomia</span><select value={form.level} onChange={e => setForm({ ...form, level: e.target.value })}><option value="manual">Manual</option><option value="assisted">Assistido</option><option value="semi_automatic">Semiautomático</option><option value="autopilot">Autopilot</option></select></label>
+          <label className="saas-field"><span>Nível de autonomia</span><select value={form.level} onChange={e => setForm({ ...form, level: e.target.value as AutonomyLevel })}>{autonomyLevels.map(level => <option key={level} value={level}>{level === "manual" ? "Manual" : level === "assisted" ? "Assistido" : level === "semi_automatic" ? "Semiautomático" : "Autopilot"}</option>)}</select></label>
           <Toggle label="Pesquisa automática" checked={form.allowAutoResearch} onChange={value => setForm({ ...form, allowAutoResearch: value })} />
           <Toggle label="Rascunhos automáticos" checked={form.allowAutoDraft} onChange={value => setForm({ ...form, allowAutoDraft: value })} />
           <Toggle label="Agendamento automático" checked={form.allowAutoSchedule} onChange={value => setForm({ ...form, allowAutoSchedule: value })} />
         </div>
         <div className="rounded-xl border border-amber-300/20 bg-amber-300/[.05] p-4 text-xs leading-5 text-amber-100/90"><ShieldCheck className="mr-2 inline h-4 w-4" />Conteúdo jurídico e publicação externa continuam exigindo aprovação humana em todos os níveis. O Autopilot não publica anúncios nem movimenta orçamento.</div>
         <div className="flex flex-wrap gap-3">
-          <Button disabled={update.isPending} onClick={() => update.mutate({ ...form, level: form.level as any })} className="saas-button-secondary">{update.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar autonomia</Button>
+          <Button disabled={update.isPending} onClick={() => update.mutate(form)} className="saas-button-secondary">{update.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar autonomia</Button>
           <Button disabled={scan.isPending || form.level === "manual"} onClick={() => scan.mutate()} className="saas-button-primary">{scan.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Varrer regras agora</Button>
         </div>
       </CardContent>

@@ -2,6 +2,9 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { CheckCircle2, ImagePlus, Loader2, ShieldCheck, WandSparkles } from "lucide-react";
 import { useState } from "react";
+import type { ContentPost } from "../../../drizzle/schema";
+
+type ArtworkPost = Pick<ContentPost, "id" | "area" | "title" | "hook" | "keyStatement">;
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxLines: number) {
   const words = text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
@@ -21,7 +24,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
   return lines;
 }
 
-function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: any, style: string) {
+function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: ArtworkPost, style: string) {
   const width = ctx.canvas.width;
   const height = ctx.canvas.height;
   const accent = style === "photographic" ? "#d8b476" : style === "minimal" ? "#e7dccb" : "#c99550";
@@ -74,7 +77,7 @@ function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: any, style: str
   ctx.textAlign = "left";
 }
 
-export default function ArtworkStudio({ post }: { post: any }) {
+export default function ArtworkStudio({ post }: { post: ArtworkPost }) {
   const [style, setStyle] = useState<"tech_premium" | "editorial" | "photographic" | "minimal">("editorial");
   const [direction, setDirection] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import type { ContentPost } from "../../../drizzle/schema";
 
 const AssetLibrary = lazy(() => import("./AssetLibrary"));
 const ArtworkStudio = lazy(() => import("./ArtworkStudio"));
@@ -53,10 +54,16 @@ export default function Home() {
   const addKnowledge = trpc.socialStudio.addKnowledge.useMutation({ onSuccess: async () => { await refresh(); toast.success("Referência cadastrada."); }, onError: mutationError });
   const uploadKnowledge = trpc.knowledgeSecurity.upload.useMutation({ onSuccess: async () => { await refresh(); toast.success("Documento validado e armazenado com segurança."); }, onError: mutationError });
   const updateBrand = trpc.socialStudio.updateBrand.useMutation({ onSuccess: async () => { await refresh(); toast.success("Brand OS atualizado."); }, onError: mutationError });
+  type AddKnowledgeInput = Parameters<typeof addKnowledge.mutate>[0];
+  type UploadKnowledgeInput = Parameters<typeof uploadKnowledge.mutate>[0];
+  type AddSourceInput = Parameters<typeof addSource.mutate>[0];
+  type UpdateBrandInput = Parameters<typeof updateBrand.mutate>[0];
+  type GenerateDraftInput = Parameters<typeof generate.mutate>[0];
+  type UpdatePostInput = Parameters<typeof updatePost.mutate>[0];
 
   const selectedPost = useMemo(() => data?.posts?.find(post => post.id === selectedPostId) ?? null, [data?.posts, selectedPostId]);
   const counts = useMemo(() => {
-    const result = { draft: 0, review: 0, approved: 0, scheduled: 0, published: 0, rejected: 0 } as Record<string, number>;
+    const result: Record<ContentPost["status"], number> = { draft: 0, review: 0, approved: 0, scheduled: 0, published: 0, rejected: 0 };
     for (const post of data?.posts ?? []) result[post.status] = (result[post.status] ?? 0) + 1;
     return result;
   }, [data?.posts]);
@@ -77,13 +84,13 @@ export default function Home() {
   } else if (location === "/redes" || location === "/instagram") {
     content = <NetworkHub />;
   } else if (location === "/biblioteca") {
-    content = <AssetLibrary assets={data.assets as any} />;
+    content = <AssetLibrary assets={data.assets} />;
   } else if (location === "/conhecimento") {
-    content = <KnowledgePanel materials={data.knowledge} onAdd={(value: any) => addKnowledge.mutate(value)} adding={addKnowledge.isPending} onUpload={(value: any) => uploadKnowledge.mutate(value)} uploading={uploadKnowledge.isPending} />;
+    content = <KnowledgePanel materials={data.knowledge} onAdd={(value: AddKnowledgeInput) => addKnowledge.mutate(value)} adding={addKnowledge.isPending} onUpload={(value: UploadKnowledgeInput) => uploadKnowledge.mutate(value)} uploading={uploadKnowledge.isPending} />;
   } else if (location === "/fontes") {
-    content = <SourcesPanel sources={data.sources} onAdd={(value: any) => addSource.mutate(value)} adding={addSource.isPending} />;
+    content = <SourcesPanel sources={data.sources} onAdd={(value: AddSourceInput) => addSource.mutate(value)} adding={addSource.isPending} />;
   } else if (location === "/marca") {
-    content = <BrandPanel brand={data.brand} onSave={(value: any) => updateBrand.mutate(value)} saving={updateBrand.isPending} />;
+    content = <BrandPanel brand={data.brand} onSave={(value: UpdateBrandInput) => updateBrand.mutate(value)} saving={updateBrand.isPending} />;
   } else if (location === "/roadmap") {
     content = <MarketingRoadmap />;
   } else if (location === "/planejamento") {
@@ -92,7 +99,7 @@ export default function Home() {
     content = <CalendarPanel posts={data.posts} />;
   } else if (location === "/conteudos") {
     content = <div className="space-y-6">
-      <ContentDeskV4 topics={data.topics} sources={data.sources} brand={data.brand} posts={data.posts} selectedPost={selectedPost} selectedTopicId={selectedTopicId} onSelectTopic={(id: number) => setSelectedTopicId(id)} onSelectPost={(id: number) => setSelectedPostId(id)} onGenerate={(value: any) => generate.mutate(value)} generating={generate.isPending} onUpdate={(value: any) => updatePost.mutate(value)} saving={updatePost.isPending} onSendReview={(id: number) => sendReview.mutate({ id })} onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes?: string) => decide.mutate({ id, decision, notes: notes || undefined })} onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })} />
+      <ContentDeskV4 topics={data.topics} sources={data.sources} brand={data.brand} posts={data.posts} selectedPost={selectedPost} selectedTopicId={selectedTopicId} onSelectTopic={(id: number) => setSelectedTopicId(id)} onSelectPost={(id: number) => setSelectedPostId(id)} onGenerate={(value: GenerateDraftInput) => generate.mutate(value)} generating={generate.isPending} onUpdate={(value: UpdatePostInput) => updatePost.mutate(value)} saving={updatePost.isPending} onSendReview={(id: number) => sendReview.mutate({ id })} onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes?: string) => decide.mutate({ id, decision, notes: notes || undefined })} onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })} />
       {selectedPost && <ArtworkStudio key={selectedPost.id} post={selectedPost} />}
     </div>;
   } else {

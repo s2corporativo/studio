@@ -109,6 +109,13 @@
 - [x] Registrar no histórico técnico a decisão de rollback aplicável após a validação de produção.
 - [x] Expor no teste externo apenas o código e a categoria sanitizados de erro Meta para orientar a correção das credenciais sem revelar segredos.
 - [ ] Reconciliar o App ID seguro com o aplicativo DPT confirmado no painel Meta e repetir apenas a validação técnica mínima.
+- [x] Exibir na Central de Instagram a diferença entre credenciais presentes e validação técnica aprovada, bloqueando OAuth enquanto a validação estiver pendente.
 - [x] Auditar o estado atual do GitHub Actions e registrar se o `startup_failure` é bloqueio de infraestrutura ou de workflow.
 - [ ] Consolidar o relatório técnico de liberação com classificação funcional dos módulos e bloqueios externos comprovados.
 - [ ] Adicionar acionamento manual ao workflow CI ativo e executá-lo para comprovar a validação do YAML atual no GitHub Actions.
+- [ ] Regularizar o pagamento recente ou limite de gastos do GitHub Actions e reexecutar o CI ativo até a conclusão de seus jobs.
+- [x] Remover a tipagem `any` residual do fluxo de idempotência de campanhas e manter a interpretação de resultados de mutation segura.
+- [x] Substituir tipagens `any` residuais na composição principal por contratos explícitos de componentes, sem reduzir a segurança TypeScript.
+- [x] Tipar explicitamente as props de SourcesPanel, BrandPanel, KnowledgePanel, CalendarPanel e demais componentes usados por Home.tsx, removendo `any` residual dos contratos públicos.
+- [x] Revalidar TypeScript e a suíte após eliminar `any` dos componentes compostos pela página principal.
+- [x] Conectar a mutação de geração de campanhas ao serviço transacional idempotente e impedir criações parciais ou duplicadas no endpoint real.

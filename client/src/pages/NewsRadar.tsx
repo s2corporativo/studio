@@ -36,7 +36,7 @@ export default function NewsRadar() {
     {radar.isError && <div className="saas-card p-5 text-sm text-rose-300">Não foi possível consultar as fontes agora. Nenhum conteúdo será criado sem fonte.</div>}
 
     <section className="grid gap-4 xl:grid-cols-2">
-      {(radar.data ?? []).map((item: any, index: number) => <article key={item.id} className="saas-card group p-5 transition hover:-translate-y-0.5 hover:border-[#c99550]/30">
+      {(radar.data ?? []).map((item, index: number) => <article key={item.id} className="saas-card group p-5 transition hover:-translate-y-0.5 hover:border-[#c99550]/30">
         <div className="flex items-start gap-4">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#c99550]/10 text-[#e3bd7f] ring-1 ring-inset ring-[#c99550]/20">
             {index < 3 ? <Flame className="h-5 w-5" /> : <Newspaper className="h-5 w-5" />}

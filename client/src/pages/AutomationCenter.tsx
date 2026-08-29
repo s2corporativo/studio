@@ -4,11 +4,28 @@ import { trpc } from "@/lib/trpc";
 import { Bot, CalendarRange, CheckCircle2, Clock3, Loader2, Radar, ShieldCheck, WandSparkles } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import type { AutomationSetting } from "../../../drizzle/schema";
 import AutopilotPanel from "./AutopilotPanel";
 
-export default function AutomationCenter({ settings }: { settings: any }) {
+type AutomationForm = Omit<Pick<AutomationSetting, "enabled" | "cadence" | "postsPerWeek" | "defaultPublishTime" | "planningHorizonDays" | "requireApproval" | "refreshRadarDaily" | "preferredAreas" | "preferredFormats">, "postsPerWeek"> & {
+  postsPerWeek: number | string;
+};
+
+const defaultSettings: AutomationForm = {
+  enabled: false,
+  cadence: "weekdays",
+  postsPerWeek: 5,
+  defaultPublishTime: "18:30",
+  planningHorizonDays: 30,
+  requireApproval: true,
+  refreshRadarDaily: true,
+  preferredAreas: "",
+  preferredFormats: "carousel,post,reel",
+};
+
+export default function AutomationCenter({ settings }: { settings: AutomationSetting | null }) {
   const [, setLocation] = useLocation();
-  const [form, setForm] = useState<any>(settings ?? { enabled: false, cadence: "weekdays", postsPerWeek: 5, defaultPublishTime: "18:30", planningHorizonDays: 30, requireApproval: true, refreshRadarDaily: true, preferredAreas: "", preferredFormats: "carousel,post,reel" });
+  const [form, setForm] = useState<AutomationForm>(settings ?? defaultSettings);
   const [planDays, setPlanDays] = useState<7 | 15 | 30>(30);
   const [planMessage, setPlanMessage] = useState<string | null>(null);
   const utils = trpc.useUtils();
@@ -26,7 +43,7 @@ export default function AutomationCenter({ settings }: { settings: any }) {
         </div>
 
         <div className="mt-7 grid gap-5 md:grid-cols-2">
-          <label className="saas-field"><span>Cadência</span><select value={form.cadence} onChange={e => setForm({ ...form, cadence: e.target.value })}><option value="daily">Todos os dias</option><option value="weekdays">Segunda a sexta</option><option value="custom">Personalizada</option></select></label>
+          <label className="saas-field"><span>Cadência</span><select value={form.cadence} onChange={e => setForm({ ...form, cadence: e.target.value as AutomationForm["cadence"] })}><option value="daily">Todos os dias</option><option value="weekdays">Segunda a sexta</option><option value="custom">Personalizada</option></select></label>
           <label className="saas-field"><span>Publicações por semana</span><input type="number" min={1} max={7} value={form.postsPerWeek} onChange={e => setForm({ ...form, postsPerWeek: e.target.value })} /></label>
           <label className="saas-field"><span>Horário padrão</span><input type="time" value={form.defaultPublishTime} onChange={e => setForm({ ...form, defaultPublishTime: e.target.value })} /></label>
           <label className="saas-field"><span>Horizonte de planejamento</span><select value={form.planningHorizonDays} onChange={e => setForm({ ...form, planningHorizonDays: Number(e.target.value) })}><option value={7}>7 dias</option><option value={15}>15 dias</option><option value={30}>30 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option></select></label>

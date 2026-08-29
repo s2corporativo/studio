@@ -59,7 +59,11 @@ export function buildCampaignSlots(input: { startDate: Date; days: number; posts
 }
 
 function affectedRows(result: unknown) {
-  return Number((result as any)?.[0]?.affectedRows ?? 0);
+  if (!Array.isArray(result)) return 0;
+  const first = result[0];
+  if (!first || typeof first !== "object" || !("affectedRows" in first)) return 0;
+  const value = first.affectedRows;
+  return typeof value === "number" ? value : 0;
 }
 
 export async function generateCampaignSafely(userId: number, input: {

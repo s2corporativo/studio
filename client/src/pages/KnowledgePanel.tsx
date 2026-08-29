@@ -1,6 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, FileUp, Link2, Loader2, Plus, ShieldCheck } from "lucide-react";
 import { FormEvent, useState } from "react";
+import type { knowledgeMaterials } from "../../../drizzle/schema";
+
+type KnowledgeMaterial = typeof knowledgeMaterials.$inferSelect;
+type KnowledgeLinkInput = Pick<KnowledgeMaterial, "title" | "materialType" | "url" | "notes" | "isVerified">;
+type KnowledgeUploadInput = { title: string; materialType: string; mimeType: string; base64: string; notes: string | null; isVerified: boolean };
+type KnowledgePanelProps = {
+  materials: KnowledgeMaterial[];
+  onAdd: (value: KnowledgeLinkInput) => void;
+  adding: boolean;
+  onUpload: (value: KnowledgeUploadInput) => void;
+  uploading: boolean;
+};
 
 function inferMime(file: File) {
   if (file.type) return file.type;
@@ -14,7 +26,7 @@ function inferMime(file: File) {
   return "application/octet-stream";
 }
 
-export default function KnowledgePanel({ materials, onAdd, adding, onUpload, uploading }: any) {
+export default function KnowledgePanel({ materials, onAdd, adding, onUpload, uploading }: KnowledgePanelProps) {
   const [link, setLink] = useState({ title: "", materialType: "site institucional", url: "", notes: "", isVerified: false });
   const [file, setFile] = useState<File | null>(null);
   const [notes, setNotes] = useState("");
@@ -77,7 +89,7 @@ export default function KnowledgePanel({ materials, onAdd, adding, onUpload, upl
 
     <section className="saas-card p-5 sm:p-6">
       <div className="flex items-center justify-between"><div><p className="saas-section-label">Base institucional</p><h2 className="mt-2 text-2xl font-semibold text-white">Conhecimento cadastrado</h2></div><ShieldCheck className="h-5 w-5 text-emerald-300" /></div>
-      <div className="mt-6 space-y-3">{materials.length === 0 ? <p className="py-10 text-center text-sm text-slate-500">Nenhum material cadastrado.</p> : materials.map((material: any) => <article key={material.id} className="rounded-2xl border border-white/[.06] bg-white/[.02] p-4"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium text-slate-200">{material.title}</p><p className="mt-1 text-[10px] uppercase tracking-[.12em] text-violet-300">{material.materialType} · {material.isVerified ? "revisado" : "aguarda revisão"}</p></div>{material.url && <a href={material.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white">Abrir <ArrowUpRight className="h-3.5 w-3.5" /></a>}</div>{material.notes && <p className="mt-3 text-xs leading-5 text-slate-500">{material.notes}</p>}</article>)}</div>
+      <div className="mt-6 space-y-3">{materials.length === 0 ? <p className="py-10 text-center text-sm text-slate-500">Nenhum material cadastrado.</p> : materials.map(material => <article key={material.id} className="rounded-2xl border border-white/[.06] bg-white/[.02] p-4"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium text-slate-200">{material.title}</p><p className="mt-1 text-[10px] uppercase tracking-[.12em] text-violet-300">{material.materialType} · {material.isVerified ? "revisado" : "aguarda revisão"}</p></div>{material.url && <a href={material.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white">Abrir <ArrowUpRight className="h-3.5 w-3.5" /></a>}</div>{material.notes && <p className="mt-3 text-xs leading-5 text-slate-500">{material.notes}</p>}</article>)}</div>
     </section>
   </div>;
 }
