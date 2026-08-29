@@ -14,6 +14,7 @@ import { scheduleConfirmedInstagramPublication } from "../instagramSchedule";
 import { parse as parseCookie } from "cookie";
 import { COOKIE_NAME } from "@shared/const";
 import { generateImage } from "../_core/imageGeneration";
+import { buildArtworkPrompt } from "../artworkDirection";
 import { fetchCurrentRadar } from "../newsRadar";
 import { publicSocialProfileHandle, publicSocialProfileUrl, socialNetworkInput } from "../socialProfilePolicy";
 import { assertApprovalStillValid, assertPostMediaCanChange } from "../socialOsGovernance";
@@ -109,14 +110,14 @@ export const socialStudioRouter = router({
     direction: z.string().max(1000).nullable().optional(),
   })).mutation(async ({ ctx, input }) => {
     const [post, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.postId), getStudioData(ctx.user.id)]);
-    const style = {
-      tech_premium: "premium institutional campaign photography, sophisticated contemporary legal visual language, deep charcoal green, restrained bronze highlights and ivory details, elegant architectural geometry",
-      editorial: "premium editorial magazine photography for a refined Brazilian law institution, deep green and bronze materials, dramatic but sober light, sophisticated composition",
-      photographic: "high-end realistic corporate photography, natural people and environments, cinematic light, authentic Brazilian professional context",
-      minimal: "minimal premium composition, restrained geometric forms, deep green negative space and discrete bronze detail, sophisticated legal atmosphere",
-    }[input.style];
-    const prompt = `Create a vertical 4:5 Instagram background image for a Brazilian law firm social-media post. Topic: ${post.title}. Legal area: ${post.area}. Brand: ${brand?.brandName ?? "De Paula Teixeira Advocacia"}. Visual direction: ${style}. ${input.direction ?? ""} IMPORTANT: image only, NO words, NO letters, NO numbers, NO logos, NO watermarks, NO scales of justice, NO gavels, NO generic AI-looking humanoid imagery. Leave intentional negative space for professionally rendered typography. High-end advertising art direction, realistic materials, excellent lighting, visually striking but sober and credible.`;
-    const generated = await generateImage({ prompt });
+    const prompt = buildArtworkPrompt({
+      title: post.title,
+      area: post.area,
+      style: input.style,
+      direction: input.direction,
+      brand: brand ? { brandName: brand.brandName, segment: brand.segment, targetAudience: brand.targetAudience, visualGuidelines: brand.visualGuidelines } : null,
+    });
+    const generated = await generateImage({ prompt, quality: "high" });
     if (!generated.url) throw new Error("A geração visual não retornou uma imagem.");
     return { url: generated.url, style: input.style, postId: post.id };
   }),

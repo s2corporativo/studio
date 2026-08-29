@@ -1,4 +1,5 @@
 import { listLLMModels, invokeLLM } from "./_core/llm";
+import { pickPreferredLlmModel } from "./_core/modelPreference";
 
 export type DraftGenerationInput = {
   area: string;
@@ -14,7 +15,7 @@ export type DraftGenerationInput = {
 
 export async function generateLegalDraft(input: DraftGenerationInput) {
   const catalog = await listLLMModels();
-  const model = catalog.data.find(item => item.id === "gpt-5-mini")?.id ?? catalog.data[0]?.id;
+  const model = pickPreferredLlmModel(catalog);
   const response = await invokeLLM({
     model,
     maxCompletionTokens: 1800,
