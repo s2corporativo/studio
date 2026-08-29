@@ -1,14 +1,13 @@
 import { z } from "zod";
 import { contentStatuses, editorialFormats } from "../../drizzle/schema";
-import { approvalReadiness, canSchedule, canSubmitForReview } from "../studioRules";
+import { canSubmitForReview } from "../studioRules";
 import { generateLegalDraft } from "../socialStudioGenerator";
-import { createContentSource, createKnowledgeMaterial, createPublicationRequest, createSocialProfile, createStudioPost, getInstagramConnection, getInstagramStudioData, getOrCreateContentSource, getPostMedia, getPublicationJob, getSocialProfiles, getStudioData, getStudioPost, linkInstagramProfileToConnection, recordDecision, recordPublicationAttempt, removeSocialProfile, updateAutomationSettings, updateBrandProfile, updatePublicationJob, updateSocialProfile, updateStudioPost, addPostMedia, removePostMedia, type FrozenPublicationPayload } from "../socialStudioDb";
+import { createContentSource, createKnowledgeMaterial, createSocialProfile, createStudioPost, getInstagramStudioData, getOrCreateContentSource, getPostMedia, getPublicationJob, getSocialProfiles, getStudioData, getStudioPost, linkInstagramProfileToConnection, recordPublicationAttempt, removeSocialProfile, updateAutomationSettings, updateBrandProfile, updatePublicationJob, updateSocialProfile, updateStudioPost, addPostMedia, removePostMedia } from "../socialStudioDb";
 import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
 import { buildInstagramBusinessLoginUrl, isInstagramMetaConfigured, validateInstagramMetaCredentials } from "../instagramApi";
 import { createInstagramOAuthState } from "../instagramOAuthState";
-import { getInstagramOAuthOrigin, getInstagramRedirectUri } from "../instagramOrigins";
-import { buildInstagramCaption, preflightInstagramPublication } from "../instagramRules";
+import { getInstagramRedirectUri } from "../instagramOrigins";
 import { executeConfirmedInstagramPublication, testInstagramConnection, testInstagramPublication } from "../instagramPublicationService";
 import { scheduleConfirmedInstagramPublication } from "../instagramSchedule";
 import { parse as parseCookie } from "cookie";
@@ -19,6 +18,7 @@ import { fetchCurrentRadar } from "../newsRadar";
 import { publicSocialProfileHandle, publicSocialProfileUrl, socialNetworkInput } from "../socialProfilePolicy";
 import { assertApprovalStillValid, assertPostMediaCanChange } from "../socialOsGovernance";
 import { generateCampaignSafely } from "../socialOsCampaign";
+import { AI_IMAGE_LIMIT, AI_TEXT_LIMIT, consumeRateLimit } from "../_core/rateLimit";
 
 const statusSchema = z.enum(contentStatuses);
 const formatSchema = z.enum(editorialFormats);
@@ -60,6 +60,7 @@ export const socialStudioRouter = router({
     defaultPublishTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
     planningHorizonDays: z.number().int().min(7).max(90),
     requireApproval: z.boolean(),
+    allowSelfApproval: z.boolean(),
     refreshRadarDaily: z.boolean(),
     preferredAreas: z.string().max(1000).nullable(),
     preferredFormats: z.string().max(500).nullable(),
@@ -71,6 +72,7 @@ export const socialStudioRouter = router({
     summary: z.string().max(4000).nullable(),
     area: z.string().min(2).max(120),
   })).mutation(async ({ ctx, input }) => {
+    consumeRateLimit(ctx.user.id, "socialStudio.createFromRadar", AI_TEXT_LIMIT);
     const [{ brand }, source] = await Promise.all([
       getStudioData(ctx.user.id),
       getOrCreateContentSource(ctx.user.id, { title: input.source, sourceType: "fonte oficial / radar", url: input.url, notes: input.summary }),
@@ -109,6 +111,7 @@ export const socialStudioRouter = router({
     style: z.enum(["tech_premium", "editorial", "photographic", "minimal"]).default("tech_premium"),
     direction: z.string().max(1000).nullable().optional(),
   })).mutation(async ({ ctx, input }) => {
+    consumeRateLimit(ctx.user.id, "socialStudio.generatePostArtwork", AI_IMAGE_LIMIT);
     const [post, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.postId), getStudioData(ctx.user.id)]);
     const prompt = buildArtworkPrompt({
       title: post.title,
@@ -153,6 +156,7 @@ export const socialStudioRouter = router({
     templateKey: z.string().max(60),
     legalSource: z.string().nullable(),
   })).mutation(async ({ ctx, input }) => {
+    consumeRateLimit(ctx.user.id, "socialStudio.generateDraft", AI_TEXT_LIMIT);
     const { brand } = await getStudioData(ctx.user.id);
     const generated = await generateLegalDraft({
       ...input,
@@ -183,50 +187,11 @@ export const socialStudioRouter = router({
       status: "draft",
     });
   }),
-  updatePost: protectedProcedure.input(z.object({
-    id: z.number(),
-    sourceId: z.number().nullable(),
-    strategicObjective: z.string().max(2000).nullable(),
-    contentPillar: z.string().max(80).nullable(),
-    campaign: z.string().max(180).nullable(),
-    funnelStage: z.enum(["discovery", "consideration", "conversion", "relationship"]).nullable(),
-    templateKey: z.string().max(60).nullable(),
-    title: z.string().min(4),
-    hook: z.string().nullable(),
-    caption: z.string().nullable(),
-    cta: z.string().nullable(),
-    hashtags: z.string().nullable(),
-    keyStatement: z.string().nullable(),
-    legalSource: z.string().nullable(),
-    reviewDueAt: z.date().nullable(),
-    mediaUrl: z.string().refine((value) => value.startsWith("/manus-storage/") || /^https:\/\//.test(value), "Informe uma URL HTTPS pública ou mídia armazenada pelo sistema.").nullable(),
-  })).mutation(({ ctx, input }) => {
-    const { id, ...patch } = input;
-    return updateStudioPost(ctx.user.id, id, patch);
-  }),
   sendToReview: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
     const [post, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.id), getStudioData(ctx.user.id)]);
     const result = canSubmitForReview({ ...post, prohibitedTerms: brand?.prohibitedTerms });
     if (!result.allowed) throw new Error(result.reason);
     return updateStudioPost(ctx.user.id, post.id, { status: "review" });
-  }),
-  decide: protectedProcedure.input(z.object({
-    id: z.number(),
-    decision: z.enum(["approved", "rejected", "changes_requested"]),
-    notes: z.string().max(3000).optional(),
-  })).mutation(async ({ ctx, input }) => {
-    const [post, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.id), getStudioData(ctx.user.id)]);
-    if (input.decision === "approved") {
-      const result = approvalReadiness({ ...post, approvalOwnerName: ctx.user.name ?? "Responsável", prohibitedTerms: brand?.prohibitedTerms });
-      if (!result.ready) throw new Error(`Aprovação bloqueada: inclua ${result.missing.join(", ")}.`);
-    }
-    return recordDecision(ctx.user.id, post.id, ctx.user.name ?? "Responsável", input.decision, input.notes);
-  }),
-  schedule: protectedProcedure.input(z.object({ id: z.number(), scheduledAt: z.date() })).mutation(async ({ ctx, input }) => {
-    const post = await getStudioPost(ctx.user.id, input.id);
-    const result = canSchedule(post.status, input.scheduledAt);
-    if (!result.allowed) throw new Error(result.reason);
-    return updateStudioPost(ctx.user.id, post.id, { status: "scheduled", scheduledAt: input.scheduledAt });
   }),
   updateBrand: protectedProcedure.input(z.object({
     brandName: z.string().min(3), segment: z.string().min(3), location: z.string().nullable(),
@@ -288,26 +253,6 @@ export const socialStudioRouter = router({
   removePostMedia: protectedProcedure.input(z.object({ postId: z.number(), mediaId: z.number() })).mutation(async ({ ctx, input }) => {
     await assertPostMediaCanChange(ctx.user.id, input.postId);
     return removePostMedia(ctx.user.id, input.postId, input.mediaId);
-  }),
-  requestInstagramPublication: protectedProcedure.input(z.object({ postId: z.number() })).mutation(async ({ ctx, input }) => {
-    const [post, media, connection, { brand }, approval] = await Promise.all([getStudioPost(ctx.user.id, input.postId), getPostMedia(ctx.user.id, input.postId), getInstagramConnection(ctx.user.id), getStudioData(ctx.user.id), assertApprovalStillValid(ctx.user.id, input.postId)]);
-    const publicOrigin = getInstagramOAuthOrigin(ctx.req);
-    const preflight = preflightInstagramPublication({ post, media, connection, metaConfigured: isInstagramMetaConfigured(), origin: publicOrigin, prohibitedTerms: brand?.prohibitedTerms });
-    if (!preflight.allowed) throw new Error(`Publicação bloqueada: ${preflight.issues.join("; ")}.`);
-    const payload: FrozenPublicationPayload = {
-      postId: post.id,
-      title: post.title,
-      format: post.format as "post" | "carousel",
-      caption: buildInstagramCaption(post),
-      altText: post.altText,
-      media: media.map((item) => ({ id: item.id, url: new URL(item.url, publicOrigin).toString(), mimeType: item.mimeType, byteSize: item.byteSize, width: item.width, height: item.height })),
-      approvalHash: approval.contentHash,
-      approvalVersionId: approval.versionId,
-      approvedAt: approval.approvedAt.toISOString(),
-    };
-    const job = await createPublicationRequest(ctx.user.id, payload);
-    await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "succeeded", detail: "Pré-publicação aprovada; aguardando confirmação humana explícita." });
-    return job;
   }),
   confirmInstagramPublication: protectedProcedure.input(z.object({ jobId: z.number(), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => {
     const current = await getPublicationJob(ctx.user.id, input.jobId);

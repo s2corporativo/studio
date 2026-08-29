@@ -7,7 +7,7 @@ import { useLocation } from "wouter";
 import type { AutomationSetting } from "../../../drizzle/schema";
 import AutopilotPanel from "./AutopilotPanel";
 
-type AutomationForm = Omit<Pick<AutomationSetting, "enabled" | "cadence" | "postsPerWeek" | "defaultPublishTime" | "planningHorizonDays" | "requireApproval" | "refreshRadarDaily" | "preferredAreas" | "preferredFormats">, "postsPerWeek"> & {
+type AutomationForm = Omit<Pick<AutomationSetting, "enabled" | "cadence" | "postsPerWeek" | "defaultPublishTime" | "planningHorizonDays" | "requireApproval" | "allowSelfApproval" | "refreshRadarDaily" | "preferredAreas" | "preferredFormats">, "postsPerWeek"> & {
   postsPerWeek: number | string;
 };
 
@@ -18,6 +18,7 @@ const defaultSettings: AutomationForm = {
   defaultPublishTime: "18:30",
   planningHorizonDays: 30,
   requireApproval: true,
+  allowSelfApproval: true,
   refreshRadarDaily: true,
   preferredAreas: "",
   preferredFormats: "carousel,post,reel",
@@ -54,6 +55,7 @@ export default function AutomationCenter({ settings }: { settings: AutomationSet
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <div className="saas-toggle-card"><ShieldCheck className="h-5 w-5 text-[#e3bd7f]" /><div><strong>Aprovação jurídica</strong><small>Sempre obrigatória antes de qualquer publicação</small></div><span className="is-on" aria-label="Aprovação jurídica obrigatória" /></div>
           <button type="button" onClick={() => setForm({ ...form, refreshRadarDaily: !form.refreshRadarDaily })} className="saas-toggle-card"><Radar className="h-5 w-5 text-[#e3bd7f]" /><div><strong>Priorizar Radar</strong><small>{form.refreshRadarDaily ? "Considerar pautas atuais ao atualizar" : "Atualização e pesquisa manuais"}</small></div><span className={form.refreshRadarDaily ? "is-on" : ""} /></button>
+          <button type="button" onClick={() => setForm({ ...form, allowSelfApproval: !form.allowSelfApproval })} className="saas-toggle-card sm:col-span-2"><ShieldCheck className="h-5 w-5 text-[#e3bd7f]" /><div><strong>Dupla revisão</strong><small>{form.allowSelfApproval ? "Autoaprovação permitida (operação solo)" : "Quem produz a versão não pode aprová-la; um segundo revisor é obrigatório"}</small></div><span className={form.allowSelfApproval ? "" : "is-on"} /></button>
         </div>
 
         <div className="mt-7 flex flex-wrap gap-3">

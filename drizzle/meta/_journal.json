@@ -141,6 +141,13 @@
       "when": 1787963304913,
       "tag": "0019_social_os_tidb_reconciliation",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "5",
+      "when": 1787965000000,
+      "tag": "0020_automation_allow_self_approval",
+      "breakpoints": true
     }
   ]
 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { approvalReadiness, canSchedule } from "../studioRules";
 import { getInstagramConnection, getPostMedia, getStudioData, getStudioPost, recordPublicationAttempt, updateStudioPost, type FrozenPublicationPayload } from "../socialStudioDb";
-import { assertApprovalStillValid, bindApproval, rejectOrRequestChanges, safeUpdatePost } from "../socialOsGovernance";
+import { assertApprovalStillValid, assertSelfApprovalAllowed, bindApproval, rejectOrRequestChanges, safeUpdatePost } from "../socialOsGovernance";
 import { recordAuditEvent } from "../socialOsDb";
 import { createSecurePublicationRequest } from "../securePublicationDb";
 import { buildInstagramCaption, preflightInstagramPublication } from "../instagramRules";
@@ -41,6 +41,7 @@ export const socialGovernanceRouter = router({
   })).mutation(async ({ ctx, input }) => {
     const reviewerName = ctx.user.name ?? "Responsável";
     if (input.decision === "approved") {
+      await assertSelfApprovalAllowed(ctx.user.id, input.id);
       const [post, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.id), getStudioData(ctx.user.id)]);
       const result = approvalReadiness({ ...post, approvalOwnerName: reviewerName, prohibitedTerms: brand?.prohibitedTerms });
       if (!result.ready) throw new Error(`Aprovação bloqueada: inclua ${result.missing.join(", ")}.`);

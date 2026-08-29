@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
-import { contentPosts, publicationJobs, type ContentPost } from "../drizzle/schema";
+import { automationSettings, contentPosts, publicationJobs, type ContentPost } from "../drizzle/schema";
 import { postApprovalBindings, postVersions } from "../drizzle/socialOsSchema";
 import { getDb } from "./db";
 import { getPostMedia, getStudioPost, recordDecision, updateStudioPost } from "./socialStudioDb";
@@ -125,6 +125,22 @@ export async function assertPostMediaCanChange(userId: number, postId: number) {
   const post = await getStudioPost(userId, postId);
   assertPostMediaMutable(post.status);
   return post;
+}
+
+export async function assertSelfApprovalAllowed(approverUserId: number, postId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [settings] = await db.select({ allowSelfApproval: automationSettings.allowSelfApproval }).from(automationSettings)
+    .where(eq(automationSettings.userId, approverUserId)).limit(1);
+  if (settings && settings.allowSelfApproval === false) {
+    const [latestVersion] = await db.select({ createdByUserId: postVersions.createdByUserId }).from(postVersions)
+      .where(and(eq(postVersions.userId, approverUserId), eq(postVersions.postId, postId)))
+      .orderBy(desc(postVersions.version)).limit(1);
+    const authorUserId = latestVersion?.createdByUserId ?? approverUserId;
+    if (authorUserId === approverUserId) {
+      throw new Error("A trava de dupla revisão está ativa: quem produziu a versão não pode aprová-la. Peça a aprovação de um segundo revisor ou desative a trava na Central de Automação.");
+    }
+  }
 }
 
 export async function bindApproval(userId: number, postId: number, reviewerName: string, notes?: string) {
