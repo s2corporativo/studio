@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   getSocialProfiles: vi.fn(),
   linkInstagramProfileToConnection: vi.fn(),
   isInstagramMetaConfigured: vi.fn(),
+  validateInstagramMetaCredentials: vi.fn(),
   buildInstagramBusinessLoginUrl: vi.fn(),
   createInstagramOAuthState: vi.fn(),
   getInstagramRedirectUri: vi.fn(),
@@ -16,7 +17,12 @@ vi.mock("./socialStudioDb", async importOriginal => {
 });
 vi.mock("./instagramApi", async importOriginal => {
   const actual = await importOriginal<typeof import("./instagramApi")>();
-  return { ...actual, isInstagramMetaConfigured: mocks.isInstagramMetaConfigured, buildInstagramBusinessLoginUrl: mocks.buildInstagramBusinessLoginUrl };
+  return {
+    ...actual,
+    isInstagramMetaConfigured: mocks.isInstagramMetaConfigured,
+    validateInstagramMetaCredentials: mocks.validateInstagramMetaCredentials,
+    buildInstagramBusinessLoginUrl: mocks.buildInstagramBusinessLoginUrl,
+  };
 });
 vi.mock("./instagramOAuthState", async importOriginal => {
   const actual = await importOriginal<typeof import("./instagramOAuthState")>();
@@ -41,6 +47,7 @@ describe("vínculo OAuth do perfil de Instagram", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isInstagramMetaConfigured.mockReturnValue(true);
+    mocks.validateInstagramMetaCredentials.mockResolvedValue({ configured: true, validated: true });
     mocks.getInstagramRedirectUri.mockReturnValue("https://studio.example/api/instagram/oauth/callback");
     mocks.createInstagramOAuthState.mockReturnValue("estado-assinado");
     mocks.buildInstagramBusinessLoginUrl.mockReturnValue("https://www.instagram.com/oauth/authorize");
