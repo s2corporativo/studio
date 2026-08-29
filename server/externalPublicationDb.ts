@@ -1,6 +1,25 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { externalPublicationJobs } from "../drizzle/externalConnectionsSchema";
 import { getDb } from "./db";
+
+export async function listExternalPublicationJobs(userId: number, provider: "facebook", limit = 20) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  return db.select({
+    id: externalPublicationJobs.id,
+    provider: externalPublicationJobs.provider,
+    externalConnectionId: externalPublicationJobs.externalConnectionId,
+    postId: externalPublicationJobs.postId,
+    approvalHash: externalPublicationJobs.approvalHash,
+    status: externalPublicationJobs.status,
+    attemptCount: externalPublicationJobs.attemptCount,
+    externalPostId: externalPublicationJobs.externalPostId,
+    lastError: externalPublicationJobs.lastError,
+    confirmedAt: externalPublicationJobs.confirmedAt,
+    publishedAt: externalPublicationJobs.publishedAt,
+    createdAt: externalPublicationJobs.createdAt,
+  }).from(externalPublicationJobs).where(and(eq(externalPublicationJobs.userId, userId), eq(externalPublicationJobs.provider, provider))).orderBy(desc(externalPublicationJobs.createdAt)).limit(Math.max(1, Math.min(limit, 100)));
+}
 
 export async function getExternalPublicationJob(userId: number, jobId: number) {
   const db = await getDb();
