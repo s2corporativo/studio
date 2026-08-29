@@ -31,6 +31,13 @@ describe("external integration readiness", () => {
     expect(instagram?.connected).toBe(true);
   });
 
+  it("requires reconnection when the official Instagram authorization is expired", () => {
+    const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "configured-id", metaInstagramAppSecret: "configured-value" }, { state: "expired", lastError: null });
+    const instagram = statuses.find(item => item.id === "instagram");
+    expect(instagram?.state).toBe("error");
+    expect(instagram?.connected).toBe(false);
+  });
+
   it("does not expose a persisted provider error detail", () => {
     const detail = "provider-detail-placeholder";
     const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "configured-id", metaInstagramAppSecret: "configured-value" }, { state: "error", lastError: detail });
@@ -48,10 +55,12 @@ describe("external integration readiness", () => {
     expect(linkedin?.capabilities.publish).toBe(false);
   });
 
-  it("does not return protected configuration values", () => {
+  it("does not return protected configuration values or environment variable names", () => {
     const protectedValue = "protected-placeholder-value";
     const statuses = buildExternalIntegrationStatuses({ metaInstagramAppId: "configured-id", metaInstagramAppSecret: protectedValue }, null);
-    expect(JSON.stringify(statuses)).not.toContain(protectedValue);
-    expect(JSON.stringify(statuses)).toContain("META_FACEBOOK_APP_ID");
+    const serialized = JSON.stringify(statuses);
+    expect(serialized).not.toContain(protectedValue);
+    expect(serialized).not.toContain("META_INSTAGRAM_APP_SECRET");
+    expect(statuses.find(item => item.id === "facebook")?.missingConfiguration).toEqual(["App ID", "App Secret"]);
   });
 });
