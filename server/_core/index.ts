@@ -18,6 +18,15 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,100}$/;
 
 type RequestWithId = express.Request & { requestId?: string };
 
+function configuredPort() {
+  const raw = process.env.PORT ?? "3000";
+  const port = Number(raw);
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+    throw new Error("PORT deve ser um número inteiro entre 1 e 65535.");
+  }
+  return port;
+}
+
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
     const server = net.createServer();
@@ -28,13 +37,11 @@ function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
-async function findAvailablePort(startPort: number = 3000): Promise<number> {
+async function findAvailablePort(startPort: number): Promise<number> {
   for (let port = startPort; port < startPort + 20; port++) {
-    if (await isPortAvailable(port)) {
-      return port;
-    }
+    if (await isPortAvailable(port)) return port;
   }
-  throw new Error(`No available port found starting from ${startPort}`);
+  throw new Error(`Nenhuma porta de desenvolvimento disponível a partir de ${startPort}.`);
 }
 
 async function startServer() {
@@ -90,16 +97,37 @@ async function startServer() {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+  const preferredPort = configuredPort();
+  const port = process.env.NODE_ENV === "production"
+    ? preferredPort
+    : await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    console.warn(`Porta ${preferredPort} ocupada no desenvolvimento; usando ${port}.`);
   }
+
+  server.on("error", error => {
+    console.error(JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level: "fatal",
+      event: "server.listen_failed",
+      port,
+      code: "code" in error ? error.code : null,
+    }));
+    process.exitCode = 1;
+  });
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
 }
 
-startServer().catch(console.error);
+startServer().catch(error => {
+  console.error(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    level: "fatal",
+    event: "server.start_failed",
+    errorType: error instanceof Error ? error.name : "unknown",
+  }));
+  process.exitCode = 1;
+});
