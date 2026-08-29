@@ -1,4 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("./_core/env", async importOriginal => {
+  const actual = await importOriginal<typeof import("./_core/env")>();
+  return { ...actual, ENV: { ...actual.ENV, metaInstagramAppId: "test-meta-app-id", metaInstagramAppSecret: "test-meta-app-secret" } };
+});
+
 import { validateInstagramMetaCredentials } from "./instagramApi";
 
 describe("validação técnica de credenciais Meta", () => {
