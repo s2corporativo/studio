@@ -120,3 +120,13 @@
 - [x] Tipar explicitamente as props de SourcesPanel, BrandPanel, KnowledgePanel, CalendarPanel e demais componentes usados por Home.tsx, removendo `any` residual dos contratos públicos.
 - [x] Revalidar TypeScript e a suíte após eliminar `any` dos componentes compostos pela página principal.
 - [x] Conectar a mutação de geração de campanhas ao serviço transacional idempotente e impedir criações parciais ou duplicadas no endpoint real.
+- [ ] Executar auditoria abrangente de rotas, fluxos críticos, backend, banco, segurança, logs e interface publicada.
+- [x] Corrigir e revalidar toda falha reproduzível identificada na auditoria de estabilidade.
+- [x] Corrigir os testes de vínculo OAuth para simular a validação Meta aprovada sem desabilitar o bloqueio real de credenciais inválidas.
+- [ ] Registrar e publicar o resultado técnico da auditoria de estabilidade, separando bloqueios internos de pendências externas.
+- [x] Sanitizar a resposta de erro do endpoint cron de Instagram para não retornar detalhes internos, preservando-os somente na trilha de auditoria.
+- [x] Substituir todos os acentos azul, ciano e violeta residuais pela paleta institucional bronze, verde profundo e marfim nas telas do Social Media OS.
+- [x] Corrigir a inconsistência entre a rota interna `/compliance` e o item visível de navegação “Compliance”, que aponta para `/governanca`.
+- [x] Executar nova varredura por acentos azul, ciano, violeta e rosa em `client/src` e corrigir qualquer ocorrência residual, incluindo a rota `/conteudos`.
+- [x] Verificar visualmente as rotas `/`, `/conteudos`, `/instagram`, `/governanca` e `/404` após a limpeza final de paleta.
+- [x] Corrigir os estilos residuais `sky` do bloco de agenda interna em `EditorialTools.tsx` pela paleta institucional.
