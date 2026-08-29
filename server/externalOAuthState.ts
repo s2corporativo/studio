@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { ENV } from "./_core/env";
 
-export type ExternalOAuthProvider = "facebook";
+export type ExternalOAuthProvider = "facebook" | "linkedin";
 type ExternalOAuthStatePayload = { userId: number; profileId: number | null; provider: ExternalOAuthProvider; nonce: string; expiresAt: number };
 
 function secret(provider: ExternalOAuthProvider) {
