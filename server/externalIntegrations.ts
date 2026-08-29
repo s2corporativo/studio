@@ -48,7 +48,12 @@ export type ExternalIntegrationConfig = {
   metaAdsAppSecret?: string;
 };
 
-const definitions: Record<ExternalIntegrationId, Omit<ExternalIntegrationStatus, "state" | "configured" | "connected" | "missingConfiguration"> & { required: Array<keyof ExternalIntegrationConfig>; implemented: boolean }> = {
+type IntegrationDefinition = Omit<ExternalIntegrationStatus, "state" | "configured" | "connected" | "missingConfiguration"> & {
+  required: Array<keyof ExternalIntegrationConfig>;
+  implemented: boolean;
+};
+
+const definitions: Record<ExternalIntegrationId, IntegrationDefinition> = {
   instagram: {
     id: "instagram",
     label: "Instagram",
@@ -162,31 +167,39 @@ function isPresent(value?: string) {
 export function buildExternalIntegrationStatuses(config: ExternalIntegrationConfig, instagramConnection?: Pick<InstagramConnection, "state" | "lastError"> | null): ExternalIntegrationStatus[] {
   return externalIntegrationIds.map(id => {
     const definition = definitions[id];
-    const missingConfiguration = definition.required.filter(key => !isPresent(config[key])).map(key => envNames[key]);
+    const { required, implemented, ...publicDefinition } = definition;
+    const missingConfiguration = required.filter(key => !isPresent(config[key])).map(key => envNames[key]);
     const configured = missingConfiguration.length === 0;
 
     if (id === "instagram") {
       if (instagramConnection?.state === "connected") {
-        return { ...definition, configured, connected: true, missingConfiguration, state: "connected" as const };
+        return { ...publicDefinition, configured, connected: true, missingConfiguration, state: "connected" };
       }
       if (instagramConnection?.state === "error") {
-        return { ...definition, configured, connected: false, missingConfiguration, state: "error" as const, detail: "A conexão oficial do Instagram está em erro. Revise as credenciais/OAuth antes de tentar publicar." };
+        return {
+          ...publicDefinition,
+          configured,
+          connected: false,
+          missingConfiguration,
+          state: "error",
+          detail: "A conexão oficial do Instagram está em erro. Revise as credenciais/OAuth antes de tentar publicar.",
+        };
       }
       return {
-        ...definition,
+        ...publicDefinition,
         configured,
         connected: false,
         missingConfiguration,
-        state: configured ? "ready_for_oauth" as const : "awaiting_credentials" as const,
+        state: configured ? "ready_for_oauth" : "awaiting_credentials",
       };
     }
 
     return {
-      ...definition,
+      ...publicDefinition,
       configured,
       connected: false,
       missingConfiguration,
-      state: configured && definition.implemented ? "ready_for_oauth" as const : configured ? "connector_planned" as const : "awaiting_credentials" as const,
+      state: configured && implemented ? "ready_for_oauth" : configured ? "connector_planned" : "awaiting_credentials",
     };
   });
 }
