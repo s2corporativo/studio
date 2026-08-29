@@ -41,6 +41,7 @@ As novas telas Social OS foram readequadas ao padrão De Paula Teixeira: verde-c
 - Verificação estrutural do TiDB: tabelas Social Media OS e índices críticos de campanha/publicação foram consultados diretamente sem alterar dados. A pré-validação de deploy confirmou `needsMigration=false`.
 - Contratos de interface: as páginas do Social Media OS não possuem mais tipagens `any`; a refatoração preservou os contratos de conteúdo, fonte, conhecimento, Growth OS, Autopilot e Instagram, com `pnpm check` e testes específicos aprovados.
 - Central de Instagram: o estado agora distingue credenciais presentes de validação técnica aprovada. O OAuth é rejeitado antes de qualquer redirecionamento enquanto a validação não tiver sucesso; tela, teste de mídia e publicação comunicam o bloqueio de forma explícita.
+- Checkpoint `c4f554ee`: publicado e validado em produção em 29/08/2026. O smoke test confirmou `health`, `readiness` e todas as rotas principais com HTTP 200; o repositório local e `s2corporativo/studio:main` apontam para o mesmo commit `c4f554ee205b061e1a82837c0b5aa903ba3ac350`.
 
 ## Pendência externa remanescente
 
