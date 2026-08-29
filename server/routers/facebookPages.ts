@@ -5,7 +5,7 @@ import { createExternalOAuthState } from "../externalOAuthState";
 import { getFacebookRedirectUri } from "../externalOrigins";
 import { chooseFacebookPage, listExternalConnections } from "../externalConnectionsDb";
 import { getSocialProfile, updateSocialProfile } from "../socialStudioDb";
-import { publishApprovedFacebookPost, testConnectedFacebookPage } from "../facebookPagesService";
+import { confirmAndPublishFacebookJob, requestFacebookPublication, testConnectedFacebookPage } from "../facebookPagesService";
 import { recordAuditEvent } from "../socialOsDb";
 
 export const facebookPagesRouter = router({
@@ -21,5 +21,6 @@ export const facebookPagesRouter = router({
     await recordAuditEvent(ctx.user.id, "facebook.page.selected", "external_connection", connection.id, { pageId: connection.externalAccountId }); return connection;
   }),
   testConnection: protectedProcedure.mutation(({ ctx }) => testConnectedFacebookPage(ctx.user.id)),
-  publishApprovedPost: protectedProcedure.input(z.object({ postId: z.number().int().positive(), confirmedByHuman: z.literal(true), link: z.string().url().nullable().optional() })).mutation(({ ctx, input }) => publishApprovedFacebookPost({ userId: ctx.user.id, postId: input.postId, confirmedByHuman: input.confirmedByHuman, link: input.link ?? null })),
+  requestPublication: protectedProcedure.input(z.object({ postId: z.number().int().positive(), link: z.string().url().nullable().optional() })).mutation(({ ctx, input }) => requestFacebookPublication({ userId: ctx.user.id, postId: input.postId, link: input.link ?? null })),
+  confirmPublication: protectedProcedure.input(z.object({ jobId: z.number().int().positive(), confirmedByHuman: z.literal(true) })).mutation(({ ctx, input }) => confirmAndPublishFacebookJob({ userId: ctx.user.id, jobId: input.jobId, confirmedByHuman: input.confirmedByHuman })),
 });
