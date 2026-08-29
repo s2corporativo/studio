@@ -2,9 +2,10 @@ import { createHash } from "node:crypto";
 import { and, desc, eq, gte, inArray } from "drizzle-orm";
 import { automationExecutions, autonomyProfiles } from "../drizzle/socialAutomationSchema";
 import { automationRules, contentOpportunities, socialInteractions } from "../drizzle/socialOsSchema";
+import { getBrandProfile } from "./brandProfileDb";
 import { getDb } from "./db";
 import { createLead, recordAuditEvent, updateInteraction } from "./socialOsDb";
-import { createStudioPost, getOrCreateContentSource, getStudioData } from "./socialStudioDb";
+import { createStudioPost, getOrCreateContentSource } from "./socialStudioDb";
 import { generateLegalDraft } from "./socialStudioGenerator";
 
 function parseConfig(value: string) {
@@ -46,10 +47,13 @@ export async function listAutomationExecutions(userId: number) {
   return db.select().from(automationExecutions).where(eq(automationExecutions.userId, userId)).orderBy(desc(automationExecutions.createdAt)).limit(100);
 }
 
-function actionMayRunWithoutHuman(rule: typeof automationRules.$inferSelect, profile: typeof autonomyProfiles.$inferSelect, trigger: any) {
+function actionMayRunWithoutHuman(rule: typeof automationRules.$inferSelect, profile: typeof autonomyProfiles.$inferSelect, trigger: unknown) {
+  const triggerRecord = trigger && typeof trigger === "object" && !Array.isArray(trigger)
+    ? trigger as Record<string, unknown>
+    : {};
   if (rule.requiresHumanApproval || profile.level === "manual" || profile.level === "assisted") return false;
-  if (trigger?.requiresHumanApproval) return false;
-  if (["legal_risk", "sensitive", "complaint"].includes(String(trigger?.kind ?? ""))) return false;
+  if (triggerRecord.requiresHumanApproval === true) return false;
+  if (["legal_risk", "sensitive", "complaint"].includes(String(triggerRecord.kind ?? ""))) return false;
   if (rule.actionType === "create_draft") return profile.allowAutoDraft;
   if (rule.actionType === "request_approval") return true;
   if (rule.actionType === "suggest_reply") return profile.level === "autopilot";
@@ -155,7 +159,7 @@ export async function executeAutomationExecution(userId: number, executionId: nu
       const opportunityId = Number(execution.entityId);
       const [opportunity] = await db.select().from(contentOpportunities).where(and(eq(contentOpportunities.userId, userId), eq(contentOpportunities.id, opportunityId))).limit(1);
       if (!opportunity) throw new Error("Oportunidade de origem não encontrada.");
-      const studio = await getStudioData(userId);
+      const brand = await getBrandProfile(userId);
       const source = opportunity.sourceUrl ? await getOrCreateContentSource(userId, {
         title: opportunity.sourceName ?? "Fonte do Radar",
         sourceType: "radar / fonte verificável",
@@ -165,19 +169,19 @@ export async function executeAutomationExecution(userId: number, executionId: nu
       const generated = await generateLegalDraft({
         area: opportunity.area ?? "Geral",
         topic: opportunity.title,
-        audience: studio.brand?.targetAudience ?? "Público institucional",
+        audience: brand.targetAudience ?? "Público institucional",
         format: "post",
         objective: "Atualidade e autoridade técnica",
         legalSource: opportunity.sourceUrl,
-        primaryCta: studio.brand?.primaryCta,
-        toneOfVoice: studio.brand?.toneOfVoice,
-        prohibitedTerms: studio.brand?.prohibitedTerms,
+        primaryCta: brand.primaryCta,
+        toneOfVoice: brand.toneOfVoice,
+        prohibitedTerms: brand.prohibitedTerms,
       });
       const post = await createStudioPost(userId, {
         topicId: null,
         sourceId: source?.id ?? null,
         area: opportunity.area ?? "Geral",
-        audience: studio.brand?.targetAudience ?? "Público institucional",
+        audience: brand.targetAudience ?? "Público institucional",
         format: "post",
         strategicObjective: "Atualidade e autoridade técnica",
         contentPillar: "Radar",
