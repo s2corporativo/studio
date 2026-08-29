@@ -2,7 +2,7 @@ import { index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varcha
 
 export const externalConnectionProviders = ["facebook", "linkedin", "tiktok", "youtube", "google_business", "meta_ads", "google_ads"] as const;
 export const externalConnectionStates = ["pending", "connected", "expired", "error", "disconnected"] as const;
-export const externalPublicationJobStates = ["pending_confirmation", "processing", "published", "failed", "cancelled"] as const;
+export const externalPublicationJobStates = ["pending_confirmation", "processing", "published", "failed", "unknown_outcome", "cancelled"] as const;
 
 export const externalConnections = mysqlTable("external_connections", {
   id: int("id").autoincrement().primaryKey(),
