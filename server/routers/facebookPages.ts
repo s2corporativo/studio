@@ -4,12 +4,19 @@ import { buildFacebookPagesAuthorizationUrl, getFacebookPagesConfigFromEnv } fro
 import { createExternalOAuthState } from "../externalOAuthState";
 import { getFacebookRedirectUri } from "../externalOrigins";
 import { chooseFacebookPage, listExternalConnections } from "../externalConnectionsDb";
+import { listExternalPublicationJobs } from "../externalPublicationDb";
 import { getSocialProfile, updateSocialProfile } from "../socialStudioDb";
 import { confirmAndPublishFacebookJob, requestFacebookPublication, testConnectedFacebookPage } from "../facebookPagesService";
 import { recordAuditEvent } from "../socialOsDb";
 
 export const facebookPagesRouter = router({
-  status: protectedProcedure.query(async ({ ctx }) => ({ configured: Boolean(getFacebookPagesConfigFromEnv()), pages: await listExternalConnections(ctx.user.id, "facebook") })),
+  status: protectedProcedure.query(async ({ ctx }) => {
+    const [pages, jobs] = await Promise.all([
+      listExternalConnections(ctx.user.id, "facebook"),
+      listExternalPublicationJobs(ctx.user.id, "facebook", 20),
+    ]);
+    return { configured: Boolean(getFacebookPagesConfigFromEnv()), pages, jobs };
+  }),
   beginConnection: protectedProcedure.input(z.object({ profileId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const config = getFacebookPagesConfigFromEnv(); if (!config) throw new Error("A integração do Facebook ainda não possui App ID, App Secret e versão da Graph API configurados no ambiente seguro.");
     const profile = await getSocialProfile(ctx.user.id, input.profileId); if (profile.network !== "facebook") throw new Error("Selecione um perfil do Facebook para iniciar a conexão."); if (profile.state === "inactive") throw new Error("Ative o perfil do Facebook antes de iniciar a conexão.");
