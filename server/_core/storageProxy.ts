@@ -4,14 +4,14 @@ import { sdk } from "./sdk";
 
 const STUDIO_STORAGE_PREFIX = "social-studio/";
 
-function isValidStudioKey(key: string) {
+export function isValidStudioKey(key: string) {
   if (!key.startsWith(STUDIO_STORAGE_PREFIX)) return false;
   if (key.includes("\\") || key.includes("\0")) return false;
   const segments = key.split("/");
   return segments.every(segment => segment !== ".." && segment !== ".");
 }
 
-function safeRedirectUrl(value: unknown) {
+export function safeRedirectUrl(value: unknown) {
   if (typeof value !== "string" || !value) return null;
   try {
     const url = new URL(value);
