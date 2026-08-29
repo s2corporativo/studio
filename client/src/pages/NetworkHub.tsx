@@ -69,7 +69,7 @@ export default function NetworkHub() {
             {capabilityLabel(integration.capabilities.schedule, "Agenda")}
             {capabilityLabel(integration.capabilities.analytics, "Analytics")}
           </div>
-          {!integration.connected && integration.missingConfiguration.length > 0 && <div className="mt-4 flex items-start gap-2 rounded-lg border border-white/8 bg-black/15 px-3 py-2 text-[10px] leading-4 text-slate-500"><LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>Configuração protegida pendente: {integration.missingConfiguration.join(", ")}. Apenas os nomes das variáveis são exibidos.</span></div>}
+          {!integration.connected && integration.missingConfiguration.length > 0 && <div className="mt-4 flex items-start gap-2 rounded-lg border border-white/8 bg-black/15 px-3 py-2 text-[10px] leading-4 text-slate-500"><LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>Configuração protegida pendente: {integration.missingConfiguration.join(", ")}. O painel exibe somente rótulos genéricos, nunca nomes internos ou valores protegidos.</span></div>}
           {integration.state === "configured_unvalidated" && <div className="mt-4 flex items-start gap-2 rounded-lg border border-orange-300/20 bg-orange-300/8 px-3 py-2 text-[10px] leading-4 text-orange-100"><LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span>Há configuração no cofre, mas ela ainda não foi validada pela plataforma externa. Publicação permanece bloqueada.</span></div>}
           {integration.connected && <div className="mt-4 flex items-center gap-2 text-[11px] text-emerald-100"><ShieldCheck className="h-3.5 w-3.5" />Conexão oficial validada.</div>}
         </article>;
