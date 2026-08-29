@@ -130,3 +130,10 @@
 - [x] Executar nova varredura por acentos azul, ciano, violeta e rosa em `client/src` e corrigir qualquer ocorrência residual, incluindo a rota `/conteudos`.
 - [x] Verificar visualmente as rotas `/`, `/conteudos`, `/instagram`, `/governanca` e `/404` após a limpeza final de paleta.
 - [x] Corrigir os estilos residuais `sky` do bloco de agenda interna em `EditorialTools.tsx` pela paleta institucional.
+- [x] Inventariar de forma não destrutiva a VPS compartilhada e confirmar o acesso ao Woodpecker existente.
+- [x] Validar a saúde do Woodpecker, seus agentes e a integração GitHub sem alterar serviços de produção.
+- [x] Revisar e habilitar de modo seguro o pipeline `.woodpecker.yml` da branch `ci/woodpecker-studio`, sem secrets de produção.
+- [ ] Executar a primeira validação manual do pipeline do Studio e registrar cada etapa sem efetuar deploy ou migrations.
+- [x] Documentar o estado de Woodpecker, GitHub, recursos da VPS e a prontidão do PR #10 para merge.
+- [x] Corrigir os testes unitários de integração Instagram para fornecer configuração fictícia segura na CI, sem usar secrets de produção.
+- [ ] Reexecutar o pipeline Woodpecker do PR #10 após a correção e registrar o resultado de cada etapa.
