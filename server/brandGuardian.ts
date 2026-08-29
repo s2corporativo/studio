@@ -1,15 +1,16 @@
 import { invokeLLM, listLLMModels, type MessageContent } from "./_core/llm";
+import { getBrandProfile } from "./brandProfileDb";
 import { addCreativeEvaluation, recordAuditEvent } from "./socialOsDb";
 import { addComplianceCheck } from "./socialGrowthDb";
-import { getPostMedia, getStudioData, getStudioPost } from "./socialStudioDb";
+import { getPostMedia, getStudioPost } from "./socialStudioDb";
 
 const scoreProperty = { type: "integer", minimum: 0, maximum: 100 } as const;
 
 export async function evaluatePostCreative(userId: number, postId: number, mediaId?: number | null) {
-  const [post, media, studio] = await Promise.all([
+  const [post, media, brand] = await Promise.all([
     getStudioPost(userId, postId),
     getPostMedia(userId, postId),
-    getStudioData(userId),
+    getBrandProfile(userId),
   ]);
   const assets = mediaId ? media.filter(item => item.id === mediaId) : media.slice(0, 10);
   if (!assets.length) throw new Error("Adicione uma imagem ao post antes de executar o Brand Guardian.");
@@ -20,7 +21,7 @@ export async function evaluatePostCreative(userId: number, postId: number, media
   const userContent: MessageContent[] = [
     {
       type: "text",
-      text: `Marca: ${studio.brand?.brandName ?? "não definida"}\nDiretrizes visuais: ${studio.brand?.visualGuidelines ?? "não definidas"}\nTom: ${studio.brand?.toneOfVoice ?? "profissional"}\nTermos proibidos: ${studio.brand?.prohibitedTerms ?? "promessas de resultado e sensacionalismo"}\nTítulo do post: ${post.title}\nGancho: ${post.hook ?? ""}\nLegenda: ${post.caption ?? ""}\nCTA: ${post.cta ?? ""}\nAlt text: ${post.altText ?? ""}\nQuantidade de peças: ${assets.length}. As imagens seguintes estão na ordem do carrossel. Avalie o conjunto completo e considere como resultado geral o pior problema relevante encontrado em qualquer peça. Em carrosséis, verifique também consistência visual entre páginas.`,
+      text: `Marca: ${brand.brandName}\nDiretrizes visuais: ${brand.visualGuidelines ?? "não definidas"}\nTom: ${brand.toneOfVoice ?? "profissional"}\nTermos proibidos: ${brand.prohibitedTerms ?? "promessas de resultado e sensacionalismo"}\nTítulo do post: ${post.title}\nGancho: ${post.hook ?? ""}\nLegenda: ${post.caption ?? ""}\nCTA: ${post.cta ?? ""}\nAlt text: ${post.altText ?? ""}\nQuantidade de peças: ${assets.length}. As imagens seguintes estão na ordem do carrossel. Avalie o conjunto completo e considere como resultado geral o pior problema relevante encontrado em qualquer peça. Em carrosséis, verifique também consistência visual entre páginas.`,
     },
     ...assets.map(asset => ({ type: "image_url" as const, image_url: { url: asset.url, detail: "high" as const } })),
   ];
