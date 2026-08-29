@@ -74,23 +74,32 @@
 - [x] Incluir a cobertura de apresentação da Central de Redes em um arquivo executado pela suíte e validar todos os rótulos do OAuth vinculado.
 - [x] Testar a persistência de `pending` e `pending_oauth` ao vincular o perfil Instagram à conexão oficial.
 - [x] Testar a sequência persistida `pending → connected` e `pending → error` entre o vínculo de perfil e o callback OAuth.
-- [ ] Verificar o aplicativo Meta acessível e configurar Instagram Login, permissões e retorno OAuth de produção.
+- [x] Verificar o aplicativo Meta acessível e configurar Instagram Login, permissões e retorno OAuth de produção.
 - [ ] Cadastrar o App ID e App Secret da Meta exclusivamente no cofre seguro do Social Studio e validar a conexão profissional.
-- [ ] Diagnosticar e recuperar a navegação da Meta quando o painel de desenvolvedor abrir em tela em branco.
-- [ ] Diagnosticar e recuperar a abertura da sessão de navegador compartilhado para a configuração Meta.
-- [ ] Localizar o aplicativo Meta DPT recém-criado e configurar o produto Instagram Login com retorno OAuth e permissões mínimas.
+- [x] Diagnosticar e recuperar a navegação da Meta quando o painel de desenvolvedor abrir em tela em branco.
+- [x] Diagnosticar e recuperar a abertura da sessão de navegador compartilhado para a configuração Meta.
+- [x] Localizar o aplicativo Meta DPT recém-criado e configurar o produto Instagram Login com retorno OAuth e permissões mínimas.
 - [ ] Validar no servidor as credenciais Meta cadastradas por meio de consulta mínima ao aplicativo, sem registrar segredos.
-- [ ] Ajustar a validação técnica para consultar o ID do aplicativo DPT em endpoint Meta compatível, sem OAuth ou publicação pública.
-- [ ] Pesquisar a documentação oficial da Meta para confirmar a localização das credenciais DPT e as causas de recusa do token de aplicativo.
-- [ ] Registrar commits de referência, analisar o PR #5 e validar a branch feat/social-os-full-platform sem merge antecipado.
-- [ ] Executar instalação reproduzível, TypeScript, testes, build e auditoria de migrations da branch autorizada.
-- [ ] Validar schema, banco, constraints e proteções de conteúdo, aprovação, mídia, agenda e idempotência.
-- [ ] Revisar segurança de segredos, SSRF, IDOR, endpoints, upload, erros e chamadas externas.
+- [x] Ajustar a validação técnica para consultar o ID do aplicativo DPT em endpoint Meta compatível, sem OAuth ou publicação pública.
+- [x] Pesquisar a documentação oficial da Meta para confirmar a localização das credenciais DPT e as causas de recusa do token de aplicativo.
+- [x] Registrar commits de referência, analisar o PR #5 e validar a branch feat/social-os-full-platform sem merge antecipado.
+- [x] Executar instalação reproduzível, TypeScript, testes, build e auditoria de migrations da branch autorizada.
+- [x] Validar schema, banco, constraints e proteções de conteúdo, aprovação, mídia, agenda e idempotência.
+- [x] Revisar segurança de segredos, SSRF, IDOR, endpoints, upload, erros e chamadas externas.
 - [ ] Testar de forma controlada os módulos internos do Social Media OS e as integrações externas somente quando houver credenciais oficiais.
-- [ ] Corrigir falhas objetivas, registrar evidências e consolidar a branch somente após todos os critérios de liberação aprovados.
+- [x] Corrigir falhas objetivas, registrar evidências e consolidar a branch somente após todos os critérios de liberação aprovados.
 - [ ] Publicar a versão consolidada, executar health, readiness e smoke tests no domínio de produção e registrar rollback aplicável.
-- [ ] Corrigir a dependência inexistente input-otp@^4.0.3 e reconciliar o lockfile sem remover recursos de interface.
-- [ ] Reduzir o bundle inicial acima de 500 kB com carregamento sob demanda das rotas do Social Media OS.
-- [ ] Separar dependências de terceiros em chunks de fornecedor para reduzir o bundle inicial residual acima de 500 kB.
-- [ ] Gerar, revisar e aplicar migration consolidada e não destrutiva para as estruturas pendentes do Social Media OS.
-- [ ] Restringir links extraídos pelo Radar Jurídico ao domínio de cada fonte oficial e cobrir a regra em testes.
+- [x] Corrigir a dependência inexistente input-otp@^4.0.3 e reconciliar o lockfile sem remover recursos de interface.
+- [x] Reduzir o bundle inicial acima de 500 kB com carregamento sob demanda das rotas do Social Media OS.
+- [x] Separar dependências de terceiros em chunks de fornecedor para reduzir o bundle inicial residual acima de 500 kB.
+- [x] Gerar, revisar e aplicar migration consolidada e não destrutiva para as estruturas pendentes do Social Media OS.
+- [x] Restringir links extraídos pelo Radar Jurídico ao domínio de cada fonte oficial e cobrir a regra em testes.
+- [x] Separar a validação externa de credenciais Meta da suíte unitária e mantê-la como gate manual de OAuth sem publicação.
+- [x] Verificar as estruturas Social Media OS efetivamente criadas após a interrupção de triggers incompatíveis no TiDB.
+- [x] Substituir os triggers indisponíveis por guards transacionais de aplicação e testes equivalentes de aprovação, mídia e publicação.
+- [x] Aplicar a reconciliação de índice de campanha compatível com TiDB e documentar a limitação de triggers.
+- [x] Identificar e remediar as dependências de produção com severidade crítica ou alta antes da publicação do Social Media OS.
+- [x] Adaptar os componentes de gráfico ao contrato de tipos do Recharts 3 sem remover visualizações existentes.
+- [x] Distinguir nos endpoints operacionais a presença de configuração Meta da validação efetiva das credenciais externas.
+- [x] Medir e registrar o payload inicial real da rota principal após code splitting e corrigir qualquer carregamento acima da meta estabelecida.
+- [x] Formalizar no histórico uma migration incremental compatível com o baseline TiDB para as estruturas Social Media OS já aplicadas.

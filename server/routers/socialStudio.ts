@@ -16,6 +16,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { generateImage } from "../_core/imageGeneration";
 import { fetchCurrentRadar } from "../newsRadar";
 import { publicSocialProfileHandle, publicSocialProfileUrl, socialNetworkInput } from "../socialProfilePolicy";
+import { assertApprovalStillValid, assertPostMediaCanChange } from "../socialOsGovernance";
 
 const statusSchema = z.enum(contentStatuses);
 const formatSchema = z.enum(editorialFormats);
@@ -314,6 +315,7 @@ export const socialStudioRouter = router({
     mimeType: z.literal("image/jpeg"),
     base64: z.string().min(8).max(11_500_000),
   })).mutation(async ({ ctx, input }) => {
+    await assertPostMediaCanChange(ctx.user.id, input.postId);
     const bytes = Buffer.from(input.base64, "base64");
     if (bytes.byteLength === 0 || bytes.byteLength > 8 * 1024 * 1024) throw new Error("A imagem precisa ser JPEG e ter até 8 MB.");
     const dimensions = jpegDimensions(bytes);
@@ -324,9 +326,12 @@ export const socialStudioRouter = router({
     const stored = await storagePut(`social-studio/${ctx.user.id}/posts/${input.postId}/${safeName}.jpg`, bytes, "image/jpeg");
     return addPostMedia(ctx.user.id, input.postId, { storageKey: stored.key, url: stored.url, fileName: input.fileName, mimeType: "image/jpeg", byteSize: bytes.byteLength, width: dimensions.width, height: dimensions.height });
   }),
-  removePostMedia: protectedProcedure.input(z.object({ postId: z.number(), mediaId: z.number() })).mutation(({ ctx, input }) => removePostMedia(ctx.user.id, input.postId, input.mediaId)),
+  removePostMedia: protectedProcedure.input(z.object({ postId: z.number(), mediaId: z.number() })).mutation(async ({ ctx, input }) => {
+    await assertPostMediaCanChange(ctx.user.id, input.postId);
+    return removePostMedia(ctx.user.id, input.postId, input.mediaId);
+  }),
   requestInstagramPublication: protectedProcedure.input(z.object({ postId: z.number() })).mutation(async ({ ctx, input }) => {
-    const [post, media, connection, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.postId), getPostMedia(ctx.user.id, input.postId), getInstagramConnection(ctx.user.id), getStudioData(ctx.user.id)]);
+    const [post, media, connection, { brand }, approval] = await Promise.all([getStudioPost(ctx.user.id, input.postId), getPostMedia(ctx.user.id, input.postId), getInstagramConnection(ctx.user.id), getStudioData(ctx.user.id), assertApprovalStillValid(ctx.user.id, input.postId)]);
     const publicOrigin = getInstagramOAuthOrigin(ctx.req);
     const preflight = preflightInstagramPublication({ post, media, connection, metaConfigured: isInstagramMetaConfigured(), origin: publicOrigin, prohibitedTerms: brand?.prohibitedTerms });
     if (!preflight.allowed) throw new Error(`Publicação bloqueada: ${preflight.issues.join("; ")}.`);
@@ -337,7 +342,9 @@ export const socialStudioRouter = router({
       caption: buildInstagramCaption(post),
       altText: post.altText,
       media: media.map((item) => ({ id: item.id, url: new URL(item.url, publicOrigin).toString(), mimeType: item.mimeType, byteSize: item.byteSize, width: item.width, height: item.height })),
-      approvedAt: new Date().toISOString(),
+      approvalHash: approval.contentHash,
+      approvalVersionId: approval.versionId,
+      approvedAt: approval.approvedAt.toISOString(),
     };
     const job = await createPublicationRequest(ctx.user.id, payload);
     await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "succeeded", detail: "Pré-publicação aprovada; aguardando confirmação humana explícita." });
@@ -346,6 +353,7 @@ export const socialStudioRouter = router({
   confirmInstagramPublication: protectedProcedure.input(z.object({ jobId: z.number(), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => {
     const current = await getPublicationJob(ctx.user.id, input.jobId);
     if (current.status !== "pending_confirmation") throw new Error("Esta solicitação não está disponível para uma nova confirmação.");
+    await assertApprovalStillValid(ctx.user.id, current.postId);
     const job = await updatePublicationJob(current.id, { status: "queued", confirmedAt: new Date(), confirmedByUserId: ctx.user.id, lastError: null });
     await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "succeeded", detail: `Confirmação humana registrada por ${ctx.user.name ?? "responsável"}.` });
     return job;
@@ -354,6 +362,7 @@ export const socialStudioRouter = router({
   scheduleInstagramPublication: protectedProcedure.input(z.object({ jobId: z.number(), scheduledAt: z.date(), confirmed: z.literal(true) })).mutation(async ({ ctx, input }) => {
     const current = await getPublicationJob(ctx.user.id, input.jobId);
     if (current.status !== "pending_confirmation") throw new Error("Esta solicitação não está disponível para confirmação e agendamento.");
+    await assertApprovalStillValid(ctx.user.id, current.postId);
     const queued = await updatePublicationJob(current.id, { status: "queued", confirmedAt: new Date(), confirmedByUserId: ctx.user.id, lastError: null });
     const sessionToken = parseCookie(ctx.req.headers.cookie ?? "")[COOKIE_NAME] ?? "";
     try {

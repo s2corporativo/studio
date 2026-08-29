@@ -1,23 +1,44 @@
 import type { Express } from "express";
-import { sql } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { getDb } from "../db";
+import { instagramConnections } from "../../drizzle/schema";
 import { ENV } from "./env";
 
-function integrationState() {
+async function integrationState() {
+  let instagramConnectionValidated = false;
+
+  try {
+    const db = await getDb();
+    if (db) {
+      const [connection] = await db
+        .select({ id: instagramConnections.id })
+        .from(instagramConnections)
+        .where(and(
+          eq(instagramConnections.state, "connected"),
+          gt(instagramConnections.tokenExpiresAt, new Date()),
+        ))
+        .limit(1);
+      instagramConnectionValidated = Boolean(connection);
+    }
+  } catch {
+    instagramConnectionValidated = false;
+  }
+
   return {
     databaseConfigured: Boolean(ENV.databaseUrl),
     forgeConfigured: Boolean(ENV.forgeApiUrl && ENV.forgeApiKey),
-    instagramConfigured: Boolean(ENV.metaInstagramAppId && ENV.metaInstagramAppSecret),
+    instagramCredentialsConfigured: Boolean(ENV.metaInstagramAppId && ENV.metaInstagramAppSecret),
+    instagramConnectionValidated,
   };
 }
 
 export function registerHealthRoutes(app: Express) {
-  app.get("/api/health", (_req, res) => {
+  app.get("/api/health", async (_req, res) => {
     res.json({
       status: "ok",
       service: "depaula-social-os",
       environment: ENV.isProduction ? "production" : "development",
-      integrations: integrationState(),
+      integrations: await integrationState(),
       timestamp: new Date().toISOString(),
     });
   });
@@ -69,7 +90,7 @@ export function registerHealthRoutes(app: Express) {
       status: ready ? "ready" : "not_ready",
       service: "depaula-social-os",
       checks,
-      integrations: integrationState(),
+      integrations: await integrationState(),
       timestamp: new Date().toISOString(),
     });
   });

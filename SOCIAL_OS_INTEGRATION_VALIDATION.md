@@ -1,6 +1,6 @@
 # Validação da Integração Controlada — Social OS
 
-**Data:** 28/08/2026
+**Data:** 29/08/2026
 
 ## Escopo integrado
 
@@ -20,9 +20,16 @@ As novas telas Social OS foram readequadas ao padrão De Paula Teixeira: verde-c
 ## Evidências
 
 - `pnpm check`: aprovado.
-- `pnpm test`: aprovado com 36 testes em 12 arquivos.
-- Pré-validação da migration: aprovada antes e depois da aplicação, sem duplicidade e sem estruturas pendentes.
-- Endpoint `/api/ready`: respondeu `ready` com banco e migration Social OS confirmados.
+- `pnpm test`: aprovado com 67 testes e 1 teste externo Meta corretamente ignorado na suíte unitária.
+- `pnpm build`: aprovado após divisão das rotas pesadas e bibliotecas de fornecedor em chunks separados.
+- O HTML de produção referencia 6 recursos iniciais (entrada, três chunks de fornecedor, um chunk auxiliar e CSS), totalizando **241.664 bytes / 236,0 KiB gzip**. As telas pesadas permanecem em chunks carregados sob demanda, mantendo o primeiro carregamento abaixo da meta interna de 500 KiB gzip.
+- `pnpm audit --prod --audit-level high`: sem vulnerabilidades conhecidas após atualização compatível de AWS SDK, tRPC, Axios, Drizzle, Recharts, Streamdown e Express.
+- Pré-validação da migration: aprovada depois da aplicação, sem tabelas pendentes. As tabelas Social Media OS foram efetivamente criadas.
+- TiDB não suporta os triggers SQL previstos nas migrations originais. Os bloqueios de versão aprovada, mídia posterior à aprovação, confirmação, agendamento e publicação foram substituídos por guards de aplicação testados e executados no fluxo transacional.
+- A migration incremental `0019_social_os_tidb_reconciliation.sql` registra o baseline efetivamente aplicado e a substituição explícita dos triggers pelos guards de aplicação, sem recriar tabelas existentes.
+- O índice único de idempotência de campanhas por usuário foi aplicado após confirmação de inexistência de duplicidades.
+- Express foi atualizado para a versão 5, com correção dos fallbacks SPA e da rota de armazenamento para a sintaxe de wildcard nomeado compatível.
+- Endpoints `/api/health` e `/api/ready`: responderam HTTP 200. O estado Meta agora separa `instagramCredentialsConfigured` de `instagramConnectionValidated`, que permanece `false` até uma autorização OAuth válida.
 - Smoke test: rotas `/`, `/radar`, `/conteudos`, `/calendario`, `/automacao`, `/planejamento`, `/biblioteca`, `/fontes`, `/conhecimento`, `/redes`, `/instagram`, `/marca` e `/roadmap` responderam HTTP 200.
 - Revisão visual: todas as rotas integradas foram capturadas em desktop e em tela móvel. As telas mantiveram legibilidade e acabamento editorial no tema institucional.
 - Validação autenticada: o Radar Jurídico consultou fontes públicas e criou um rascunho com fonte TRT-MG vinculada, sem envio externo. O Planejamento Assistido persistiu preferências sem criar conteúdo ou agenda. O Design AI gerou fundo institucional, compôs e anexou uma arte JPEG 1080×1350 ao rascunho interno. A Central de Redes confirmou bloqueio da conexão e de publicação enquanto a aplicação Meta permanece pendente.
@@ -30,4 +37,4 @@ As novas telas Social OS foram readequadas ao padrão De Paula Teixeira: verde-c
 
 ## Pendência externa remanescente
 
-A configuração real da API oficial do Instagram continua condicionada ao registro da conta pessoal como desenvolvedor Meta e à disponibilidade de um aplicativo Meta habilitado para Instagram API. Nenhum segredo, token ou publicação pública foi criado nesta intervenção.
+A configuração real da API oficial do Instagram continua condicionada à correção das credenciais DPT e à validação de uma autorização OAuth da conta profissional. O aplicativo DPT já possui Instagram Login, a URL de retorno de produção e as permissões mínimas configuradas. Nenhum segredo, token ou publicação pública foi criado nesta intervenção.

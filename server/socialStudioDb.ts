@@ -375,6 +375,8 @@ export type FrozenPublicationPayload = {
   caption: string;
   altText: string | null;
   media: Array<{ id: number; url: string; mimeType: string | null; byteSize: number | null; width: number | null; height: number | null }>;
+  approvalHash?: string;
+  approvalVersionId?: number;
   approvedAt: string;
 };
 

@@ -22,6 +22,12 @@ type ApprovalMedia = Array<{
   sortOrder: number;
 }>;
 
+export function assertPostMediaMutable(status: ContentPost["status"]) {
+  if (["approved", "scheduled", "published"].includes(status)) {
+    throw new Error("Mídias de conteúdo aprovado, agendado ou publicado são imutáveis. Retorne o conteúdo a rascunho antes de alterá-las.");
+  }
+}
+
 function postSnapshot(post: ContentPost) {
   return {
     sourceId: post.sourceId,
@@ -113,6 +119,12 @@ export async function safeUpdatePost(userId: number, postId: number, patch: Edit
   const updated = await updateStudioPost(userId, postId, governancePatch);
   if (materialChange) await createVersion(userId, updated, before.status === "draft" ? "Conteúdo editado" : "Conteúdo editado; aprovação anterior invalidada");
   return updated;
+}
+
+export async function assertPostMediaCanChange(userId: number, postId: number) {
+  const post = await getStudioPost(userId, postId);
+  assertPostMediaMutable(post.status);
+  return post;
 }
 
 export async function bindApproval(userId: number, postId: number, reviewerName: string, notes?: string) {

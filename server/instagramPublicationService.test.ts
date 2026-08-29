@@ -17,10 +17,14 @@ vi.mock("./socialStudioDb", () => ({
   updateStudioPost: vi.fn(),
   upsertInstagramConnection: vi.fn(),
 }));
+vi.mock("./socialOsGovernance", () => ({
+  assertApprovalStillValid: vi.fn(),
+}));
 
 import { createInstagramTestContainer, InstagramApiError, getInstagramPublishingLimit, publishInstagramImages } from "./instagramApi";
 import { executeConfirmedInstagramPublication, testInstagramPublication } from "./instagramPublicationService";
 import { claimQueuedPublicationJob, getInstagramConnection, getPublicationJob, recordPublicationAttempt, updatePublicationJob, updateStudioPost } from "./socialStudioDb";
+import { assertApprovalStillValid } from "./socialOsGovernance";
 
 const frozenPayload = JSON.stringify({ postId: 17, title: "Título", format: "post", caption: "Legenda aprovada", altText: null, media: [{ id: 3, url: "https://studio.example.com/manus-storage/arte.jpg", mimeType: "image/jpeg", byteSize: 300_000, width: 1080, height: 1350 }], approvedAt: "2026-08-27T12:00:00.000Z" });
 const queuedJob = { id: 91, userId: 5, postId: 17, status: "queued", confirmedAt: new Date(), attemptCount: 0, testContainerId: "test-container-0", testedAt: new Date(), frozenPayload } as any;
@@ -37,6 +41,7 @@ describe("serviço de publicação confirmada", () => {
     vi.mocked(publishInstagramImages).mockResolvedValue({ containerId: "container-1", mediaId: "media-1", permalink: "https://www.instagram.com/p/example/" });
     vi.mocked(updatePublicationJob).mockResolvedValue(queuedJob);
     vi.mocked(updateStudioPost).mockResolvedValue({} as any);
+    vi.mocked(assertApprovalStillValid).mockResolvedValue({ contentHash: "hash", versionId: 1, approvedAt: new Date() } as any);
   });
 
   it("bloqueia execução que ainda não possui confirmação humana explícita", async () => {
@@ -49,6 +54,12 @@ describe("serviço de publicação confirmada", () => {
   it("bloqueia envio público quando o teste não público ainda não foi aprovado", async () => {
     vi.mocked(getPublicationJob).mockResolvedValue({ ...queuedJob, testContainerId: null, testedAt: null });
     await expect(executeConfirmedInstagramPublication(5, 91)).rejects.toThrow("teste não público");
+    expect(publishInstagramImages).not.toHaveBeenCalled();
+  });
+
+  it("bloqueia publicação quando a aprovação vinculada não é mais válida", async () => {
+    vi.mocked(assertApprovalStillValid).mockRejectedValue(new Error("Uma nova aprovação é obrigatória."));
+    await expect(executeConfirmedInstagramPublication(5, 91)).rejects.toThrow("nova aprovação");
     expect(publishInstagramImages).not.toHaveBeenCalled();
   });
 

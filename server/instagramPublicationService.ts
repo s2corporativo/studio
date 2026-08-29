@@ -1,6 +1,7 @@
 import { decryptInstagramToken } from "./instagramCrypto";
 import { createInstagramTestContainer, getInstagramPublishingLimit, InstagramApiError, publishInstagramImages } from "./instagramApi";
 import { claimQueuedPublicationJob, getInstagramConnection, getPublicationJob, recordPublicationAttempt, setInstagramConnectionError, updatePublicationJob, updateStudioPost, upsertInstagramConnection, type FrozenPublicationPayload } from "./socialStudioDb";
+import { assertApprovalStillValid } from "./socialOsGovernance";
 
 function parseFrozenPayload(value: string): FrozenPublicationPayload {
   try {
@@ -46,6 +47,7 @@ export async function testInstagramConnection(userId: number) {
 export async function testInstagramPublication(userId: number, jobId: number) {
   const job = await getPublicationJob(userId, jobId);
   if (job.status !== "pending_confirmation") throw new Error("O teste não público só pode ser executado antes da confirmação final.");
+  await assertApprovalStillValid(userId, job.postId);
   const connection = await getInstagramConnection(userId);
   if (!connection || connection.state !== "connected" || !connection.instagramUserId || !connection.accessTokenCiphertext) {
     throw new Error("Conecte a conta profissional do Instagram antes de executar o teste.");
@@ -81,6 +83,7 @@ export async function executeConfirmedInstagramPublication(userId: number, jobId
   if (job.status === "published") return job;
   if (job.status !== "queued" || !job.confirmedAt) throw new Error("A publicação precisa de confirmação humana explícita antes do envio ao Instagram.");
   if (!job.testedAt || !job.testContainerId) throw new Error("Execute e aprove o teste não público antes de confirmar o envio ao Instagram.");
+  await assertApprovalStillValid(userId, job.postId);
   const connection = await getInstagramConnection(userId);
   if (!connection || connection.state !== "connected" || !connection.instagramUserId || !connection.accessTokenCiphertext) {
     throw new Error("A conta profissional do Instagram não está conectada ou precisa ser reconectada.");
