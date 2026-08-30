@@ -19,6 +19,7 @@ const NetworkHub = lazy(() => import("./NetworkHub"));
 const NewsRadar = lazy(() => import("./NewsRadar"));
 const SaasOverview = lazy(() => import("./SaasOverview"));
 const SocialOsCommandCenter = lazy(() => import("./SocialOsCommandCenter"));
+const BrandWorkspacePanel = lazy(() => import("./BrandWorkspacePanel"));
 const BrandPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.BrandPanel })));
 const CalendarPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.CalendarPanel })));
 const SourcesPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.SourcesPanel })));
@@ -35,17 +36,34 @@ export default function Home() {
   const [location, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const dataQuery = trpc.socialStudio.data.useQuery(undefined, { enabled: Boolean(user), staleTime: 30_000 });
+  const brandWorkspacesQuery = trpc.brandWorkspaces.list.useQuery(undefined, { enabled: Boolean(user), staleTime: 30_000 });
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
 
   const data = dataQuery.data;
+  const defaultBrandWorkspaceId = useMemo(() => brandWorkspacesQuery.data?.find(item => item.isDefault && item.status === "active")?.id ?? null, [brandWorkspacesQuery.data]);
   useEffect(() => {
     if (!selectedTopicId && data?.topics?.length) setSelectedTopicId(data.topics[0].id);
     if (!selectedPostId && data?.posts?.length) setSelectedPostId(data.posts[0].id);
   }, [data?.topics?.length, data?.posts?.length, selectedTopicId, selectedPostId]);
 
   const refresh = async () => { await utils.socialStudio.data.invalidate(); };
-  const generate = trpc.socialStudio.generateDraft.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Rascunho criado."); }, onError: mutationError });
+  const bindPostToBrand = trpc.brandWorkspaces.bindPost.useMutation();
+  const generate = trpc.socialStudio.generateDraft.useMutation({
+    onSuccess: async post => {
+      setSelectedPostId(post.id);
+      if (defaultBrandWorkspaceId) {
+        try {
+          await bindPostToBrand.mutateAsync({ brandWorkspaceId: defaultBrandWorkspaceId, postId: post.id });
+        } catch {
+          toast.warning("Rascunho criado, mas o vínculo com a marca padrão requer revisão na Central de Marcas.");
+        }
+      }
+      await refresh();
+      toast.success("Rascunho criado.");
+    },
+    onError: mutationError,
+  });
   const updatePost = trpc.socialGovernance.updatePost.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success(post.status === "draft" ? "Conteúdo salvo; aprovação anterior foi invalidada quando necessário." : "Conteúdo salvo."); }, onError: mutationError });
   const sendReview = trpc.socialStudio.sendToReview.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Enviado para revisão."); }, onError: mutationError });
   const decide = trpc.socialGovernance.decide.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Decisão vinculada à versão atual do conteúdo."); }, onError: mutationError });
@@ -53,7 +71,7 @@ export default function Home() {
   const addSource = trpc.socialStudio.addSource.useMutation({ onSuccess: async () => { await refresh(); toast.success("Fonte cadastrada."); }, onError: mutationError });
   const addKnowledge = trpc.socialStudio.addKnowledge.useMutation({ onSuccess: async () => { await refresh(); toast.success("Referência cadastrada."); }, onError: mutationError });
   const uploadKnowledge = trpc.knowledgeSecurity.upload.useMutation({ onSuccess: async () => { await refresh(); toast.success("Documento validado e armazenado com segurança."); }, onError: mutationError });
-  const updateBrand = trpc.socialStudio.updateBrand.useMutation({ onSuccess: async () => { await refresh(); toast.success("Brand OS atualizado."); }, onError: mutationError });
+  const updateBrand = trpc.socialStudio.updateBrand.useMutation({ onSuccess: async () => { await refresh(); await brandWorkspacesQuery.refetch(); toast.success("Brand OS atualizado."); }, onError: mutationError });
   type AddKnowledgeInput = Parameters<typeof addKnowledge.mutate>[0];
   type UploadKnowledgeInput = Parameters<typeof uploadKnowledge.mutate>[0];
   type AddSourceInput = Parameters<typeof addSource.mutate>[0];
@@ -70,7 +88,7 @@ export default function Home() {
 
   let content: React.ReactNode;
   if (!user || dataQuery.isLoading) {
-    content = <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>;
+    content = <div className="studio-loading-panel flex min-h-[420px] items-center justify-center"><Loader2 className="studio-loader h-6 w-6 text-[#c59b5a]" /></div>;
   } else if (dataQuery.isError || !data) {
     content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? "Não foi possível carregar o Social OS."}</div>;
   } else if (growthLocations.has(location)) {
@@ -89,6 +107,8 @@ export default function Home() {
     content = <KnowledgePanel materials={data.knowledge} onAdd={(value: AddKnowledgeInput) => addKnowledge.mutate(value)} adding={addKnowledge.isPending} onUpload={(value: UploadKnowledgeInput) => uploadKnowledge.mutate(value)} uploading={uploadKnowledge.isPending} />;
   } else if (location === "/fontes") {
     content = <SourcesPanel sources={data.sources} onAdd={(value: AddSourceInput) => addSource.mutate(value)} adding={addSource.isPending} />;
+  } else if (location === "/marcas") {
+    content = <BrandWorkspacePanel />;
   } else if (location === "/marca") {
     content = <BrandPanel brand={data.brand} onSave={(value: UpdateBrandInput) => updateBrand.mutate(value)} saving={updateBrand.isPending} />;
   } else if (location === "/roadmap") {
@@ -106,5 +126,5 @@ export default function Home() {
     content = <SaasOverview data={data} counts={counts} onCreate={() => setLocation("/conteudos")} onOpenCalendar={() => setLocation("/calendario")} onOpenRadar={() => setLocation("/radar")} onOpenAutomation={() => setLocation("/automacao")} onOpenNetworks={() => setLocation("/redes")} />;
   }
 
-  return <DashboardLayout><div className="saas-shell mx-auto w-full max-w-[1680px]"><Suspense fallback={<div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>}>{content}</Suspense></div></DashboardLayout>;
+  return <DashboardLayout><div className="saas-shell mx-auto w-full max-w-[1680px]"><Suspense fallback={<div className="studio-loading-panel flex min-h-[420px] items-center justify-center"><Loader2 className="studio-loader h-6 w-6 text-[#c59b5a]" /></div>}>{content}</Suspense></div></DashboardLayout>;
 }
