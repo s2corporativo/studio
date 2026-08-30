@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
+import { getPostBrandWorkspace } from "../brandWorkspaceDb";
 import { approvalReadiness, canSchedule } from "../studioRules";
 import { getInstagramConnection, getPostMedia, getStudioData, getStudioPost, recordPublicationAttempt, updateStudioPost, type FrozenPublicationPayload } from "../socialStudioDb";
 import { assertApprovalStillValid, assertSelfApprovalAllowed, bindApproval, rejectOrRequestChanges, safeUpdatePost } from "../socialOsGovernance";
@@ -42,11 +43,16 @@ export const socialGovernanceRouter = router({
     const reviewerName = ctx.user.name ?? "Responsável";
     if (input.decision === "approved") {
       await assertSelfApprovalAllowed(ctx.user.id, input.id);
-      const [post, { brand }] = await Promise.all([getStudioPost(ctx.user.id, input.id), getStudioData(ctx.user.id)]);
-      const result = approvalReadiness({ ...post, approvalOwnerName: reviewerName, prohibitedTerms: brand?.prohibitedTerms });
+      const [post, workspace, { brand }] = await Promise.all([
+        getStudioPost(ctx.user.id, input.id),
+        getPostBrandWorkspace(ctx.user.id, input.id),
+        getStudioData(ctx.user.id),
+      ]);
+      const prohibitedTerms = workspace?.prohibitedTerms ?? brand?.prohibitedTerms;
+      const result = approvalReadiness({ ...post, approvalOwnerName: reviewerName, prohibitedTerms });
       if (!result.ready) throw new Error(`Aprovação bloqueada: inclua ${result.missing.join(", ")}.`);
       const approved = await bindApproval(ctx.user.id, input.id, reviewerName, input.notes);
-      await recordAuditEvent(ctx.user.id, "post.version_approved", "content_post", input.id);
+      await recordAuditEvent(ctx.user.id, "post.version_approved", "content_post", input.id, { brandWorkspaceId: workspace?.id ?? null });
       return approved;
     }
     const decided = await rejectOrRequestChanges(ctx.user.id, input.id, reviewerName, input.decision, input.notes);
@@ -66,14 +72,16 @@ export const socialGovernanceRouter = router({
 
   requestInstagramPublication: protectedProcedure.input(z.object({ postId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const binding = await assertApprovalStillValid(ctx.user.id, input.postId);
-    const [post, media, connection, { brand }] = await Promise.all([
+    const [post, media, connection, workspace, { brand }] = await Promise.all([
       getStudioPost(ctx.user.id, input.postId),
       getPostMedia(ctx.user.id, input.postId),
       getInstagramConnection(ctx.user.id),
+      getPostBrandWorkspace(ctx.user.id, input.postId),
       getStudioData(ctx.user.id),
     ]);
     const publicOrigin = getInstagramOAuthOrigin(ctx.req);
-    const preflight = preflightInstagramPublication({ post, media, connection, metaConfigured: isInstagramMetaConfigured(), origin: publicOrigin, prohibitedTerms: brand?.prohibitedTerms });
+    const prohibitedTerms = workspace?.prohibitedTerms ?? brand?.prohibitedTerms;
+    const preflight = preflightInstagramPublication({ post, media, connection, metaConfigured: isInstagramMetaConfigured(), origin: publicOrigin, prohibitedTerms });
     if (!preflight.allowed) throw new Error(`Publicação bloqueada: ${preflight.issues.join("; ")}.`);
     const payload: FrozenPublicationPayload = {
       postId: post.id,
@@ -85,8 +93,8 @@ export const socialGovernanceRouter = router({
       approvedAt: binding.approvedAt.toISOString(),
     };
     const job = await createSecurePublicationRequest(ctx.user.id, payload);
-    await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "succeeded", detail: "Pré-publicação validada contra a versão e mídias aprovadas; aguardando confirmação humana explícita." });
-    await recordAuditEvent(ctx.user.id, "instagram.preflight_with_immutable_approval", "publication_job", job.id, { postId: post.id });
+    await recordPublicationAttempt(job.id, { stage: "preflight", outcome: "succeeded", detail: "Pré-publicação validada contra a versão, mídias e política da marca aprovadas; aguardando confirmação humana explícita." });
+    await recordAuditEvent(ctx.user.id, "instagram.preflight_with_immutable_approval", "publication_job", job.id, { postId: post.id, brandWorkspaceId: workspace?.id ?? null });
     return job;
   }),
 });
