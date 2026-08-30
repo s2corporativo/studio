@@ -58,16 +58,16 @@ export default function SocialOsCommandCenter() {
     { label: "Novos leads", value: summary?.newLeads ?? 0, icon: Users },
   ];
 
-  return <div className="space-y-6">
-    <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+  return <div className="studio-command-center space-y-6">
+    <div className="studio-command-heading flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div>
         <p className="text-[10px] font-bold uppercase tracking-[.18em] text-[#b8945d]">Social Media OS</p>
-        <h1 className="mt-1 font-serif text-3xl text-[#f3ebdd]">Command Center</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[#9aa89f]">Inteligência, oportunidades, atendimento, leads, concorrência, automações e aprendizado de desempenho em uma única operação.</p>
+        <h1 className="mt-1 font-serif text-3xl text-[#17281f]">Command Center</h1>
+        <p className="mt-2 max-w-3xl text-sm text-[#65766b]">Inteligência, oportunidades, atendimento, leads, concorrência, automações e aprendizado de desempenho em uma única operação.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Badge className="w-fit border-[#c99550]/20 bg-[#c99550]/10 text-[#e7c58f]">Aprovação humana preservada</Badge>
-        <Button className="saas-button-secondary" disabled={refreshRadar.isPending} onClick={() => refreshRadar.mutate({ limit: 5 })}>
+        <Badge className="studio-command-badge w-fit">Aprovação humana preservada</Badge>
+        <Button className="studio-command-action" disabled={refreshRadar.isPending} onClick={() => refreshRadar.mutate({ limit: 5 })}>
           {refreshRadar.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Atualizar oportunidades IA
         </Button>
       </div>

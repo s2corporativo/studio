@@ -106,5 +106,5 @@ export default function Home() {
     content = <SaasOverview data={data} counts={counts} onCreate={() => setLocation("/conteudos")} onOpenCalendar={() => setLocation("/calendario")} onOpenRadar={() => setLocation("/radar")} onOpenAutomation={() => setLocation("/automacao")} onOpenNetworks={() => setLocation("/redes")} />;
   }
 
-  return <DashboardLayout><div className="saas-shell mx-auto w-full max-w-[1680px]"><Suspense fallback={<div className="studio-loading-panel flex min-h-[420px] items-center justify-center"><Loader2 className="studio-loader h-6 w-6 text-[#c59b5a]" /></div>}>{content}</Suspense></div></DashboardLayout>;
+  return <DashboardLayout><div className="saas-shell studio-unified-shell mx-auto w-full max-w-[1680px]"><Suspense fallback={<div className="studio-loading-panel flex min-h-[420px] items-center justify-center"><Loader2 className="studio-loader h-6 w-6 text-[#c59b5a]" /></div>}>{content}</Suspense></div></DashboardLayout>;
 }
