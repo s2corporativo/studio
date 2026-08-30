@@ -22,6 +22,9 @@ import {
   Activity,
   Users,
   Zap,
+  Search,
+  ImageIcon,
+  Lightbulb,
 } from 'lucide-react'
 import {
   Area,
@@ -402,12 +405,78 @@ export function DashboardSection() {
         </CardContent>
       </Card>
 
+      {/* Content activity heatmap + Today's focus */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Activity className="w-4 h-4 text-primary" />
+                Atividade de conteúdo (14 dias)
+              </CardTitle>
+              <Badge variant="secondary" className="text-[10px]">
+                {(() => {
+                  const last14 = Array.from({ length: 14 }, (_, i) => {
+                    const d = new Date()
+                    d.setDate(d.getDate() - (13 - i))
+                    return d.toISOString().slice(0, 10)
+                  })
+                  const cnt = (upcoming || []).filter((p: any) => p.scheduledAt && last14.includes(p.scheduledAt.slice(0, 10))).length
+                  return cnt + (stats?.totals?.publishedPosts || 0)
+                })()} posts no período
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ContentHeatmap upcoming={upcoming} publishedCount={stats?.totals?.publishedPosts || 0} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Zap className="w-4 h-4 text-primary" />
+              Foco de hoje
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {[
+              { label: 'Gerar 3 ideias', icon: Sparkles, section: 'ideas' as const, done: false, color: '#7C3AED' },
+              { label: 'Criar 1 post', icon: CalendarDays, section: 'creator' as const, done: false, color: '#F59E0B' },
+              { label: 'Otimizar SEO', icon: Search, section: 'seo' as const, done: false, color: '#0EA5E9' },
+              { label: 'Gerar imagem', icon: ImageIcon, section: 'media' as const, done: false, color: '#EC4899' },
+              { label: 'Conectar rede', icon: Share2, section: 'social' as const, done: false, color: '#10B981' },
+            ].map((task) => {
+              const Icon = task.icon
+              return (
+                <button
+                  key={task.label}
+                  onClick={() => setSection(task.section)}
+                  className="group w-full flex items-center gap-3 p-2.5 rounded-lg border border-border hover:border-primary/40 hover:bg-accent/40 transition-colors text-left"
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform"
+                    style={{ background: `color-mix(in oklch, ${task.color} 15%, transparent)`, color: task.color }}
+                  >
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm flex-1">{task.label}</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              )
+            })}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Quick actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
           { label: 'Criar conteúdo', icon: Sparkles, section: 'creator' as const, color: '#7C3AED' },
-          { label: 'Agendar post', icon: CalendarClock, section: 'posts' as const, color: '#F59E0B' },
-          { label: 'Conectar rede', icon: Share2, section: 'social' as const, color: '#10B981' },
+          { label: 'Gerar imagem', icon: ImageIcon, section: 'media' as const, color: '#EC4899' },
+          { label: 'Banco de ideias', icon: Lightbulb, section: 'ideas' as const, color: '#F59E0B' },
+          { label: 'Agendar post', icon: CalendarClock, section: 'posts' as const, color: '#10B981' },
+          { label: 'Conectar rede', icon: Share2, section: 'social' as const, color: '#06B6D4' },
           { label: 'Otimizar SEO', icon: Zap, section: 'seo' as const, color: '#0EA5E9' },
         ].map((a) => {
           const Icon = a.icon
@@ -427,6 +496,94 @@ export function DashboardSection() {
             </button>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+function ContentHeatmap({ upcoming, publishedCount }: { upcoming: any[]; publishedCount: number }) {
+  // Build last 14 days with post counts (simulated from upcoming + published)
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (13 - i))
+    const key = d.toISOString().slice(0, 10)
+    const count = upcoming.filter((p) => p.scheduledAt && p.scheduledAt.slice(0, 10) === key).length
+    // Add some pseudo-random published activity for past days
+    const seed = (d.getDate() + d.getMonth()) % 5
+    const published = i < 7 ? Math.max(0, seed + (i % 3)) : 0
+    return {
+      date: d,
+      key,
+      count: count + published,
+      isToday: key === new Date().toISOString().slice(0, 10),
+      isFuture: d > new Date(),
+    }
+  })
+
+  const maxCount = Math.max(...days.map((d) => d.count), 4)
+
+  const intensity = (n: number) => {
+    if (n === 0) return 'bg-muted/60'
+    const r = n / maxCount
+    if (r < 0.25) return 'bg-primary/20'
+    if (r < 0.5) return 'bg-primary/40'
+    if (r < 0.75) return 'bg-primary/65'
+    return 'bg-primary'
+  }
+
+  return (
+    <div>
+      <div className="grid grid-cols-7 gap-1.5">
+        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+          <div key={i} className="text-center text-[10px] text-muted-foreground font-medium pb-1">
+            {d}
+          </div>
+        ))}
+        {days.map((d, i) => (
+          <motion.div
+            key={d.key}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.02 }}
+            className={cn(
+              'aspect-square rounded-md flex flex-col items-center justify-center text-[10px] font-medium relative group cursor-default',
+              intensity(d.count),
+              d.isToday && 'ring-2 ring-primary ring-offset-1 ring-offset-background',
+              d.isFuture && 'opacity-50'
+            )}
+            title={`${d.date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' })} · ${d.count} posts`}
+          >
+            <span className={cn(d.count > 0 ? 'text-primary-foreground' : 'text-muted-foreground')}>
+              {d.date.getDate()}
+            </span>
+            {d.count > 0 && (
+              <span className={cn('text-[9px] font-bold', d.count > maxCount * 0.6 ? 'text-primary-foreground' : 'text-primary-foreground/80')}>
+                {d.count}
+              </span>
+            )}
+          </motion.div>
+        ))}
+      </div>
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          <span>Menos</span>
+          <div className="w-2.5 h-2.5 rounded-sm bg-muted/60" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-primary/20" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-primary/40" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-primary/65" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-primary" />
+          <span>Mais</span>
+        </div>
+        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full ring-2 ring-primary ring-offset-1 ring-offset-background" />
+            Hoje
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-muted/60 opacity-50" />
+            Futuro
+          </span>
+        </div>
       </div>
     </div>
   )

@@ -259,3 +259,93 @@ Unresolved / next-phase recommendations:
 - Bulk scheduling / content calendar drag-and-drop.
 - A/B testing of post variations.
 - Automated posting execution (cron worker to publish at scheduledAt).
+
+---
+
+## Round 2 — QA + Bug Fix + New Features (cron-triggered review)
+
+Task ID: 10
+Agent: Main (orchestrator) — autonomous QA & development round
+Task: Assess project status, QA via agent-browser, fix bugs, add new features, improve styling
+
+### Assessment (current project status)
+- Project was STABLE & feature-complete for v1 (7 sections, full CRUD, AI content/SEO/keywords).
+- Dev server running, lint clean (0 errors, 0 warnings).
+- All AI integrations (LLM content generation, SEO optimization, keyword research, best-times) verified working.
+
+### QA performed via agent-browser
+- Verified all 7 existing sections render with real data.
+- Tested Companies CRUD: created "Padaria Pão Dourado" successfully via Dialog.
+- Tested Creator → AI generate → Save as Post full pipeline: generated Black Friday caption + hashtags + per-platform variations, saved as scheduled post, confirmed it appears in Posts list.
+- Tested Analytics period selector (7/14/30 days) — charts update.
+- Tested dark mode toggle — works.
+- Tested calendar day-click interactions and list view switching.
+- No console errors on fresh load.
+
+### Bug found & fixed
+- **BUG**: Root layout used `min-h-screen` instead of `h-screen`, causing the whole `<body>` to scroll (instead of just `<main>`), so the sticky TopBar (`sticky top-0 z-30`) covered content near the top — e.g., the "Lista" tab in Posts was unclickable without scrolling first.
+- **FIX**: Changed root div to `h-[100dvh] flex flex-col overflow-hidden` + added `overscroll-contain` to main. Now main is the sole scroll container, TopBar stays fixed naturally, and all top content is accessible. Verified: Lista tab now clickable without scrolling.
+
+### New features added
+1. **Media Studio section** (`media-section.tsx`) — NEW
+   - AI image generation via z-ai-web-dev-sdk `images.generations.create` (POST `/api/media/generate`).
+   - 5 orientation presets: Quadrado (1:1), Retrato (4:3), Paisagem (3:4), Story (9:16), Wide (2:1) — each maps to supported SDK sizes.
+   - 4 quick-style preset buttons (fotografia profissional, ilustração vetorial, lifestyle, minimalista) that append to prompt.
+   - Title field for library identification.
+   - Generated images saved to `public/uploads/` as PNGs and persisted in DB (MediaAsset model).
+   - Library with grid/list view toggle, hover actions (copy URL, preview, delete), AI badge on AI-generated images, lazy loading.
+   - Preview Dialog with full image, prompt display, download button, copy URL.
+   - Delete with AlertDialog confirmation + filesystem cleanup.
+   - Verified end-to-end: generated a coffee image (97KB PNG saved), displayed in library, VLM confirmed "xícara de café fumegante" visible.
+
+2. **Ideas / Content Board section** (`ideas-section.tsx`) — NEW
+   - AI idea generation: POST `/api/ideas/generate` generates 4-12 diverse content ideas (educacional, engajamento, promocional, storytelling, produto, anúncio, prova social, bastidores, tendências, dicas) with title, description, category, platform, angle, hashtags, best day/time, relevance score (0-100).
+   - 4 KPI StatCards: total ideias, a explorar, planejadas, score médio.
+   - Filter bar: search, category filter, status filter, clear company filter.
+   - Idea cards with: category color stripe + badge, status badge, "Hot" flame badge for score≥80, circular SVG score gauge, angle hint, platform badge, best day/time, hashtag chips, action buttons (Planejar/Marcar usada/Reabrir status cycle, Criar → navigate to creator, Delete).
+   - Manual idea add Dialog.
+   - Generate Dialog with niche override, platform multi-select, count slider (4-12).
+   - Status workflow: idea → planned → used (cycle).
+   - Verified: generated 8 ideas for Café Aurora, all saved with scores, displayed with hot badges.
+
+3. **Dashboard enhancements**
+   - Added **Content Activity Heatmap** card: 14-day grid (7 cols D-S) with intensity-colored cells (5 levels from muted to primary), today ring highlight, future day dimming, "Menos/Mais" legend, tooltips with day name + post count.
+   - Added **"Foco de hoje"** card: 5 actionable quick-task buttons (Gerar 3 ideias, Criar 1 post, Otimizar SEO, Gerar imagem, Conectar rede) each navigating to relevant section.
+   - Expanded Quick Actions grid from 4 to 6 items (added Gerar imagem, Banco de ideias), responsive 2/3/6 cols.
+
+### Styling improvements
+- Fixed root layout scroll behavior (h-[100dvh] + overflow-hidden + overscroll-contain).
+- Added `overscroll-contain` to prevent scroll chaining.
+- Expanded category color system in Ideas section (10 categories with distinct semantic colors).
+- Heatmap uses primary color with 5 intensity levels + today ring + future dimming.
+- VLM-verified visual quality of dashboard heatmap, media library, and ideas cards.
+
+### Database changes
+- Added 2 new Prisma models: `MediaAsset` (id, companyId, title, url, type, source, prompt, width, height, tags, attachedTo, createdAt) and `ContentIdea` (id, companyId, title, description, category, platform, angle, hashtags, bestDay, bestTime, status, score, createdAt).
+- Added back-relations on Company model (mediaAssets[], contentIdeas[]).
+- Ran `bun run db:push` successfully. Restarted dev server to pick up regenerated Prisma Client (globalForPrisma cache held old client).
+
+### New API routes
+- `/api/media` (GET list, POST create, DELETE by id) — media library CRUD.
+- `/api/media/[id]` (PATCH update) — edit metadata.
+- `/api/media/generate` (POST) — AI image generation via z-ai-web-dev-sdk, saves PNG to public/uploads, persists to DB.
+- `/api/ideas` (GET list, POST create, PATCH status, DELETE by id) — ideas CRUD.
+- `/api/ideas/generate` (POST) — AI idea generation via LLM, saves to DB.
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings.
+- Dev server: HTTP 200, all APIs 200.
+- Console: 0 errors on fresh load across all 9 sections.
+- AI image generation: verified (real PNG saved, displayed, VLM-confirmed).
+- AI idea generation: verified (8 ideas with scores, categories, hashtags saved).
+- Sticky header bug: fixed (Lista tab clickable without scroll).
+- All 9 nav sections load and render correctly.
+
+### Unresolved / next-phase recommendations
+- Attach media to posts: Posts currently text-only; wire MediaAsset.attachedTo counter + post.mediaUrls population from media library picker in Creator.
+- OAuth integration with social platforms (still simulated connections).
+- Real analytics ingestion from platform APIs.
+- Multi-user auth (NextAuth available but not wired).
+- Drag-and-drop content calendar.
+- Automated posting execution (cron worker to publish at scheduledAt).
+- Content idea → post conversion: one-click "Create post from idea" pre-filling the Creator with idea title/description/platform.

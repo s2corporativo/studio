@@ -30,6 +30,8 @@ const SECTION_TITLES: Record<string, { title: string; subtitle: string }> = {
   companies: { title: 'Empresas', subtitle: 'Gerencie todas as suas marcas' },
   posts: { title: 'Posts & Agenda', subtitle: 'Calendário e publicações agendadas' },
   creator: { title: 'Criador com IA', subtitle: 'Gere conteúdo otimizado por inteligência artificial' },
+  media: { title: 'Mídia & Imagens', subtitle: 'Gere imagens com IA para seus posts' },
+  ideas: { title: 'Banco de Ideias', subtitle: 'Ideias de conteúdo geradas por IA' },
   social: { title: 'Redes Sociais', subtitle: 'Contas conectadas e métricas' },
   analytics: { title: 'Analytics', subtitle: 'Desempenho e alcance por plataforma' },
   seo: { title: 'SEO & Motores de IA', subtitle: 'Otimização para Google e ChatGPT, Perplexity, etc.' },

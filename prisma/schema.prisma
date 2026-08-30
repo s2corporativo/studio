@@ -27,6 +27,8 @@ model Company {
   analytics      AnalyticsSnapshot[]
   seoKeywords    SeoKeyword[]
   templates      ContentTemplate[]
+  mediaAssets    MediaAsset[]
+  contentIdeas   ContentIdea[]
 }
 
 model SocialAccount {
@@ -122,6 +124,43 @@ model ContentTemplate {
   tone      String?
   category  String?
   createdAt DateTime @default(now())
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model MediaAsset {
+  id          String   @id @default(cuid())
+  companyId   String?
+  title       String
+  description String?
+  url         String
+  thumbnail   String?
+  type        String   @default("image") // image, video
+  source      String   @default("ai") // ai, upload, stock
+  prompt      String?
+  width       Int?
+  height      Int?
+  tags        String   @default("[]") // JSON array
+  attachedTo  Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model ContentIdea {
+  id          String   @id @default(cuid())
+  companyId   String?
+  title       String
+  description String
+  category    String   @default("educacional") // promocional, educacional, engajamento, anuncio, storytelling, produto
+  platform    String   @default("instagram")
+  angle       String?  // hook angle / approach
+  hashtags    String   @default("[]")
+  bestDay     String?  // suggested day of week
+  bestTime    String?  // suggested time
+  status      String   @default("idea") // idea, planned, used
+  score       Int      @default(50) // relevance score 0-100
+  createdAt   DateTime @default(now())
 
   company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

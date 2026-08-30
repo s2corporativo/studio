@@ -8,6 +8,8 @@ export type Section =
   | 'companies'
   | 'posts'
   | 'creator'
+  | 'media'
+  | 'ideas'
   | 'social'
   | 'analytics'
   | 'seo'
