@@ -50,6 +50,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -89,6 +91,8 @@ import {
   Check,
   RotateCcw,
   Calendar,
+  Download,
+  ChevronDown,
 } from 'lucide-react'
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -361,10 +365,56 @@ export function PostsSection() {
         title="Posts & Agenda"
         description="Gerencie posts agendados e publicados em todas as redes sociais"
         action={
-          <Button className="gap-2" onClick={() => setSection('creator')}>
-            <Plus className="w-4 h-4" />
-            Novo Post
-          </Button>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 h-9">
+                  <Download className="w-4 h-4" />
+                  <span className="hidden sm:inline">Exportar</span>
+                  <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                  Exportar calendário
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    const url = `/api/calendar-export?format=ical${companyId ? `&companyId=${companyId}` : ''}`
+                    window.open(url, '_blank')
+                    toast.success('Calendário iCal exportado')
+                  }}
+                  className="gap-2"
+                >
+                  <Calendar className="w-4 h-4 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">iCal (.ics)</p>
+                    <p className="text-[10px] text-muted-foreground">Importar no Google Calendar, Apple, Outlook</p>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const url = `/api/calendar-export?format=csv${companyId ? `&companyId=${companyId}` : ''}`
+                    window.open(url, '_blank')
+                    toast.success('Calendário CSV exportado')
+                  }}
+                  className="gap-2"
+                >
+                  <FileText className="w-4 h-4 text-emerald-500" />
+                  <div>
+                    <p className="text-sm font-medium">CSV (.csv)</p>
+                    <p className="text-[10px] text-muted-foreground">Planilha para Excel / Google Sheets</p>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button className="gap-2" onClick={() => setSection('creator')}>
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Novo Post</span>
+              <span className="sm:hidden">Novo</span>
+            </Button>
+          </div>
         }
       />
 

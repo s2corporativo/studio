@@ -10,6 +10,7 @@ export type Section =
   | 'creator'
   | 'media'
   | 'ideas'
+  | 'hashtags'
   | 'social'
   | 'analytics'
   | 'seo'

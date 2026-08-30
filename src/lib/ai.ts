@@ -215,3 +215,45 @@ function parseAIJSON(raw: string): any {
     return { caption: raw, hashtags: [], variations: {} }
   }
 }
+
+/** Generate hashtag groups for a niche via AI */
+export async function generateHashtagGroups(opts: {
+  company: string
+  niche: string
+  platform?: string
+}): Promise<{ name: string; tags: string[]; description: string; category: string }[]> {
+  const zai = await getAI()
+  const systemPrompt = `You are a social media hashtag strategist for Brazilian companies. You know trending hashtags, niche-specific tags, and how to build hashtag sets that maximize reach without looking spammy. Respond with STRICT valid JSON only, no markdown.`
+
+  const userPrompt = `Gere 6 grupos de hashtags para:
+- Empresa: ${opts.company}
+- Nicho: ${opts.niche}
+${opts.platform ? `- Plataforma foco: ${opts.platform}` : ''}
+
+Crie grupos variados cobrindo: branded (marca), niche-specific, trending/populares, local/community, educational/informative, engagement/community.
+
+Responda SOMENTE com:
+{
+  "groups": [
+    {
+      "name": "nome do grupo (ex: Hashtags da Marca)",
+      "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8"],
+      "description": "quando usar este grupo",
+      "category": "branded|nicho|trending|local|educacional|engajamento"
+    }
+  ]
+}
+Cada grupo com 6-10 hashtags SEM o símbolo #. Tags em português quando relevante. NÃO use crases nem markdown. Apenas JSON puro.`
+
+  const completion = await zai.chat.completions.create({
+    messages: [
+      { role: 'assistant', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    thinking: { type: 'disabled' },
+  })
+
+  const raw = completion.choices[0]?.message?.content || ''
+  const parsed = parseAIJSON(raw)
+  return parsed.groups || []
+}

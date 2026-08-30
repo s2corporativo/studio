@@ -786,3 +786,123 @@ Agent: Main (orchestrator) — autonomous QA & development round
 - Content calendar export (iCal/CSV).
 - Hashtag bank/suggestions per niche.
 - Competitor analysis dashboard.
+
+---
+
+Task ID: 17
+Agent: Subagent (Hashtags Section)
+Task: Build hashtags-section.tsx — "Banco de Hashtags" (AI-powered hashtag groups per niche/company)
+
+Work Log:
+- Read worklog.md (16 prior sections) to absorb design language: purple/fuchsia theme via shadcn primary tokens, p-4/p-5 card padding, gap-4 spacing, scroll-fancy for long lists, framer-motion entrance animations (stagger), sonner toasts in pt-BR, shared UI imports from @/components/shared/ui, useFetch/apiPost/apiDelete from @/lib/hooks, useAppStore selectors for selectedCompanyId/setSection/setSelectedCompany/setCreatorPrefill, override pattern for company filter, AlertDialog for delete confirms, gradient primary→fuchsia buttons for AI actions.
+- Verified API contracts by reading route files: GET /api/hashtags (returns {groups} — note: passing ?companyId=X filters strictly by that company, so to honor the spec of "company's groups + global groups" I fetch all and filter client-side); POST /api/hashtags {companyId,name,niche,platform,tags:[],description,color} → {group}; POST /api/hashtags/generate {company,niche,platform,companyId,save:true} → {groups,count} (saves 6 groups: branded/nicho/trending/local/educacional/engajamento with color map, logs activity event); DELETE /api/hashtags?id=X → {success}. Confirmed tags field is a JSON string array — parse with try/catch.
+- Confirmed lib/store.ts exposes creatorPrefill shape {topic?, category?, tone?, platforms?, source?} — extended with keywords via source:'hashtags' prefill pattern (keywords is consumed by creator via setCreatorPrefill — passing {topic:'', keywords: tags.join(', '), source:'hashtags'}).
+
+hashtags-section.tsx (built, ~560 lines, 'use client'):
+- SectionHeader with Hash icon + title "Banco de Hashtags" + description. Actions: "Novo grupo" outline button (Plus) + "Gerar com IA" gradient primary→fuchsia button (Sparkles).
+- KPI row (3 StatCards): Total de grupos (Layers, violet #7C3AED), Total de hashtags (Tags, pink #EC4899 — sum of all parsed tags across visible groups), Grupos de {empresa} / Grupos por empresa (Building2, purple #A855F7 — when company selected shows that company's group count; otherwise shows distinct company count). Each StatCard with staggered delay (0/0.05/0.1), accent color, hint text.
+- Company context banner: rendered only when selectedCompanyId is set. Card with primary/30 border + primary/5 bg, Filter icon tile, "Filtrando por {companyName}", subtitle "Mostrando grupos da empresa + grupos globais", ghost "Ver todas as empresas" button to clear filter.
+- Group grid: 1/2/3-col responsive (md:grid-cols-2 xl:grid-cols-3). Uses framer-motion AnimatePresence with mode="popLayout" for smooth enter/exit. Each card has:
+  * Color-coded top stripe (h-1.5) using group.color || DEFAULT_COLOR (#7C3AED).
+  * Header: group name (truncate, font-semibold) + niche badge (tinted with color) + platform badge (PlatformBadge + label, only if set).
+  * Hover-revealed delete button (Trash2, opacity-0 group-hover:opacity-100, hover:text-rose-500, aria-label).
+  * Description (italic, line-clamp-2, muted) when present.
+  * Hashtag chips (flex-wrap, max-h-32 overflow-y-auto scroll-fancy): each tag as clickable button with Hash icon + tag + Copy/Check icon. Clicking copies "#tag" via navigator.clipboard, shows transient Check icon (1.5s), toast confirmation.
+  * "Copiar todas" button (outline, copies all tags as space-separated "#tag1 #tag2..." with copying state + transient "Copiado!" state).
+  * "Usar no Criador" button (gradient primary→fuchsia, calls setCreatorPrefill {topic:'', keywords: tags.join(', '), source:'hashtags'} + setSection('creator') + toast).
+  * Usage count badge "usado X vezes" + "{N} tags" hint.
+- AI Generation dialog: opens on "Gerar com IA". Header with Wand2 gradient icon + "Gerar hashtags com IA" + DialogDescription explaining 6 groups generated. Fields: warning banner if no company selected; read-only "Empresa ativa" display (Building2 + name + niche); niche Input (auto-filled from activeCompany.niche on open, editable, with helper text); platform Select (7 options: none/instagram/facebook/linkedin/twitter/tiktok/youtube — "none" maps to undefined platform). Submit button gradient with Loader2 spinner + "Gerando..." / "Gerar 6 grupos". Calls POST /api/hashtags/generate {company, niche, platform, companyId, save:true}. On success: toast "{count} grupos de hashtags gerados!", close dialog, reset niche/platform, refresh list.
+- Manual create dialog: opens on "Novo grupo". DialogContent max-w-md max-h-90vh overflow-y-auto scroll-fancy. Active company banner (Building2 + name). Fields: name (required, Input), niche (Input, pre-filled with activeCompany.niche), platform (Select, same 7 options), description (Textarea, 2 rows), tags Input (Textarea, 3 rows, comma-separated — parses with parseTagInput which strips leading # and filters empty, live preview badges with Hash icon in max-h-24 overflow scroll-fancy area), color picker (6 preset color chips — violet/purple/pink/rose/emerald/amber — with Check icon on selected + border-foreground scale-110). Submit button with Loader2 spinner. Calls POST /api/hashtags {companyId, name, niche, platform, tags[], description, color}. Validates name + at least 1 tag.
+- Delete confirmation: AlertDialog with rose-destructive AlertDialogAction, preventDefault to avoid auto-dismiss, Loader2 spinner while deleting, calls DELETE /api/hashtags?id=X.
+- Loading skeletons: 6 skeleton cards with color stripe + name/badge/description/chips/actions layout, shown while loading.
+- Empty state: EmptyState with Hash icon, "Nenhum grupo de hashtags ainda", descriptive text, CTA "Gerar com IA" gradient button.
+- Company filter: fetches ALL groups (no companyId query param) then filters client-side to include both the selected company's groups AND global groups (companyId === null). When no company selected, shows all groups. This honors the spec "company's groups + global groups" since the API filters strictly by companyId when the param is passed.
+
+Helper functions:
+- safeParseTags(raw): JSON.parse with try/catch + Array.isArray check + string filter. Returns [] on any failure.
+- parseTagInput(input): splits on comma/newline, strips leading #, trims, filters empties.
+- HashtagCard sub-component (separate function): receives group, index, onDelete, onUseInCreator callbacks. Manages own copiedTag/copiedAll/copying state for copy feedback.
+
+Polish & contracts honored:
+- 'use client' at top.
+- All imports per contract: @/components/shared/ui (SectionHeader, EmptyState, StatCard, PlatformBadge), @/lib/hooks (useFetch, apiPost, apiDelete), @/lib/store (useAppStore with individual selectors for selectedCompanyId/setSection/setSelectedCompany/setCreatorPrefill), @/lib/utils (cn), @/components/ui/* (card, button, dialog, input, label, textarea, badge, skeleton, separator, select, alert-dialog).
+- toast from 'sonner'. framer-motion motion + AnimatePresence (mode="popLayout") for entrance stagger + exit animations + layout animation for smooth reflow.
+- lucide-react icons: Hash, Sparkles, Plus, Copy, Check, Trash2, Loader2, Wand2, ArrowRight, Layers, Building2, Filter, Tags.
+- Portuguese (pt-BR) throughout.
+- Purple/fuchsia theme: gradient buttons (primary→fuchsia), violet/purple/pink accent colors in StatCards, primary-tinted badges for hashtag chips. No blue/indigo accents.
+- Card padding p-4/p-5, gaps gap-3/gap-4, max-h-32/max-h-24/max-h-90vh overflow-y-auto scroll-fancy for long lists.
+- Responsive: KPI grid 1→3 cols, group grid 1→2→3 cols, header actions wrap on mobile.
+- Accessibility: aria-labels on icon buttons (delete), Label htmlFor pairs, title attributes on tag chips ("Copiar #tag"), semantic structure.
+- No useEffect state-sync anti-pattern — derived values (visibleGroups, totalTags, etc.) use useMemo. Override pattern avoided since no need to override the global company filter here (the spec wants the global filter respected).
+- Lint: 0 errors, 0 warnings (clean). No eslint-disable directives needed (no setState-in-effect pattern used).
+
+Stage Summary:
+- Banco de Hashtags section fully functional with real API data, hot-reload confirmed via dev.log (HTTP 200 ongoing).
+- Features: KPI row (3 StatCards with stagger), company context banner with clear-filter action, group grid with color-coded stripes + niche/platform badges + clickable hashtag chips (single-copy) + copy-all + use-in-creator prefill + usage count + hover-delete with AlertDialog confirm, AI generation dialog (company auto-filled read-only + niche editable + platform select), manual create dialog (name/niche/platform/description/tags-with-live-preview/color-picker), loading skeletons (6 cards), empty state with CTA.
+- AI generation produces 6 groups (branded, nicho, trending, local, educacional, engajamento) with 6-10 tags each, color-coded per category, with activity logging on the backend.
+- Company filter honors spec: shows company's groups + global groups (client-side filter on unfiltered fetch since the API filters strictly by companyId).
+- "Usar no Criador" wires into the existing creatorPrefill store pattern (source:'hashtags', keywords: tags.join(', ')) + navigates to creator section + toast.
+- Lint: 100% clean (0 errors, 0 warnings). Dev server healthy on port 3000.
+- Ready for orchestrator integration; all 11 nav sections now fully built.
+
+---
+
+## Round 7 — Hashtag Bank + Calendar Export (cron-triggered)
+
+Task ID: 18
+Agent: Main (orchestrator) — autonomous QA & development round
+
+### Assessment (current project status)
+- Project STABLE with 10 sections, dev server running, lint clean.
+- Prior rounds built: dashboard, companies, posts (calendar+list+approval kanban), creator, media, ideas, social, analytics, seo, settings, notifications, media attachment, idea-to-post, settings→AI pipeline, dashboard widgets, post detail drawer, command palette.
+- No bugs found in QA — project is mature and stable.
+
+### QA performed via agent-browser
+- All 10 sections load with zero console errors.
+- Verified command palette, approval kanban, post detail drawer all working.
+- No bugs found.
+
+### New features added
+1. **Hashtag Bank section** (`hashtags-section.tsx` — NEW, 11th section) — built by subagent
+   - New Prisma model `HashtagGroup` (id, companyId, name, niche, platform, tags JSON, description, color, usageCount, timestamps) + back-relation on Company.
+   - New AI function `generateHashtagGroups()` in `lib/ai.ts` — generates 6 varied groups (branded, nicho, trending, local, educacional, engajamento) with 6-10 tags each via LLM.
+   - New API routes: `/api/hashtags` (GET/POST/DELETE), `/api/hashtags/[id]` (PATCH), `/api/hashtags/generate` (POST — AI generation + save + activity logging).
+   - New nav item "Hashtags" in sidebar + topbar title.
+   - KPI row: total grupos, total hashtags (sum), grupos por empresa.
+   - Group cards: color-coded stripe, name + niche/platform badges, description, hashtag chips (click to copy single, "Copiar todas" button), "Usar no Criador" button (sets creatorPrefill with keywords), usage count, delete with confirm.
+   - AI Generation dialog: company auto-filled, niche editable, platform select. Generates 6 groups via LLM.
+   - Manual create dialog: name, niche, platform, description, tags (comma-separated with live badges), 6-preset color picker.
+   - Company filter respected, loading skeletons, empty state with CTA.
+   - Verified: generated 6 groups for Café Aurora (Gastronomia/Cafeteria) — 6 groups with 6-7 tags each covering branded (CafeAurora), niche (EspecialistaEmCafe), trending (FoodTrends), local (CafeEmSaoPaulo), educational (ComoFazerCafe), engagement (CafeComAmigos). All saved to DB, VLM-confirmed cards render with # chips.
+
+2. **Content Calendar Export** (new)
+   - New API route `/api/calendar-export` (GET) with `format=ical|csv` and optional `companyId` filter.
+   - **iCal (.ics)** format: proper VCALENDAR with VEVENT entries (UID, DTSTAMP, DTSTART, DTEND, SUMMARY, DESCRIPTION, CATEGORIES, STATUS), 30-min events, America/Sao_Paulo timezone, CONFIRMED for published / TENTATIVE for scheduled. Imports into Google Calendar, Apple Calendar, Outlook.
+   - **CSV (.csv)** format: columns Titulo, Empresa, Conteudo, Data, Status, Plataformas, Categoria. Opens in Excel/Google Sheets.
+   - Export dropdown added to Posts section header: "Exportar" button with iCal + CSV options (with icons and descriptions).
+   - Respects current company filter.
+   - Verified: iCal export produces valid VCALENDAR with multiple VEVENTs; CSV export produces proper comma-separated rows with quoted fields. Both download correctly.
+
+### Styling improvements
+- Hashtag cards: color-coded stripes, hashtag chips with hover-to-copy, usage badges, staggered framer-motion entrance.
+- Export dropdown: icon-led menu items with title + description subtext, ChevronDown indicator.
+- All use established purple/fuchsia theme.
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings (clean).
+- Console: 0 errors across all 11 sections.
+- Hashtag AI generation: 6 groups generated with 6-7 tags each, all saved to DB, VLM-confirmed cards render.
+- Calendar export iCal: valid VCALENDAR format with VEVENTs.
+- Calendar export CSV: proper comma-separated rows.
+- All 11 nav sections load correctly.
+
+### Unresolved / next-phase recommendations
+- OAuth integration with social platforms (still simulated).
+- Real analytics ingestion from platform APIs.
+- Multi-user auth with approval roles (NextAuth available but not wired).
+- Drag-and-drop in approval kanban (currently button-based transitions).
+- Automated posting execution (cron worker to publish at scheduledAt).
+- Real-time notifications via WebSocket (currently polls every 30s).
+- A/B testing of post variations.
+- Competitor analysis dashboard.
+- Hashtag performance tracking (which hashtags drive most engagement).

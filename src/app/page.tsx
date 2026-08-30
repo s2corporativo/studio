@@ -10,6 +10,7 @@ import { PostsSection } from '@/components/sections/posts-section'
 import { CreatorSection } from '@/components/sections/creator-section'
 import { MediaSection } from '@/components/sections/media-section'
 import { IdeasSection } from '@/components/sections/ideas-section'
+import { HashtagsSection } from '@/components/sections/hashtags-section'
 import { SocialSection } from '@/components/sections/social-section'
 import { AnalyticsSection } from '@/components/sections/analytics-section'
 import { SeoSection } from '@/components/sections/seo-section'
@@ -32,6 +33,7 @@ export default function Home() {
     creator: <CreatorSection />,
     media: <MediaSection />,
     ideas: <IdeasSection />,
+    hashtags: <HashtagsSection />,
     social: <SocialSection />,
     analytics: <AnalyticsSection />,
     seo: <SeoSection />,

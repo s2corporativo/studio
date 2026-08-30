@@ -31,6 +31,7 @@ model Company {
   contentIdeas   ContentIdea[]
   activityEvents ActivityEvent[]
   settings       CompanySettings?
+  hashtagGroups  HashtagGroup[]
 }
 
 model SocialAccount {
@@ -202,4 +203,20 @@ model CompanySettings {
   updatedAt        DateTime @updatedAt
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model HashtagGroup {
+  id          String   @id @default(cuid())
+  companyId   String?
+  name        String
+  niche       String?
+  platform    String?
+  tags        String   @default("[]") // JSON array of hashtag strings (without #)
+  description String?
+  color       String?
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
