@@ -2,11 +2,13 @@ import { z } from "zod";
 import { editorialFormats } from "../../drizzle/schema";
 import { protectedProcedure, router } from "../_core/trpc";
 import { AI_TEXT_LIMIT, consumeRateLimit } from "../_core/rateLimit";
-import { archiveBrandWorkspace, bindPostToBrandWorkspace, createBrandWorkspace, getBrandWorkspace, listBrandWorkspaces, listPerformanceLearnings, setDefaultBrandWorkspace, updateBrandWorkspace } from "../brandWorkspaceDb";
+import { archiveBrandWorkspace, bindPostToBrandWorkspace, createBrandWorkspace, getBrandWorkspace, getPostBrandWorkspace, listBrandWorkspaces, listPerformanceLearnings, setDefaultBrandWorkspace, updateBrandWorkspace } from "../brandWorkspaceDb";
 import { createBrandBoundPost } from "../brandWorkspaceContentDb";
 import { learnBrandPerformance } from "../performanceLearningEngine";
 import { recordAuditEvent } from "../socialOsDb";
+import { getStudioData, getStudioPost, updateStudioPost } from "../socialStudioDb";
 import { generateLegalDraft } from "../socialStudioGenerator";
+import { canSubmitForReview } from "../studioRules";
 
 const nullableText = (max: number) => z.string().trim().max(max).nullable();
 const formatSchema = z.enum(editorialFormats);
@@ -116,6 +118,19 @@ export const brandWorkspacesRouter = router({
     });
     await recordAuditEvent(ctx.user.id, "brand_workspace.draft_generated", "content_post", post.id, { brandWorkspaceId: workspace.id, brandKey: workspace.key });
     return post;
+  }),
+
+  sendToReview: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+    const [post, workspace, studio] = await Promise.all([
+      getStudioPost(ctx.user.id, input.id),
+      getPostBrandWorkspace(ctx.user.id, input.id),
+      getStudioData(ctx.user.id),
+    ]);
+    const result = canSubmitForReview({ ...post, prohibitedTerms: workspace?.prohibitedTerms ?? studio.brand?.prohibitedTerms });
+    if (!result.allowed) throw new Error(result.reason);
+    const updated = await updateStudioPost(ctx.user.id, post.id, { status: "review" });
+    await recordAuditEvent(ctx.user.id, "brand_workspace.sent_to_review", "content_post", post.id, { brandWorkspaceId: workspace?.id ?? null });
+    return updated;
   }),
 
   learnings: protectedProcedure.input(z.object({ brandWorkspaceId: z.number().int().positive() })).query(({ ctx, input }) => listPerformanceLearnings(ctx.user.id, input.brandWorkspaceId)),
