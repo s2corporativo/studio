@@ -34,7 +34,6 @@ const db = await getDb();
 if (!db) throw new Error("Banco de dados indisponível.");
 const [owner] = await db.select({ id: users.id }).from(users).where(eq(users.openId, ownerOpenId)).limit(1);
 if (!owner) throw new Error("Usuário proprietário não encontrado. Faça login no Studio antes da importação.");
-await ensureStudioDefaults(owner.id);
 
 const visualGuidelines = [
   `Paleta: ${memory.visualSystem.palette.join(", ")}.`,
@@ -62,11 +61,15 @@ if (!APPLY) {
     ownerId: owner.id,
     brandName: memory.brandName,
     knowledgeFiles: knowledgeFiles.map(([, file]) => file),
-    message: "Use --apply para persistir. Nenhuma publicação social será executada.",
+    databaseWrites: false,
+    storageWrites: false,
+    publicationTriggered: false,
+    message: "Use --apply para persistir. O dry-run não altera banco, storage ou publicação social.",
   }, null, 2));
   process.exit(0);
 }
 
+await ensureStudioDefaults(owner.id);
 await db.update(brandProfiles).set({
   targetAudience,
   toneOfVoice,
