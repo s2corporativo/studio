@@ -148,7 +148,7 @@
 - [x] Confirmar se o pipeline pendente do Studio iniciou, concluiu ou permanece aguardando e registrar sua situação atual.
 - [x] Preparar a versão horizontal oficial da logomarca para uso estático seguro no Social Studio.
 - [x] Inserir a logomarca oficial no cabeçalho e na raiz do sistema, com texto alternativo e proporção responsiva.
-- [ ] Validar a logomarca em desktop e mobile e publicar a atualização visual.
+- [x] Validar a logomarca em desktop e mobile e publicar a atualização visual.
 - [x] Mapear o design de referência EJC e os componentes existentes para preservar fluxos e dados do Social Studio.
 - [x] Redesenhar a raiz e a navegação com hierarquia operacional inspirada no EJC, sem substituir os módulos do Social Studio.
 - [x] Inserir a logomarca horizontal oficial no cabeçalho redesenhado com texto alternativo e comportamento responsivo.

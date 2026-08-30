@@ -67,6 +67,12 @@ Como observação de desempenho, o fornecedor compartilhado ainda gera um aviso 
 
 O checkpoint corretivo `cde69dd2` foi publicado e revalidado no domínio de produção. O smoke test confirmou health, readiness e as rotas principais; uma varredura adicional confirmou HTTP 200 em todas as 28 rotas registradas, inclusive `/compliance`, que redireciona corretamente para governança. A resposta externa não autenticada ao endpoint de cron é HTTP 403, preservando o bloqueio de publicação fora da infraestrutura agendada.
 
+## Raiz operacional e identidade visual — 30/08/2026
+
+A raiz foi redesenhada com base na referência operacional fornecida pelo escritório: superfície de trabalho clara, sidebar institucional em verde profundo, indicadores de operação, pipeline editorial, agenda e bloco de inteligência destacado. A composição preserva todos os fluxos existentes e não altera as regras de revisão, aprovação ou publicação.
+
+A logomarca horizontal oficial da **De Paula Teixeira Advocacia** foi adicionada com texto alternativo ao cabeçalho e à faixa institucional da raiz. O comportamento foi verificado em 1280×720 e 390×844, sem corte de conteúdo, sobreposição ou perda de contraste. TypeScript, 86 testes e build foram aprovados antes da publicação; o smoke test de produção voltou a confirmar health, readiness e as rotas principais com HTTP 200.
+
 ## Próximo passo concreto
 
 Atualize o **App ID** correspondente ao DPT no formulário seguro já disponibilizado e, se o App Secret tiver sido regenerado, atualize também o Secret pareado. Após responder **“credenciais atualizadas”**, será executada uma única validação técnica sem OAuth, mídia ou publicação pública.
