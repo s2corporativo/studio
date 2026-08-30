@@ -3,28 +3,12 @@ import { contentPosts } from "../drizzle/schema";
 import { contentMetrics } from "../drizzle/socialOsSchema";
 import { buildContentFingerprint } from "../shared/contentFingerprint";
 import { inferHumanizationCategory } from "../shared/humanizationPolicy";
+import { confidenceForSampleSize, latestMetricSnapshots, mean, percentageLift, performanceRates } from "../shared/performanceLearningMath";
 import { compositionDirectiveFor } from "../shared/visualRepetition";
 import { getDb } from "./db";
 import { createBrandMemorySnapshot, getBrandWorkspace, listPerformanceLearnings, listWorkspacePostIds, upsertPerformanceLearning } from "./brandWorkspaceDb";
 
-type MetricSample = {
-  postId: number;
-  network: string;
-  reach: number;
-  impressions: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  clicks: number;
-  leads: number;
-};
-
 type LearningDimension = "topic" | "format" | "schedule" | "cta" | "audience" | "channel" | "visual_family" | "humanization";
-
-function safeRate(numerator: number, denominator: number) {
-  return denominator > 0 ? numerator / denominator : 0;
-}
 
 function roundRate(value: number) {
   return Math.round(value * 10_000) / 10_000;
@@ -44,15 +28,6 @@ function normalizedAudience(value: string | null) {
   return text.slice(0, 180) || "geral";
 }
 
-function mean(values: number[]) {
-  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
-}
-
-function pctLift(value: number, baseline: number) {
-  if (baseline <= 0) return null;
-  return Math.round(((value - baseline) / baseline) * 1000) / 10;
-}
-
 export async function learnBrandPerformance(userId: number, brandWorkspaceId: number) {
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível.");
@@ -65,32 +40,12 @@ export async function learnBrandPerformance(userId: number, brandWorkspaceId: nu
     db.select().from(contentMetrics).where(and(eq(contentMetrics.userId, userId), inArray(contentMetrics.postId, postIds))).orderBy(desc(contentMetrics.capturedAt)),
   ]);
   const postById = new Map(posts.map(post => [post.id, post]));
+  const latestMetrics = latestMetricSnapshots(metrics);
 
-  const latestByPostNetwork = new Map<string, MetricSample>();
-  for (const metric of metrics) {
-    const key = `${metric.postId}:${metric.network}`;
-    if (!latestByPostNetwork.has(key)) {
-      latestByPostNetwork.set(key, {
-        postId: metric.postId,
-        network: metric.network,
-        impressions: metric.impressions,
-        reach: metric.reach,
-        likes: metric.likes,
-        comments: metric.comments,
-        shares: metric.shares,
-        saves: metric.saves,
-        clicks: metric.clicks,
-        leads: metric.leads,
-      });
-    }
-  }
-
-  const enriched = [...latestByPostNetwork.values()].flatMap(metric => {
+  const enriched = latestMetrics.flatMap(metric => {
     const post = postById.get(metric.postId);
     if (!post) return [];
-    const engagementRate = safeRate(metric.likes + metric.comments + metric.shares + metric.saves, metric.reach);
-    const actionRate = safeRate(metric.clicks + metric.leads, metric.reach);
-    const saveShareRate = safeRate(metric.saves + metric.shares, metric.reach);
+    const rates = performanceRates(metric);
     const fingerprint = buildContentFingerprint({
       title: post.title,
       hook: post.hook,
@@ -105,7 +60,7 @@ export async function learnBrandPerformance(userId: number, brandWorkspaceId: nu
       visualFamily: compositionDirectiveFor(`${post.area}:${post.title}`).key,
       cta: post.cta,
     });
-    return [{ metric, post, fingerprint, engagementRate, actionRate, saveShareRate }];
+    return [{ metric, post, fingerprint, ...rates }];
   });
 
   if (!enriched.length) return { samples: 0, learnings: [], snapshot: null, message: "Ainda não há snapshots de métricas vinculados a esta marca." };
@@ -138,16 +93,17 @@ export async function learnBrandPerformance(userId: number, brandWorkspaceId: nu
 
   const saved = [];
   for (const group of groups.values()) {
-    if (group.rows.length < 2) continue;
+    const confidenceScore = confidenceForSampleSize(group.rows.length);
+    if (!confidenceScore) continue;
     const stats = {
       engagementRate: mean(group.rows.map(item => item.engagementRate)),
       actionRate: mean(group.rows.map(item => item.actionRate)),
       saveShareRate: mean(group.rows.map(item => item.saveShareRate)),
       reach: mean(group.rows.map(item => item.metric.reach)),
     };
-    const engagementLift = pctLift(stats.engagementRate, baseline.engagementRate);
-    const actionLift = pctLift(stats.actionRate, baseline.actionRate);
-    const saveShareLift = pctLift(stats.saveShareRate, baseline.saveShareRate);
+    const engagementLift = percentageLift(stats.engagementRate, baseline.engagementRate);
+    const actionLift = percentageLift(stats.actionRate, baseline.actionRate);
+    const saveShareLift = percentageLift(stats.saveShareRate, baseline.saveShareRate);
     const positive = (engagementLift ?? 0) >= 10 || (actionLift ?? 0) >= 10 || (saveShareLift ?? 0) >= 10;
     const negative = (engagementLift ?? 0) <= -15 && (actionLift ?? 0) <= -15;
     const recommendation = positive
@@ -155,7 +111,6 @@ export async function learnBrandPerformance(userId: number, brandWorkspaceId: nu
       : negative
         ? `O padrão ${group.dimension}=${group.key} ficou abaixo do baseline interno nas principais taxas. Reduza frequência e teste uma variação antes de descartar o tema.`
         : `O padrão ${group.dimension}=${group.key} está próximo do baseline. Mantenha coleta antes de mudar a estratégia.`;
-    const confidenceScore = Math.min(92, 35 + group.rows.length * 11);
     const evidence = {
       methodology: "latest_snapshot_per_post_network",
       causalClaim: false,
