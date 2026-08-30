@@ -1,0 +1,7 @@
+# Trecho a acrescentar ao Caddyfile já existente na VPS compartilhada
+# (não substitui o arquivo inteiro — só adiciona este bloco).
+# HTTPS automático via Let's Encrypt é cuidado pelo próprio Caddy.
+
+studio.s2corporativo.com.br {
+	reverse_proxy 127.0.0.1:8080
+}
