@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useFetch, apiPut, apiDelete } from '@/lib/hooks'
+import { useFetch, apiPost, apiPut, apiDelete } from '@/lib/hooks'
 import { useAppStore } from '@/lib/store'
 import { cn, formatDateTime, toLocalInputValue } from '@/lib/utils'
 import { PlatformIcon } from '@/lib/platform-icons'
@@ -44,6 +44,22 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -60,6 +76,12 @@ import {
   Trash2,
   Sparkles,
   Hash,
+  MoreHorizontal,
+  Copy,
+  CheckSquare,
+  X,
+  Loader2,
+  Image as ImageIcon,
 } from 'lucide-react'
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -100,6 +122,19 @@ export function PostsSection() {
   })
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [editing, setEditing] = useState<any | null>(null)
+
+  // Bulk selection state
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [singleDeletePost, setSingleDeletePost] = useState<any | null>(null)
+  const [bulkActionLoading, setBulkActionLoading] = useState<
+    'duplicate' | 'delete' | null
+  >(null)
+  const [rowActionLoading, setRowActionLoading] = useState<{
+    id: string
+    action: 'duplicate' | 'delete'
+  } | null>(null)
 
   const postsUrl = useMemo(() => {
     const params = new URLSearchParams()
@@ -178,6 +213,108 @@ export function PostsSection() {
   const goToday = () => {
     const d = new Date()
     setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1))
+  }
+
+  // ---------- Selection handlers ----------
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (prev.size === filteredPosts.length) return new Set()
+      return new Set(filteredPosts.map((p) => p.id))
+    })
+  }
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false)
+    setSelectedIds(new Set())
+  }
+
+  const handleSingleDuplicate = async (post: any) => {
+    setRowActionLoading({ id: post.id, action: 'duplicate' })
+    try {
+      await apiPost(`/api/posts/${post.id}`, { action: 'duplicate' })
+      toast.success('Post duplicado com sucesso!')
+      refresh()
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao duplicar post')
+    } finally {
+      setRowActionLoading(null)
+    }
+  }
+
+  const handleSingleDelete = async (post: any) => {
+    setRowActionLoading({ id: post.id, action: 'delete' })
+    try {
+      await apiDelete(`/api/posts/${post.id}`)
+      toast.success('Post excluído')
+      refresh()
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao excluir post')
+    } finally {
+      setRowActionLoading(null)
+      setSingleDeletePost(null)
+    }
+  }
+
+  const handleBulkDuplicate = async () => {
+    if (selectedIds.size === 0) return
+    setBulkActionLoading('duplicate')
+    let success = 0
+    let failed = 0
+    try {
+      for (const id of selectedIds) {
+        try {
+          await apiPost(`/api/posts/${id}`, { action: 'duplicate' })
+          success++
+        } catch {
+          failed++
+        }
+      }
+      if (failed === 0) {
+        toast.success(`${success} posts duplicados com sucesso!`)
+      } else {
+        toast.warning(`${success} duplicados, ${failed} falharam`)
+      }
+      exitSelectionMode()
+      refresh()
+    } finally {
+      setBulkActionLoading(null)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    setBulkActionLoading('delete')
+    let success = 0
+    let failed = 0
+    try {
+      for (const id of selectedIds) {
+        try {
+          await apiDelete(`/api/posts/${id}`)
+          success++
+        } catch {
+          failed++
+        }
+      }
+      if (failed === 0) {
+        toast.success(`${success} posts excluídos`)
+      } else {
+        toast.warning(`${success} excluídos, ${failed} falharam`)
+      }
+      setConfirmBulkDelete(false)
+      exitSelectionMode()
+      refresh()
+    } finally {
+      setBulkActionLoading(null)
+    }
   }
 
   return (
@@ -261,10 +398,52 @@ export function PostsSection() {
               ))}
             </SelectContent>
           </Select>
+          {view === 'list' && !selectionMode ? (
+            <Button
+              variant="outline"
+              onClick={() => setSelectionMode(true)}
+              className="gap-2 shrink-0"
+            >
+              <CheckSquare className="w-4 h-4" />
+              Selecionar
+            </Button>
+          ) : view === 'list' && selectionMode ? (
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleSelectAll}
+                className="gap-1.5"
+                disabled={filteredPosts.length === 0}
+              >
+                <CheckSquare className="w-4 h-4" />
+                {selectedIds.size === filteredPosts.length &&
+                filteredPosts.length > 0
+                  ? 'Desmarcar tudo'
+                  : 'Marcar tudo'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exitSelectionMode}
+                className="gap-1.5"
+              >
+                <X className="w-4 h-4" />
+                Sair
+              </Button>
+            </div>
+          ) : null}
         </div>
       </Card>
 
-      <Tabs value={view} onValueChange={(v) => setView(v as 'calendar' | 'list')}>
+      <Tabs
+        value={view}
+        onValueChange={(v) => {
+          const next = v as 'calendar' | 'list'
+          setView(next)
+          if (next !== 'list' && selectionMode) exitSelectionMode()
+        }}
+      >
         <TabsList>
           <TabsTrigger value="calendar" className="gap-1.5">
             <CalendarDays className="w-4 h-4" /> Calendário
@@ -408,21 +587,42 @@ export function PostsSection() {
                 <AnimatePresence initial={false}>
                   {filteredPosts.map((post, i) => {
                     const hashtags = safeParse<string[]>(post.hashtags, [])
+                    const mediaUrls = safeParse<string[]>(post.mediaUrls, [])
                     const platforms = (post.targets || []).map(
                       (t: any) => t.platform
                     )
                     const category = POST_CATEGORIES.find(
                       (c) => c.value === post.category
                     )
+                    const isSelected = selectedIds.has(post.id)
+                    const rowLoading =
+                      rowActionLoading?.id === post.id
+                        ? rowActionLoading.action
+                        : null
                     return (
-                      <motion.button
+                      <motion.div
                         key={post.id}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ delay: Math.min(i * 0.02, 0.2) }}
-                        onClick={() => setEditing(post)}
-                        className="group w-full flex items-start gap-3 p-4 hover:bg-accent/40 transition-colors text-left"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          if (selectionMode) toggleSelect(post.id)
+                          else setEditing(post)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            if (selectionMode) toggleSelect(post.id)
+                            else setEditing(post)
+                          }
+                        }}
+                        className={cn(
+                          'group w-full flex items-start gap-3 p-4 hover:bg-accent/40 transition-colors text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
+                          selectionMode && isSelected && 'bg-primary/5'
+                        )}
                       >
                         <span
                           className="w-1 self-stretch rounded-full shrink-0 min-h-[48px]"
@@ -430,6 +630,34 @@ export function PostsSection() {
                             backgroundColor: post.company?.brandColor || '#7C3AED',
                           }}
                         />
+                        {selectionMode && (
+                          <div onClick={(e) => e.stopPropagation()} className="mt-1.5 shrink-0">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleSelect(post.id)}
+                              aria-label={`Selecionar ${post.title}`}
+                            />
+                          </div>
+                        )}
+                        {mediaUrls.length > 0 ? (
+                          <div className="relative shrink-0 mt-0.5">
+                            <img
+                              src={mediaUrls[0]}
+                              alt=""
+                              className="w-12 h-12 rounded-lg object-cover border border-border"
+                              loading="lazy"
+                            />
+                            {mediaUrls.length > 1 && (
+                              <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none flex items-center justify-center">
+                                +{mediaUrls.length - 1}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg border border-dashed border-border flex items-center justify-center shrink-0 mt-0.5 text-muted-foreground/50">
+                            <ImageIcon className="w-4 h-4" />
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <span className="font-semibold text-sm truncate">
@@ -473,8 +701,56 @@ export function PostsSection() {
                             )}
                           </div>
                         </div>
-                        <Pencil className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
-                      </motion.button>
+                        {!selectionMode && (
+                          <div
+                            className="shrink-0 mt-0.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity data-[state=open]:opacity-100"
+                                  aria-label="Ações do post"
+                                  disabled={!!rowLoading}
+                                >
+                                  {rowLoading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <MoreHorizontal className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem
+                                  onClick={() => setEditing(post)}
+                                  className="gap-2 cursor-pointer"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleSingleDuplicate(post)}
+                                  className="gap-2 cursor-pointer"
+                                  disabled={rowLoading === 'duplicate'}
+                                >
+                                  <Copy className="w-4 h-4" />
+                                  Duplicar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => setSingleDeletePost(post)}
+                                  className="gap-2 cursor-pointer text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/40"
+                                  disabled={rowLoading === 'delete'}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        )}
+                      </motion.div>
                     )
                   })}
                 </AnimatePresence>
@@ -568,6 +844,157 @@ export function PostsSection() {
           }}
         />
       )}
+
+      {/* Single post delete confirmation */}
+      <AlertDialog
+        open={!!singleDeletePost}
+        onOpenChange={(o) => !o && setSingleDeletePost(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-rose-500" />
+              Excluir post
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir{' '}
+              <strong className="text-foreground">
+                {singleDeletePost?.title}
+              </strong>
+              ? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!rowActionLoading}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => singleDeletePost && handleSingleDelete(singleDeletePost)}
+              disabled={!!rowActionLoading}
+              className="bg-rose-600 hover:bg-rose-700 text-white gap-2"
+            >
+              {rowActionLoading?.action === 'delete' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Excluir
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk delete confirmation */}
+      <AlertDialog
+        open={confirmBulkDelete}
+        onOpenChange={(o) => !o && setConfirmBulkDelete(false)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-rose-500" />
+              Excluir {selectedIds.size} posts?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir{' '}
+              <strong className="text-foreground">{selectedIds.size}</strong>{' '}
+              {selectedIds.size === 1 ? 'post' : 'posts'} permanentemente. Esta
+              ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!bulkActionLoading}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={!!bulkActionLoading}
+              className="bg-rose-600 hover:bg-rose-700 text-white gap-2"
+            >
+              {bulkActionLoading === 'delete' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Excluindo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  Excluir todos
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Floating bulk action bar */}
+      <AnimatePresence>
+        {selectionMode && selectedIds.size > 0 && (
+          <motion.div
+            initial={{ y: 60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 60, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
+          >
+            <div className="flex items-center gap-3 bg-card border border-border shadow-xl rounded-2xl px-4 py-3 backdrop-blur-md bg-card/95">
+              <Badge
+                variant="secondary"
+                className="gap-1.5 px-3 py-1 text-sm font-semibold"
+              >
+                <CheckSquare className="w-3.5 h-3.5 text-primary" />
+                {selectedIds.size}{' '}
+                {selectedIds.size === 1 ? 'selecionado' : 'selecionados'}
+              </Badge>
+              <div className="h-6 w-px bg-border" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkDuplicate}
+                disabled={!!bulkActionLoading}
+                className="gap-1.5"
+              >
+                {bulkActionLoading === 'duplicate' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+                Duplicar
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setConfirmBulkDelete(true)}
+                disabled={!!bulkActionLoading}
+                className="gap-1.5"
+              >
+                {bulkActionLoading === 'delete' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                Excluir
+              </Button>
+              <div className="h-6 w-px bg-border" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exitSelectionMode}
+                disabled={!!bulkActionLoading}
+                className="gap-1.5"
+              >
+                <X className="w-4 h-4" />
+                Cancelar
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

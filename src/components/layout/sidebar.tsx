@@ -12,6 +12,7 @@ import {
   Share2,
   BarChart3,
   Search,
+  Settings,
   Zap,
   X,
 } from 'lucide-react'
@@ -28,6 +29,7 @@ const NAV: { id: Section; label: string; icon: any; description: string }[] = [
   { id: 'social', label: 'Redes Sociais', icon: Share2, description: 'Contas conectadas' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, description: 'Métricas & alcance' },
   { id: 'seo', label: 'SEO & IA', icon: Search, description: 'Google + motores de IA' },
+  { id: 'settings', label: 'Configurações', icon: Settings, description: 'Voz da marca & IA' },
 ]
 
 export function Sidebar() {

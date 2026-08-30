@@ -30,6 +30,7 @@ model Company {
   mediaAssets    MediaAsset[]
   contentIdeas   ContentIdea[]
   activityEvents ActivityEvent[]
+  settings       CompanySettings?
 }
 
 model SocialAccount {
@@ -179,4 +180,26 @@ model ActivityEvent {
   createdAt DateTime @default(now())
 
   company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model CompanySettings {
+  id               String   @id @default(cuid())
+  companyId        String   @unique
+  brandVoice       String?  // tom/voz da marca descrito em texto
+  targetAudience   String?
+  defaultTone      String   @default("profissional")
+  defaultPlatforms String   @default("[]") // JSON array
+  defaultHashtags  String   @default("[]") // JSON array
+  hashtagCount     Int      @default(8)
+  aiCreativity     Int      @default(70) // 0-100
+  autoEmoji        Boolean  @default(true)
+  autoHashtags     Boolean  @default(true)
+  watermark        Boolean  @default(false)
+  postingFrequency String   @default("daily") // daily, weekly, biweekly
+  bestPostingTime  String?  // HH:MM
+  timezone         String   @default("America/Sao_Paulo")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

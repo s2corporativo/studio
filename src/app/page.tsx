@@ -13,6 +13,7 @@ import { IdeasSection } from '@/components/sections/ideas-section'
 import { SocialSection } from '@/components/sections/social-section'
 import { AnalyticsSection } from '@/components/sections/analytics-section'
 import { SeoSection } from '@/components/sections/seo-section'
+import { SettingsSection } from '@/components/sections/settings-section'
 
 export default function Home() {
   const activeSection = useAppStore((s) => s.activeSection)
@@ -34,6 +35,7 @@ export default function Home() {
     social: <SocialSection />,
     analytics: <AnalyticsSection />,
     seo: <SeoSection />,
+    settings: <SettingsSection />,
   }
 
   return (

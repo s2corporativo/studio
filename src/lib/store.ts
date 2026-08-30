@@ -13,6 +13,7 @@ export type Section =
   | 'social'
   | 'analytics'
   | 'seo'
+  | 'settings'
 
 interface AppState {
   activeSection: Section

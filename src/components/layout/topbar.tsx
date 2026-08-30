@@ -47,6 +47,7 @@ const SECTION_TITLES: Record<string, { title: string; subtitle: string }> = {
   social: { title: 'Redes Sociais', subtitle: 'Contas conectadas e métricas' },
   analytics: { title: 'Analytics', subtitle: 'Desempenho e alcance por plataforma' },
   seo: { title: 'SEO & Motores de IA', subtitle: 'Otimização para Google e ChatGPT, Perplexity, etc.' },
+  settings: { title: 'Configurações', subtitle: 'Voz da marca, padrões de postagem e IA' },
 }
 
 export function TopBar() {
