@@ -37,3 +37,7 @@ Na verificação de 29/08/2026, a VPS tinha 6 vCPUs, 11 GiB de memória total e 
 Após o workflow inicial de `verdelimpclaude` concluir, o agente iniciou o pipeline `#84` de `s2licit`. A execução corrigida do Studio permanece preservada na posição 3, atrás de dois workflows de `verdelimpclaude`. A API do Woodpecker confirma que o pipeline `#2` ainda está pendente, sem erro adicional ou descarte.
 
 Na última consulta, o único agente ativo `vps-prod-01` informa capacidade `1` e o pipeline do Studio estava na posição 2, atrás de `verdelimpclaude #99`. A ausência de logs do Studio é esperada enquanto o passo raiz `woodpecker` está pendente; não é uma falha da configuração corrigida.
+
+## Conclusão da execução remota
+
+Em 30/08/2026, o pipeline `#2` iniciou após a liberação natural do agente único e terminou com código de saída `0`. As etapas `clone` (00:04) e `validate` (02:38) foram aprovadas. O workflow não executou migrations, deploys, alterações de banco nem mudanças de configuração de produção.

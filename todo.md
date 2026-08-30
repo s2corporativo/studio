@@ -133,11 +133,16 @@
 - [x] Inventariar de forma não destrutiva a VPS compartilhada e confirmar o acesso ao Woodpecker existente.
 - [x] Validar a saúde do Woodpecker, seus agentes e a integração GitHub sem alterar serviços de produção.
 - [x] Revisar e habilitar de modo seguro o pipeline `.woodpecker.yml` da branch `ci/woodpecker-studio`, sem secrets de produção.
-- [ ] Executar a primeira validação manual do pipeline do Studio e registrar cada etapa sem efetuar deploy ou migrations.
+- [x] Executar a primeira validação manual do pipeline do Studio e registrar cada etapa sem efetuar deploy ou migrations.
 - [x] Documentar o estado de Woodpecker, GitHub, recursos da VPS e a prontidão do PR #10 para merge.
 - [x] Corrigir os testes unitários de integração Instagram para fornecer configuração fictícia segura na CI, sem usar secrets de produção.
-- [ ] Reexecutar o pipeline Woodpecker do PR #10 após a correção e registrar o resultado de cada etapa.
+- [x] Reexecutar o pipeline Woodpecker do PR #10 após a correção e registrar o resultado de cada etapa.
 - [x] Confirmar o commit remoto da main e revisar a migration 0020 de allowSelfApproval antes de qualquer aplicação.
 - [x] Sincronizar a main no projeto e aplicar a migration 0020 de forma não destrutiva antes da publicação.
 - [x] Revalidar tipos, testes, build, segurança, banco e smoke test de produção após a sincronização da main.
 - [x] Registrar e publicar a evidência de sincronização, migration e versão de produção resultante.
+- [x] Inventariar os commits e o diff recente da main, identificando as alterações feitas pelo Claude.
+- [x] Confirmar novamente a presença da migration 0020 na main e o estado da coluna allowSelfApproval no TiDB.
+- [x] Sincronizar a main recente somente após a confirmação do schema e revalidar a publicação resultante.
+- [x] Reavaliar a capacidade atual da VPS compartilhada e o estado da fila Woodpecker sem alterar serviços ou concorrência.
+- [x] Confirmar se o pipeline pendente do Studio iniciou, concluiu ou permanece aguardando e registrar sua situação atual.
