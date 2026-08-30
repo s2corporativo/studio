@@ -22,9 +22,9 @@ export function ThemeProvider({
   switchable = false,
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
-    if (switchable) {
+    if (switchable && typeof window !== "undefined") {
       const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
+      return stored === "dark" || stored === "light" ? stored : defaultTheme;
     }
     return defaultTheme;
   });
@@ -37,7 +37,7 @@ export function ThemeProvider({
       root.classList.remove("dark");
     }
 
-    if (switchable) {
+    if (switchable && typeof window !== "undefined") {
       localStorage.setItem("theme", theme);
     }
   }, [theme, switchable]);

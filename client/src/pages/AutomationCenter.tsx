@@ -7,22 +7,9 @@ import { useLocation } from "wouter";
 import type { AutomationSetting } from "../../../drizzle/schema";
 import AutopilotPanel from "./AutopilotPanel";
 
-type AutomationForm = Omit<Pick<AutomationSetting, "enabled" | "cadence" | "postsPerWeek" | "defaultPublishTime" | "planningHorizonDays" | "requireApproval" | "allowSelfApproval" | "refreshRadarDaily" | "preferredAreas" | "preferredFormats">, "postsPerWeek"> & {
-  postsPerWeek: number | string;
-};
+type AutomationForm = Omit<Pick<AutomationSetting, "enabled" | "cadence" | "postsPerWeek" | "defaultPublishTime" | "planningHorizonDays" | "requireApproval" | "allowSelfApproval" | "refreshRadarDaily" | "preferredAreas" | "preferredFormats">, "postsPerWeek"> & { postsPerWeek: number | string };
 
-const defaultSettings: AutomationForm = {
-  enabled: false,
-  cadence: "weekdays",
-  postsPerWeek: 5,
-  defaultPublishTime: "18:30",
-  planningHorizonDays: 30,
-  requireApproval: true,
-  allowSelfApproval: true,
-  refreshRadarDaily: true,
-  preferredAreas: "",
-  preferredFormats: "carousel,post,reel",
-};
+const defaultSettings: AutomationForm = { enabled: false, cadence: "weekdays", postsPerWeek: 5, defaultPublishTime: "18:30", planningHorizonDays: 30, requireApproval: true, allowSelfApproval: true, refreshRadarDaily: true, preferredAreas: "", preferredFormats: "carousel,post,reel" };
 
 export default function AutomationCenter({ settings }: { settings: AutomationSetting | null }) {
   const [, setLocation] = useLocation();
@@ -35,41 +22,22 @@ export default function AutomationCenter({ settings }: { settings: AutomationSet
   useEffect(() => setForm(settings ?? form), [settings?.id]);
   const submit = (event: FormEvent) => { event.preventDefault(); update.mutate({ ...form, postsPerWeek: Number(form.postsPerWeek), planningHorizonDays: Number(form.planningHorizonDays), preferredAreas: form.preferredAreas || null, preferredFormats: form.preferredFormats || null }); };
 
-  return <div className="space-y-6">
-    <div className="grid gap-6 xl:grid-cols-[1.15fr_.85fr]">
-      <form onSubmit={submit} className="saas-card p-6 sm:p-7">
-        <div className="flex items-start justify-between gap-4">
-          <div><div className="saas-eyebrow"><Bot className="h-3.5 w-3.5" /> Planejamento assistido</div><h2 className="mt-3 font-serif text-3xl tracking-tight text-[#f3ebdd]">Defina o ritmo. O sistema prepara a operação.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-[#aab6ad]">As preferências orientam pautas e formatos. O plano é distribuído pelo período, respeita o fuso de São Paulo, evita duplicação por idempotência e permanece como rascunho até revisão.</p></div>
-          <Switch checked={Boolean(form.enabled)} onCheckedChange={enabled => setForm({ ...form, enabled })} />
-        </div>
-
-        <div className="mt-7 grid gap-5 md:grid-cols-2">
-          <label className="saas-field"><span>Cadência</span><select value={form.cadence} onChange={e => setForm({ ...form, cadence: e.target.value as AutomationForm["cadence"] })}><option value="daily">Todos os dias</option><option value="weekdays">Segunda a sexta</option><option value="custom">Personalizada</option></select></label>
-          <label className="saas-field"><span>Publicações por semana</span><input type="number" min={1} max={7} value={form.postsPerWeek} onChange={e => setForm({ ...form, postsPerWeek: e.target.value })} /></label>
-          <label className="saas-field"><span>Horário padrão</span><input type="time" value={form.defaultPublishTime} onChange={e => setForm({ ...form, defaultPublishTime: e.target.value })} /></label>
-          <label className="saas-field"><span>Horizonte de planejamento</span><select value={form.planningHorizonDays} onChange={e => setForm({ ...form, planningHorizonDays: Number(e.target.value) })}><option value={7}>7 dias</option><option value={15}>15 dias</option><option value={30}>30 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option></select></label>
-          <label className="saas-field md:col-span-2"><span>Áreas prioritárias</span><input value={form.preferredAreas ?? ""} onChange={e => setForm({ ...form, preferredAreas: e.target.value })} placeholder="Trabalhista, Consumidor, Empresarial..." /></label>
-          <label className="saas-field md:col-span-2"><span>Formatos preferidos</span><input value={form.preferredFormats ?? ""} onChange={e => setForm({ ...form, preferredFormats: e.target.value })} placeholder="carousel, post, reel" /></label>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="saas-toggle-card"><ShieldCheck className="h-5 w-5 text-[#e3bd7f]" /><div><strong>Aprovação jurídica</strong><small>Sempre obrigatória antes de qualquer publicação</small></div><span className="is-on" aria-label="Aprovação jurídica obrigatória" /></div>
-          <button type="button" onClick={() => setForm({ ...form, refreshRadarDaily: !form.refreshRadarDaily })} className="saas-toggle-card"><Radar className="h-5 w-5 text-[#e3bd7f]" /><div><strong>Priorizar Radar</strong><small>{form.refreshRadarDaily ? "Considerar pautas atuais ao atualizar" : "Atualização e pesquisa manuais"}</small></div><span className={form.refreshRadarDaily ? "is-on" : ""} /></button>
-          <button type="button" onClick={() => setForm({ ...form, allowSelfApproval: !form.allowSelfApproval })} className="saas-toggle-card sm:col-span-2"><ShieldCheck className="h-5 w-5 text-[#e3bd7f]" /><div><strong>Dupla revisão</strong><small>{form.allowSelfApproval ? "Autoaprovação permitida (operação solo)" : "Quem produz a versão não pode aprová-la; um segundo revisor é obrigatório"}</small></div><span className={form.allowSelfApproval ? "" : "is-on"} /></button>
-        </div>
-
-        <div className="mt-7 flex flex-wrap gap-3">
-          <Button type="submit" disabled={update.isPending} className="saas-button-secondary">{update.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar planejamento</Button>
-          <select className="editorial-input !w-auto" value={planDays} onChange={e => setPlanDays(Number(e.target.value) as 7 | 15 | 30)}><option value={7}>Planejar 7 dias</option><option value={15}>Planejar 15 dias</option><option value={30}>Planejar 30 dias</option></select>
-          <Button type="button" disabled={generateCampaign.isPending} onClick={() => { const start = new Date(); start.setDate(start.getDate() + 1); generateCampaign.mutate({ idempotencyKey: crypto.randomUUID(), days: planDays, startDate: start, postsPerWeek: Number(form.postsPerWeek), defaultPublishTime: form.defaultPublishTime, objective: "Autoridade e atualidade", timezone: "America/Sao_Paulo" }); }} className="saas-button-primary">{generateCampaign.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <WandSparkles className="mr-2 h-4 w-4" />}Gerar plano agora</Button>
-        </div>
-        {planMessage && <div className="mt-4 rounded-xl border border-[#c99550]/20 bg-[#c99550]/[.06] px-4 py-3 text-xs text-[#d9d0c4]">{planMessage} <button type="button" onClick={() => setLocation("/calendario")} className="ml-2 font-semibold text-[#e3bd7f]">Abrir calendário</button></div>}
+  return <div className="studio-automation space-y-5">
+    <section className="studio-scheduler-hero"><div className="studio-scheduler-mark"><Bot className="h-5 w-5" /></div><div><p>Automação assistida</p><h1>Cadência, segurança e previsibilidade</h1><span>O sistema organiza rascunhos. A aprovação humana continua obrigatória antes de qualquer envio externo.</span></div><div className="studio-automation-state"><small>Automação</small><Switch checked={Boolean(form.enabled)} onCheckedChange={enabled => setForm({ ...form, enabled })} aria-label="Ativar automação assistida" /><strong>{form.enabled ? "Ativa" : "Pausada"}</strong></div></section>
+    <div className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
+      <form onSubmit={submit} className="studio-light-card studio-automation-form">
+        <div className="studio-card-heading"><div><p className="studio-card-kicker">Configuração de cadência</p><h2>Defina o ritmo da operação</h2></div><span className="studio-status-chip">Fuso: São Paulo</span></div>
+        <p className="studio-form-intro">As preferências orientam a produção de rascunhos e a agenda. O conteúdo não é publicado automaticamente.</p>
+        <div className="mt-6 grid gap-4 md:grid-cols-2"><AutomationField label="Cadência"><select value={form.cadence} onChange={event => setForm({ ...form, cadence: event.target.value as AutomationForm["cadence"] })}><option value="daily">Todos os dias</option><option value="weekdays">Segunda a sexta</option><option value="custom">Personalizada</option></select></AutomationField><AutomationField label="Publicações por semana"><input type="number" min={1} max={7} value={form.postsPerWeek} onChange={event => setForm({ ...form, postsPerWeek: event.target.value })} /></AutomationField><AutomationField label="Horário padrão"><input type="time" value={form.defaultPublishTime} onChange={event => setForm({ ...form, defaultPublishTime: event.target.value })} /></AutomationField><AutomationField label="Horizonte de planejamento"><select value={form.planningHorizonDays} onChange={event => setForm({ ...form, planningHorizonDays: Number(event.target.value) })}><option value={7}>7 dias</option><option value={15}>15 dias</option><option value={30}>30 dias</option><option value={60}>60 dias</option><option value={90}>90 dias</option></select></AutomationField><AutomationField label="Áreas prioritárias" full><input value={form.preferredAreas ?? ""} onChange={event => setForm({ ...form, preferredAreas: event.target.value })} placeholder="Trabalhista, Consumidor, Empresarial..." /></AutomationField><AutomationField label="Formatos preferidos" full><input value={form.preferredFormats ?? ""} onChange={event => setForm({ ...form, preferredFormats: event.target.value })} placeholder="carousel, post, reel" /></AutomationField></div>
+        <div className="mt-5 grid gap-2"><PolicyToggle icon={ShieldCheck} title="Aprovação jurídica" text="Sempre obrigatória antes de qualquer publicação" staticOn /><PolicyToggle icon={Radar} title="Priorizar Radar" text={form.refreshRadarDaily ? "Considerar pautas atuais ao atualizar" : "Atualização e pesquisa manuais"} active={form.refreshRadarDaily} onClick={() => setForm({ ...form, refreshRadarDaily: !form.refreshRadarDaily })} /><PolicyToggle icon={ShieldCheck} title="Dupla revisão" text={form.allowSelfApproval ? "Autoaprovação permitida para operação solo" : "Um segundo revisor é obrigatório"} active={!form.allowSelfApproval} onClick={() => setForm({ ...form, allowSelfApproval: !form.allowSelfApproval })} /></div>
+        <div className="mt-6 flex flex-wrap gap-3"><Button type="submit" disabled={update.isPending} className="studio-light-button">{update.isPending ? <Loader2 className="studio-loader mr-2 h-4 w-4" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar planejamento</Button><select className="studio-plan-select" value={planDays} onChange={event => setPlanDays(Number(event.target.value) as 7 | 15 | 30)}><option value={7}>Planejar 7 dias</option><option value={15}>Planejar 15 dias</option><option value={30}>Planejar 30 dias</option></select><Button type="button" disabled={generateCampaign.isPending} onClick={() => { const start = new Date(); start.setDate(start.getDate() + 1); generateCampaign.mutate({ idempotencyKey: crypto.randomUUID(), days: planDays, startDate: start, postsPerWeek: Number(form.postsPerWeek), defaultPublishTime: form.defaultPublishTime, objective: "Autoridade e atualidade", timezone: "America/Sao_Paulo" }); }} className="studio-new-entry">{generateCampaign.isPending ? <Loader2 className="studio-loader mr-2 h-4 w-4" /> : <WandSparkles className="mr-2 h-4 w-4" />}Gerar plano agora</Button></div>
+        {planMessage && <div className="studio-feedback-message">{planMessage}<button type="button" onClick={() => setLocation("/calendario")}>Abrir calendário</button></div>}
       </form>
-
-      <aside className="space-y-4">
-        {[{ icon: Radar, title: "1. Descobrir", text: "Radar consulta fontes oficiais quando acionado." }, { icon: WandSparkles, title: "2. Produzir", text: "IA prepara pauta, texto e direção visual vinculando a fonte." }, { icon: ShieldCheck, title: "3. Revisar", text: "Compliance e aprovação humana antecedem qualquer envio." }, { icon: CalendarRange, title: "4. Programar", text: "Conteúdo aprovado entra no calendário e na fila de publicação." }, { icon: Clock3, title: "5. Publicar", text: "A integração oficial só envia após conexão, testes e confirmação exigida pelo fluxo." }].map(({ icon: Icon, title, text }) => <div key={title} className="saas-card flex gap-4 p-5"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#c99550]/10 text-[#e3bd7f]"><Icon className="h-5 w-5" /></div><div><p className="font-semibold text-[#eee5d7]">{title}</p><p className="mt-1 text-sm leading-5 text-[#98a79d]">{text}</p></div></div>)}
-      </aside>
+      <aside className="studio-automation-steps"><div className="studio-card-heading"><div><p className="studio-card-kicker">Fluxo protegido</p><h2>Da pauta à agenda</h2></div><Clock3 className="h-5 w-5 text-[#b98238]" /></div>{[{ icon: Radar, title: "1. Descobrir", text: "Radar consulta fontes oficiais quando acionado." }, { icon: WandSparkles, title: "2. Produzir", text: "IA prepara pauta, texto e direção visual vinculando a fonte." }, { icon: ShieldCheck, title: "3. Revisar", text: "Compliance e aprovação humana antecedem qualquer envio." }, { icon: CalendarRange, title: "4. Programar", text: "Conteúdo aprovado entra no calendário e na fila." }, { icon: Clock3, title: "5. Publicar", text: "A conexão oficial exige testes e confirmação expressa." }].map(({ icon: Icon, title, text }) => <div key={title} className="studio-step"><span><Icon className="h-4 w-4" /></span><div><strong>{title}</strong><p>{text}</p></div></div>)}</aside>
     </div>
     <AutopilotPanel />
   </div>;
 }
+
+function AutomationField({ label, full = false, children }: { label: string; full?: boolean; children: React.ReactNode }) { return <label className={full ? "studio-automation-field md:col-span-2" : "studio-automation-field"}><span>{label}</span>{children}</label>; }
+function PolicyToggle({ icon: Icon, title, text, active = true, staticOn = false, onClick }: { icon: typeof ShieldCheck; title: string; text: string; active?: boolean; staticOn?: boolean; onClick?: () => void }) { const Card = onClick ? "button" : "div"; return <Card {...(onClick ? { type: "button" as const, onClick } : {})} className={`studio-policy-toggle ${onClick ? "is-clickable" : ""}`}><span className="studio-policy-icon"><Icon className="h-4 w-4" /></span><div><strong>{title}</strong><small>{text}</small></div><span className={`studio-policy-state ${active || staticOn ? "is-on" : ""}`} aria-label={active || staticOn ? "Ativado" : "Desativado"} /></Card>; }

@@ -7,10 +7,11 @@ import { startLogin } from "@/const";
 import {
   BarChart3, BookOpenText, Bot, BrainCircuit, CalendarDays, FilePenLine, FileSearch,
   FolderKanban, Inbox, LayoutDashboard, LibraryBig, LogOut, Megaphone, Network,
-  Radar, ScrollText, ShieldCheck, Sparkles, Target, Users, Video, Workflow,
+  Moon, Radar, ScrollText, ShieldCheck, Sparkles, Sun, Target, Users, Video, Workflow,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const commandCenterPaths = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics"]);
 
@@ -64,6 +65,7 @@ const sections = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
 
   if (loading) return <DashboardLayoutSkeleton />;
@@ -107,7 +109,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <SidebarInset className="min-w-0 bg-[#f4f6f1]">
         <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#d9ded5] bg-[#fcfdf9]/92 px-4 backdrop-blur-xl sm:px-6">
           <div className="flex items-center gap-3"><SidebarTrigger className="text-[#506158] hover:text-[#17352b]" /><div className="hidden h-5 w-px bg-[#d9ded5] sm:block" /><div className="hidden text-xs font-medium text-[#6d7c72] sm:block">Social Media OS · operação responsável</div></div>
-          <div className="flex items-center gap-2"><div className="hidden items-center gap-2 rounded-full border border-[#c99550]/30 bg-[#fffaf0] px-3 py-1.5 text-[10px] font-semibold text-[#77511f] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#b98238] shadow-[0_0_8px_rgba(185,130,56,.40)]" />Controle editorial ativo</div></div>
+          <div className="flex items-center gap-2"><button type="button" onClick={toggleTheme} aria-label={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"} aria-pressed={theme === "dark"} className="studio-theme-toggle" title={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"}>{theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}<span className="hidden sm:inline">{theme === "light" ? "Escuro" : "Claro"}</span></button><div className="hidden items-center gap-2 rounded-full border border-[#c99550]/30 bg-[#fffaf0] px-3 py-1.5 text-[10px] font-semibold text-[#77511f] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#b98238] shadow-[0_0_8px_rgba(185,130,56,.40)]" />Controle editorial ativo</div></div>
         </div>
         <main className="min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>
       </SidebarInset>

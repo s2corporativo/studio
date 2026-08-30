@@ -153,3 +153,8 @@
 - [x] Redesenhar a raiz e a navegação com hierarquia operacional inspirada no EJC, sem substituir os módulos do Social Studio.
 - [x] Inserir a logomarca horizontal oficial no cabeçalho redesenhado com texto alternativo e comportamento responsivo.
 - [x] Validar visualmente o novo layout em desktop e mobile, além de TypeScript, testes e build, antes da publicação.
+- [x] Mapear os módulos de calendário, agendamento e tema para preservar seus fluxos durante o redesenho.
+- [x] Aplicar a identidade visual institucional ao calendário e ao agendamento, com logomarca e hierarquia operacional coerentes.
+- [x] Adicionar animações de carregamento e feedbacks de hover acessíveis aos controles do Studio.
+- [x] Implementar alternância persistente de modo escuro compatível com a identidade visual institucional.
+- [x] Validar em desktop e mobile as melhorias visuais, o modo escuro, tipos, testes, build e produção antes da publicação.
