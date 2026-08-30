@@ -4,6 +4,7 @@ import { brandContentBindings, brandMemorySnapshots, brandWorkspaces, performanc
 import { brandProfiles, contentPosts } from "../drizzle/schema";
 import { canonicalJson } from "../shared/canonicalJson";
 import { getDb } from "./db";
+import { ensureStudioDefaults } from "./socialStudioDb";
 
 async function dbOrThrow() {
   const db = await getDb();
@@ -12,6 +13,7 @@ async function dbOrThrow() {
 }
 
 export async function ensureDefaultBrandWorkspace(userId: number) {
+  await ensureStudioDefaults(userId);
   const db = await dbOrThrow();
   const [existingDefault] = await db.select().from(brandWorkspaces)
     .where(and(eq(brandWorkspaces.userId, userId), eq(brandWorkspaces.isDefault, true), eq(brandWorkspaces.status, "active")))
