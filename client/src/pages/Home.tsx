@@ -41,18 +41,42 @@ export default function Home() {
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
 
   const data = dataQuery.data;
-  const defaultWorkspaceId = useMemo(() => workspacesQuery.data?.find(workspace => workspace.isDefault && workspace.status === "active")?.id ?? null, [workspacesQuery.data]);
+  const defaultWorkspace = useMemo(() => workspacesQuery.data?.find(workspace => workspace.isDefault && workspace.status === "active") ?? null, [workspacesQuery.data]);
+  const defaultWorkspaceId = defaultWorkspace?.id ?? null;
+  const workspacePostIdsQuery = trpc.brandWorkspaces.postIds.useQuery(
+    { brandWorkspaceId: defaultWorkspaceId ?? 0 },
+    { enabled: Boolean(defaultWorkspaceId), staleTime: 30_000 },
+  );
+  const workspacePostIds = useMemo(() => new Set(workspacePostIdsQuery.data ?? []), [workspacePostIdsQuery.data]);
+  const visiblePosts = useMemo(() => {
+    if (!defaultWorkspaceId || workspacePostIdsQuery.data === undefined) return [];
+    return (data?.posts ?? []).filter(post => workspacePostIds.has(post.id));
+  }, [data?.posts, defaultWorkspaceId, workspacePostIds, workspacePostIdsQuery.data]);
+  const activeBrandContext = defaultWorkspace
+    ? { brandName: defaultWorkspace.name, prohibitedTerms: defaultWorkspace.prohibitedTerms }
+    : null;
+
   useEffect(() => {
     if (!selectedTopicId && data?.topics?.length) setSelectedTopicId(data.topics[0].id);
-    if (!selectedPostId && data?.posts?.length) setSelectedPostId(data.posts[0].id);
-  }, [data?.topics?.length, data?.posts?.length, selectedTopicId, selectedPostId]);
+  }, [data?.topics?.length, selectedTopicId]);
+
+  useEffect(() => {
+    const selectedStillVisible = selectedPostId != null && visiblePosts.some(post => post.id === selectedPostId);
+    if (!selectedStillVisible) setSelectedPostId(visiblePosts[0]?.id ?? null);
+  }, [visiblePosts, selectedPostId, defaultWorkspaceId]);
 
   const refresh = async () => { await utils.socialStudio.data.invalidate(); };
+  const refreshEditorial = async () => {
+    await Promise.all([
+      utils.socialStudio.data.invalidate(),
+      defaultWorkspaceId ? utils.brandWorkspaces.postIds.invalidate({ brandWorkspaceId: defaultWorkspaceId }) : Promise.resolve(),
+    ]);
+  };
   const generate = trpc.brandWorkspaces.generateDraft.useMutation({
     onSuccess: async post => {
+      await refreshEditorial();
       setSelectedPostId(post.id);
-      await refresh();
-      toast.success("Rascunho criado dentro da marca padrão.");
+      toast.success(`Rascunho criado em ${defaultWorkspace?.name ?? "marca ativa"}.`);
     },
     onError: mutationError,
   });
@@ -66,7 +90,7 @@ export default function Home() {
   const updateBrand = trpc.socialStudio.updateBrand.useMutation({
     onSuccess: async () => {
       await Promise.all([refresh(), utils.brandWorkspaces.list.invalidate()]);
-      toast.success("Brand OS atualizado.");
+      toast.success("Brand OS legado atualizado.");
     },
     onError: mutationError,
   });
@@ -77,12 +101,12 @@ export default function Home() {
   type GenerateDraftInput = Omit<Parameters<typeof generate.mutate>[0], "brandWorkspaceId">;
   type UpdatePostInput = Parameters<typeof updatePost.mutate>[0];
 
-  const selectedPost = useMemo(() => data?.posts?.find(post => post.id === selectedPostId) ?? null, [data?.posts, selectedPostId]);
+  const selectedPost = useMemo(() => visiblePosts.find(post => post.id === selectedPostId) ?? null, [visiblePosts, selectedPostId]);
   const counts = useMemo(() => {
     const result: Record<ContentPost["status"], number> = { draft: 0, review: 0, approved: 0, scheduled: 0, published: 0, rejected: 0 };
-    for (const post of data?.posts ?? []) result[post.status] = (result[post.status] ?? 0) + 1;
+    for (const post of visiblePosts) result[post.status] = (result[post.status] ?? 0) + 1;
     return result;
-  }, [data?.posts]);
+  }, [visiblePosts]);
 
   const generateForDefaultWorkspace = (value: GenerateDraftInput) => {
     if (!defaultWorkspaceId) {
@@ -93,11 +117,12 @@ export default function Home() {
     generate.mutate({ ...value, brandWorkspaceId: defaultWorkspaceId });
   };
 
+  const loadingEditorialContext = workspacesQuery.isLoading || Boolean(defaultWorkspaceId && workspacePostIdsQuery.isLoading);
   let content: React.ReactNode;
-  if (!user || dataQuery.isLoading) {
+  if (!user || dataQuery.isLoading || loadingEditorialContext) {
     content = <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>;
-  } else if (dataQuery.isError || !data) {
-    content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? "Não foi possível carregar o Social OS."}</div>;
+  } else if (dataQuery.isError || workspacesQuery.isError || workspacePostIdsQuery.isError || !data) {
+    content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? workspacesQuery.error?.message ?? workspacePostIdsQuery.error?.message ?? "Não foi possível carregar o Social OS."}</div>;
   } else if (growthLocations.has(location)) {
     content = <GrowthWorkspace />;
   } else if (socialOsLocations.has(location)) {
@@ -123,14 +148,14 @@ export default function Home() {
   } else if (location === "/planejamento") {
     content = <StrategyBoardV2 topics={data.topics} onUseTopic={(id: number) => { setSelectedTopicId(id); setLocation("/conteudos"); }} />;
   } else if (location === "/calendario") {
-    content = <CalendarPanel posts={data.posts} />;
+    content = <CalendarPanel posts={visiblePosts} />;
   } else if (location === "/conteudos") {
     content = <div className="space-y-6">
-      <ContentDeskV4 topics={data.topics} sources={data.sources} brand={data.brand} posts={data.posts} selectedPost={selectedPost} selectedTopicId={selectedTopicId} onSelectTopic={(id: number) => setSelectedTopicId(id)} onSelectPost={(id: number) => setSelectedPostId(id)} onGenerate={generateForDefaultWorkspace} generating={generate.isPending || workspacesQuery.isLoading} onUpdate={(value: UpdatePostInput) => updatePost.mutate(value)} saving={updatePost.isPending} onSendReview={(id: number) => sendReview.mutate({ id })} onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes?: string) => decide.mutate({ id, decision, notes: notes || undefined })} onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })} />
+      <ContentDeskV4 topics={data.topics} sources={data.sources} brand={activeBrandContext} posts={visiblePosts} selectedPost={selectedPost} selectedTopicId={selectedTopicId} onSelectTopic={(id: number) => setSelectedTopicId(id)} onSelectPost={(id: number) => setSelectedPostId(id)} onGenerate={generateForDefaultWorkspace} generating={generate.isPending || loadingEditorialContext} onUpdate={(value: UpdatePostInput) => updatePost.mutate(value)} saving={updatePost.isPending} onSendReview={(id: number) => sendReview.mutate({ id })} onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes?: string) => decide.mutate({ id, decision, notes: notes || undefined })} onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })} />
       {selectedPost && <ArtworkStudio key={selectedPost.id} post={selectedPost} />}
     </div>;
   } else {
-    content = <SaasOverview data={data} counts={counts} onCreate={() => setLocation("/conteudos")} onOpenCalendar={() => setLocation("/calendario")} onOpenRadar={() => setLocation("/radar")} onOpenAutomation={() => setLocation("/automacao")} onOpenNetworks={() => setLocation("/redes")} />;
+    content = <SaasOverview data={{ posts: visiblePosts }} counts={counts} brandName={defaultWorkspace?.name ?? null} brandKey={defaultWorkspace?.key ?? null} onCreate={() => setLocation("/conteudos")} onOpenCalendar={() => setLocation("/calendario")} onOpenRadar={() => setLocation("/radar")} onOpenAutomation={() => setLocation("/automacao")} onOpenNetworks={() => setLocation("/redes")} />;
   }
 
   return <DashboardLayout><div className="saas-shell mx-auto w-full max-w-[1680px]"><Suspense fallback={<div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>}>{content}</Suspense></div></DashboardLayout>;
