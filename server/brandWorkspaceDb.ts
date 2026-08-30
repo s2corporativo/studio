@@ -47,7 +47,7 @@ export async function ensureDefaultBrandWorkspace(userId: number) {
     whatsapp: legacy.whatsapp,
     status: "active",
     isDefault: true,
-  }).onDuplicateKeyUpdate({ set: { isDefault: true, status: "active", updatedAt: new Date() } });
+  }).onConflictDoUpdate({ target: [SQL`1`], set: { isDefault: true, status: "active", updatedAt: new Date() } });
   const [created] = await db.select().from(brandWorkspaces).where(and(eq(brandWorkspaces.userId, userId), eq(brandWorkspaces.key, key))).limit(1);
   return created ?? null;
 }
@@ -108,7 +108,7 @@ export async function bindPostToBrandWorkspace(userId: number, brandWorkspaceId:
   await getBrandWorkspace(userId, brandWorkspaceId);
   const [post] = await db.select({ id: contentPosts.id }).from(contentPosts).where(and(eq(contentPosts.userId, userId), eq(contentPosts.id, postId))).limit(1);
   if (!post) throw new Error("Conteúdo não encontrado.");
-  await db.insert(brandContentBindings).values({ userId, brandWorkspaceId, postId }).onDuplicateKeyUpdate({ set: { brandWorkspaceId } });
+  await db.insert(brandContentBindings).values({ userId, brandWorkspaceId, postId }).onConflictDoUpdate({ target: [SQL`1`], set: { brandWorkspaceId } });
   const [binding] = await db.select().from(brandContentBindings).where(and(eq(brandContentBindings.userId, userId), eq(brandContentBindings.postId, postId))).limit(1);
   return binding;
 }
@@ -128,7 +128,7 @@ export async function listPerformanceLearnings(userId: number, brandWorkspaceId:
 
 export async function upsertPerformanceLearning(userId: number, brandWorkspaceId: number, value: Omit<typeof performanceLearnings.$inferInsert, "id" | "userId" | "brandWorkspaceId" | "createdAt" | "updatedAt">) {
   const db = await dbOrThrow();
-  await db.insert(performanceLearnings).values({ ...value, userId, brandWorkspaceId }).onDuplicateKeyUpdate({
+  await db.insert(performanceLearnings).values({ ...value, userId, brandWorkspaceId }).onConflictDoUpdate({ target: performanceLearnings.id,
     set: {
       sampleSize: value.sampleSize,
       evidenceJson: value.evidenceJson,
