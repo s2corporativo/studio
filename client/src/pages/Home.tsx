@@ -10,6 +10,7 @@ import type { ContentPost } from "../../../drizzle/schema";
 const AssetLibrary = lazy(() => import("./AssetLibrary"));
 const ArtworkStudio = lazy(() => import("./ArtworkStudio"));
 const AutomationCenter = lazy(() => import("./AutomationCenter"));
+const BrandWorkspacePanel = lazy(() => import("./BrandWorkspacePanel"));
 const ContentDeskV4 = lazy(() => import("./EditorialTools").then(module => ({ default: module.ContentDeskV4 })));
 const StrategyBoardV2 = lazy(() => import("./EditorialTools").then(module => ({ default: module.StrategyBoardV2 })));
 const GrowthWorkspace = lazy(() => import("./GrowthWorkspace"));
@@ -35,17 +36,26 @@ export default function Home() {
   const [location, setLocation] = useLocation();
   const utils = trpc.useUtils();
   const dataQuery = trpc.socialStudio.data.useQuery(undefined, { enabled: Boolean(user), staleTime: 30_000 });
+  const workspacesQuery = trpc.brandWorkspaces.list.useQuery(undefined, { enabled: Boolean(user), staleTime: 30_000 });
   const [selectedTopicId, setSelectedTopicId] = useState<number | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
 
   const data = dataQuery.data;
+  const defaultWorkspaceId = useMemo(() => workspacesQuery.data?.find(workspace => workspace.isDefault && workspace.status === "active")?.id ?? null, [workspacesQuery.data]);
   useEffect(() => {
     if (!selectedTopicId && data?.topics?.length) setSelectedTopicId(data.topics[0].id);
     if (!selectedPostId && data?.posts?.length) setSelectedPostId(data.posts[0].id);
   }, [data?.topics?.length, data?.posts?.length, selectedTopicId, selectedPostId]);
 
   const refresh = async () => { await utils.socialStudio.data.invalidate(); };
-  const generate = trpc.socialStudio.generateDraft.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Rascunho criado."); }, onError: mutationError });
+  const generate = trpc.brandWorkspaces.generateDraft.useMutation({
+    onSuccess: async post => {
+      setSelectedPostId(post.id);
+      await refresh();
+      toast.success("Rascunho criado dentro da marca padrão.");
+    },
+    onError: mutationError,
+  });
   const updatePost = trpc.socialGovernance.updatePost.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success(post.status === "draft" ? "Conteúdo salvo; aprovação anterior foi invalidada quando necessário." : "Conteúdo salvo."); }, onError: mutationError });
   const sendReview = trpc.socialStudio.sendToReview.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Enviado para revisão."); }, onError: mutationError });
   const decide = trpc.socialGovernance.decide.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Decisão vinculada à versão atual do conteúdo."); }, onError: mutationError });
@@ -53,12 +63,18 @@ export default function Home() {
   const addSource = trpc.socialStudio.addSource.useMutation({ onSuccess: async () => { await refresh(); toast.success("Fonte cadastrada."); }, onError: mutationError });
   const addKnowledge = trpc.socialStudio.addKnowledge.useMutation({ onSuccess: async () => { await refresh(); toast.success("Referência cadastrada."); }, onError: mutationError });
   const uploadKnowledge = trpc.knowledgeSecurity.upload.useMutation({ onSuccess: async () => { await refresh(); toast.success("Documento validado e armazenado com segurança."); }, onError: mutationError });
-  const updateBrand = trpc.socialStudio.updateBrand.useMutation({ onSuccess: async () => { await refresh(); toast.success("Brand OS atualizado."); }, onError: mutationError });
+  const updateBrand = trpc.socialStudio.updateBrand.useMutation({
+    onSuccess: async () => {
+      await Promise.all([refresh(), utils.brandWorkspaces.list.invalidate()]);
+      toast.success("Brand OS atualizado.");
+    },
+    onError: mutationError,
+  });
   type AddKnowledgeInput = Parameters<typeof addKnowledge.mutate>[0];
   type UploadKnowledgeInput = Parameters<typeof uploadKnowledge.mutate>[0];
   type AddSourceInput = Parameters<typeof addSource.mutate>[0];
   type UpdateBrandInput = Parameters<typeof updateBrand.mutate>[0];
-  type GenerateDraftInput = Parameters<typeof generate.mutate>[0];
+  type GenerateDraftInput = Omit<Parameters<typeof generate.mutate>[0], "brandWorkspaceId">;
   type UpdatePostInput = Parameters<typeof updatePost.mutate>[0];
 
   const selectedPost = useMemo(() => data?.posts?.find(post => post.id === selectedPostId) ?? null, [data?.posts, selectedPostId]);
@@ -67,6 +83,15 @@ export default function Home() {
     for (const post of data?.posts ?? []) result[post.status] = (result[post.status] ?? 0) + 1;
     return result;
   }, [data?.posts]);
+
+  const generateForDefaultWorkspace = (value: GenerateDraftInput) => {
+    if (!defaultWorkspaceId) {
+      toast.error("Defina uma marca padrão ativa antes de gerar conteúdo.");
+      setLocation("/marcas");
+      return;
+    }
+    generate.mutate({ ...value, brandWorkspaceId: defaultWorkspaceId });
+  };
 
   let content: React.ReactNode;
   if (!user || dataQuery.isLoading) {
@@ -89,6 +114,8 @@ export default function Home() {
     content = <KnowledgePanel materials={data.knowledge} onAdd={(value: AddKnowledgeInput) => addKnowledge.mutate(value)} adding={addKnowledge.isPending} onUpload={(value: UploadKnowledgeInput) => uploadKnowledge.mutate(value)} uploading={uploadKnowledge.isPending} />;
   } else if (location === "/fontes") {
     content = <SourcesPanel sources={data.sources} onAdd={(value: AddSourceInput) => addSource.mutate(value)} adding={addSource.isPending} />;
+  } else if (location === "/marcas") {
+    content = <BrandWorkspacePanel />;
   } else if (location === "/marca") {
     content = <BrandPanel brand={data.brand} onSave={(value: UpdateBrandInput) => updateBrand.mutate(value)} saving={updateBrand.isPending} />;
   } else if (location === "/roadmap") {
@@ -99,7 +126,7 @@ export default function Home() {
     content = <CalendarPanel posts={data.posts} />;
   } else if (location === "/conteudos") {
     content = <div className="space-y-6">
-      <ContentDeskV4 topics={data.topics} sources={data.sources} brand={data.brand} posts={data.posts} selectedPost={selectedPost} selectedTopicId={selectedTopicId} onSelectTopic={(id: number) => setSelectedTopicId(id)} onSelectPost={(id: number) => setSelectedPostId(id)} onGenerate={(value: GenerateDraftInput) => generate.mutate(value)} generating={generate.isPending} onUpdate={(value: UpdatePostInput) => updatePost.mutate(value)} saving={updatePost.isPending} onSendReview={(id: number) => sendReview.mutate({ id })} onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes?: string) => decide.mutate({ id, decision, notes: notes || undefined })} onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })} />
+      <ContentDeskV4 topics={data.topics} sources={data.sources} brand={data.brand} posts={data.posts} selectedPost={selectedPost} selectedTopicId={selectedTopicId} onSelectTopic={(id: number) => setSelectedTopicId(id)} onSelectPost={(id: number) => setSelectedPostId(id)} onGenerate={generateForDefaultWorkspace} generating={generate.isPending || workspacesQuery.isLoading} onUpdate={(value: UpdatePostInput) => updatePost.mutate(value)} saving={updatePost.isPending} onSendReview={(id: number) => sendReview.mutate({ id })} onDecide={(id: number, decision: "approved" | "rejected" | "changes_requested", notes?: string) => decide.mutate({ id, decision, notes: notes || undefined })} onSchedule={(id: number, scheduledAt: Date) => schedule.mutate({ id, scheduledAt })} />
       {selectedPost && <ArtworkStudio key={selectedPost.id} post={selectedPost} />}
     </div>;
   } else {
