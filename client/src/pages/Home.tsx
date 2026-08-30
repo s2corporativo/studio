@@ -94,10 +94,22 @@ export default function Home() {
   };
 
   let content: React.ReactNode;
-  if (!user || dataQuery.isLoading) {
+  // S2 Studio: Sem login necessário — sempre mostra o conteúdo
+  if (dataQuery.isLoading) {
     content = <div className="saas-card flex min-h-[420px] items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-[#c59b5a]" /></div>;
   } else if (dataQuery.isError || !data) {
-    content = <div className="saas-card p-6 text-sm text-rose-300">{dataQuery.error?.message ?? "Não foi possível carregar o Social OS."}</div>;
+    // Se não há dados do tRPC, ainda mostra páginas que não dependem de tRPC
+    if (location === "/socialhub") {
+      content = <SocialHubPanel />;
+    } else if (location === "/avancado") {
+      content = <AdvancedFeatures />;
+    } else if (location === "/features-v2") {
+      content = <FeaturesPackV2 />;
+    } else if (location === "/roadmap") {
+      content = <MarketingRoadmap />;
+    } else {
+      content = <div className="saas-card p-6 text-sm text-amber-300">Carregando dados do S2 Studio...</div>;
+    }
   } else if (growthLocations.has(location)) {
     content = <GrowthWorkspace />;
   } else if (socialOsLocations.has(location)) {
