@@ -25,6 +25,7 @@ import {
   Search,
   ImageIcon,
   Lightbulb,
+  Check,
 } from 'lucide-react'
 import {
   Area,
@@ -61,11 +62,23 @@ export function DashboardSection() {
 
   const { data: stats, loading: statsLoading } = useFetch<any>(statsUrl, [companyId])
   const { data: analytics, loading: analyticsLoading } = useFetch<any>(analyticsUrl, [companyId])
+  const { data: companiesData } = useFetch<any>('/api/companies', [])
+  const { data: activityData } = useFetch<any>(
+    companyId ? `/api/activity?companyId=${companyId}&limit=6` : '/api/activity?limit=6',
+    [companyId]
+  )
+  const { data: ideasData } = useFetch<any>(
+    companyId ? `/api/ideas?companyId=${companyId}` : '/api/ideas',
+    [companyId]
+  )
 
   const totals = stats?.totals || {}
   const upcoming = stats?.upcoming || []
   const series = analytics?.series || []
   const byPlatform = analytics?.byPlatform || []
+  const recentActivity = activityData?.events || []
+  const companiesCount = companiesData?.companies?.length || 0
+  const ideasCount = ideasData?.ideas?.length || 0
 
   return (
     <div className="space-y-6">
@@ -469,6 +482,65 @@ export function DashboardSection() {
         </Card>
       </div>
 
+      {/* Onboarding checklist + Recent activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <OnboardingChecklist
+          companiesCount={companiesCount}
+          hasPosts={(totals.publishedPosts || 0) + (totals.scheduledPosts || 0) > 0}
+          hasIdeas={ideasCount > 0}
+          hasAccounts={(totals.accounts || 0) > 0}
+          setSection={setSection}
+        />
+
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Activity className="w-4 h-4 text-primary" />
+                Atividade recente
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => {}}>
+                Ver tudo
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {recentActivity.length === 0 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                Nenhuma atividade ainda. Suas ações aparecerão aqui.
+              </div>
+            ) : (
+              <div className="space-y-1 max-h-[300px] overflow-y-auto scroll-fancy">
+                {recentActivity.map((ev: any, i: number) => (
+                  <motion.div
+                    key={ev.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-accent/40 transition-colors"
+                  >
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: `color-mix(in oklch, ${ev.color || '#7C3AED'} 15%, transparent)`, color: ev.color || '#7C3AED' }}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium leading-tight line-clamp-1">{ev.title}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {new Date(ev.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                        {ev.company?.name ? ` · ${ev.company.name}` : ''}
+                      </p>
+                    </div>
+                    {!ev.read && <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5" />}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Quick actions */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
@@ -586,5 +658,119 @@ function ContentHeatmap({ upcoming, publishedCount }: { upcoming: any[]; publish
         </div>
       </div>
     </div>
+  )
+}
+
+function OnboardingChecklist({
+  companiesCount,
+  hasPosts,
+  hasIdeas,
+  hasAccounts,
+  setSection,
+}: {
+  companiesCount: number
+  hasPosts: boolean
+  hasIdeas: boolean
+  hasAccounts: boolean
+  setSection: (s: any) => void
+}) {
+  const steps = [
+    {
+      label: 'Criar primeira empresa',
+      done: companiesCount >= 1,
+      section: 'companies',
+      icon: Building2,
+    },
+    {
+      label: 'Conectar rede social',
+      done: hasAccounts,
+      section: 'social',
+      icon: Share2,
+    },
+    {
+      label: 'Gerar ideias com IA',
+      done: hasIdeas,
+      section: 'ideas',
+      icon: Lightbulb,
+    },
+    {
+      label: 'Criar primeiro post',
+      done: hasPosts,
+      section: 'creator',
+      icon: Sparkles,
+    },
+    {
+      label: 'Definir voz da marca',
+      done: false, // would need settings fetch; keep as CTA
+      section: 'settings',
+      icon: Zap,
+    },
+  ]
+  const doneCount = steps.filter((s) => s.done).length
+  const pct = Math.round((doneCount / steps.length) * 100)
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Zap className="w-4 h-4 text-primary" />
+            Checklist de configuração
+          </CardTitle>
+          <Badge variant={pct === 100 ? 'default' : 'secondary'} className="text-[10px]">
+            {doneCount}/{steps.length}
+          </Badge>
+        </div>
+        <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-2">
+          <motion.div
+            className="h-full bg-gradient-to-r from-primary to-fuchsia-500"
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          />
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-1.5 pt-1">
+        {steps.map((s, i) => {
+          const Icon = s.icon
+          return (
+            <button
+              key={s.label}
+              onClick={() => setSection(s.section)}
+              disabled={s.done}
+              className={cn(
+                'group w-full flex items-center gap-2.5 p-2 rounded-lg transition-colors text-left',
+                s.done ? 'opacity-60 cursor-default' : 'hover:bg-accent/50 cursor-pointer'
+              )}
+            >
+              <div
+                className={cn(
+                  'w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors',
+                  s.done
+                    ? 'bg-emerald-500 text-white'
+                    : 'border-2 border-muted-foreground/30 text-transparent group-hover:border-primary'
+                )}
+              >
+                {s.done ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <span className="text-[10px] font-bold text-muted-foreground">{i + 1}</span>
+                )}
+              </div>
+              <Icon className={cn('w-3.5 h-3.5 shrink-0', s.done ? 'text-emerald-500' : 'text-muted-foreground')} />
+              <span className={cn('text-xs flex-1', s.done && 'line-through')}>{s.label}</span>
+              {!s.done && <ArrowRight className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+            </button>
+          )
+        })}
+        {pct === 100 && (
+          <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-center">
+            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+              🎉 Tudo configurado! Seu SocialHub está pronto.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

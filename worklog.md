@@ -561,3 +561,67 @@ Agent: Main (orchestrator) — autonomous QA & development round
 - Automated posting execution (cron worker to publish at scheduledAt).
 - Real-time notifications via WebSocket (currently polls every 30s).
 - Content approval workflow (draft → review → approve → schedule).
+
+---
+
+## Round 5 — Settings→Creator wiring + Dashboard onboarding & activity (cron-triggered)
+
+Task ID: 14
+Agent: Main (orchestrator) — autonomous QA & development round
+
+### Assessment (current project status)
+- Project STABLE with 10 sections, dev server running, lint clean.
+- Prior round added Settings section, post media thumbnails, bulk actions, 3-dot menus.
+- Key gap identified: Settings section existed but was NOT wired into the Creator or AI generation — brand voice settings had no effect on generated content.
+
+### QA performed via agent-browser
+- All 10 sections load with zero console errors.
+- Verified Settings save works (brandVoice + targetAudience persisted for Café Aurora).
+- Confirmed Creator had no brand voice indicator and didn't pass settings to AI.
+
+### New features added
+1. **Settings → Creator → AI pipeline wiring** (makes Settings functional)
+   - Updated `lib/ai.ts` `generateContent()` to accept `brandVoice`, `targetAudience`, `hashtagCount`, `aiCreativity`, `autoEmoji`, `autoHashtags` — these are injected into the LLM prompt (brand voice line, audience line, creativity level, exact hashtag count, emoji on/off).
+   - Updated `/api/ai/generate` route to auto-load `CompanySettings` from DB when `companyId` provided (explicit body values take precedence over DB settings). Falls back gracefully if no settings exist.
+   - Updated Creator `handleGenerate` to pass `companyId` so the backend loads settings automatically.
+   - Creator now fetches `/api/settings?companyId=X` and shows a **"Voz da marca ativa"** indicator card below the company selector: shows brandVoice (line-clamp-2), creativity %, hashtag count, emojis-auto badge, and an "Editar" button linking to Settings.
+   - Verified end-to-end: Café Aurora has brandVoice "Voz acolhedora... Sempre termina com uma pergunta" + targetAudience "Amantes de café especial, 25-45 anos, São Paulo" + hashtagCount 8. Generated content for "Novo blend de café especial" → caption ended with a question ("Qual será sua próxima cafeteria favorita?"), mentioned "São Paulo", and generated exactly 8 hashtags. Brand voice is now respected by the AI.
+
+2. **Dashboard onboarding checklist** (new widget)
+   - 5-step checklist: Criar primeira empresa, Conectar rede social, Gerar ideias com IA, Criar primeiro post, Definir voz da marca.
+   - Each step: numbered circle (turns green with checkmark when done), icon, label (line-through when done), clickable to navigate to relevant section.
+   - Progress bar (gradient primary→fuchsia) animated via framer-motion, badge showing X/5 completed.
+   - "🎉 Tudo configurado!" celebration banner when 100% complete.
+   - Fetches companies count, posts/ideas/accounts counts from existing APIs.
+
+3. **Dashboard recent activity widget** (new widget)
+   - Shows 6 most recent activity events (from `/api/activity`).
+   - Each event: colored icon tile, title (line-clamp-1), timestamp + company name, unread dot indicator.
+   - Scrollable (max-h-300px scroll-fancy), framer-motion stagger entrance.
+   - Company-filtered when a company is selected globally.
+   - Empty state: "Nenhuma atividade ainda."
+
+### Styling improvements
+- Brand voice indicator: bordered card with primary tint, Sparkles icon, config chips (creativity/hashtags/emojis), Editar link.
+- Onboarding checklist: gradient progress bar, green checkmark circles, line-through completed items, celebration banner.
+- Recent activity: colored icon tiles matching event type, unread dots, hover states.
+- All use established purple/fuchsia theme, framer-motion animations, scroll-fancy.
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings (clean).
+- Console: 0 errors across all 10 sections.
+- Brand voice indicator: verified "Voz da marca ativa" + creativity 70% + 8 hashtags + emojis auto + Editar button visible in Creator.
+- AI generation with settings: caption ended with question (brandVoice), mentioned São Paulo (targetAudience), exactly 8 hashtags (hashtagCount) — all settings respected.
+- Dashboard onboarding: verified checklist renders with progress bar and 5 steps.
+- Dashboard activity: verified recent events list renders.
+
+### Unresolved / next-phase recommendations
+- Content approval workflow (draft → review → approved → scheduled) with approver roles.
+- OAuth integration with social platforms (still simulated).
+- Real analytics ingestion from platform APIs.
+- Multi-user auth (NextAuth available but not wired).
+- Drag-and-drop content calendar.
+- Automated posting execution (cron worker to publish at scheduledAt).
+- Real-time notifications via WebSocket (currently polls every 30s).
+- A/B testing of post variations.
+- Content calendar export (iCal/CSV).

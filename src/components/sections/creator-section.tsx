@@ -105,6 +105,11 @@ export function CreatorSection() {
   ])
   const templates = templatesData?.templates || []
 
+  // Fetch company settings to auto-apply defaults + show brand voice indicator
+  const settingsUrl = companyId ? `/api/settings?companyId=${companyId}` : null
+  const { data: settingsData } = useFetch<{ settings: any }>(settingsUrl, [companyId])
+  const settings = settingsData?.settings
+
   const [topic, setTopic] = useState('')
   const [tone, setTone] = useState<string>('profissional')
   const [category, setCategory] = useState<string>('promocional')
@@ -182,6 +187,7 @@ export function CreatorSection() {
         tone,
         platforms,
         keywords: kwArr,
+        companyId,
       })
       setResult(res.result)
       toast.success('Conteúdo gerado com sucesso!')
@@ -320,6 +326,41 @@ export function CreatorSection() {
                 Nicho: {selectedCompany.niche}
                 {selectedCompany.website ? ` • ${selectedCompany.website}` : ''}
               </p>
+            )}
+            {settings?.brandVoice && (
+              <div className="mt-2 rounded-lg border border-primary/20 bg-primary/5 p-2.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Sparkles className="w-3 h-3 text-primary" />
+                  <span className="text-[11px] font-semibold text-primary">Voz da marca ativa</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground line-clamp-2">
+                  {settings.brandVoice}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  {settings.aiCreativity !== undefined && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                      Criatividade: {settings.aiCreativity}%
+                    </span>
+                  )}
+                  {settings.hashtagCount && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                      {settings.hashtagCount} hashtags
+                    </span>
+                  )}
+                  {settings.autoEmoji && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                      emojis auto
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSection('settings')}
+                    className="text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors ml-auto"
+                  >
+                    Editar
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 

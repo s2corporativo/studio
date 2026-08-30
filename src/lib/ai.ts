@@ -23,25 +23,46 @@ export async function generateContent(opts: {
   tone?: string
   platforms: string[]
   keywords?: string[]
+  brandVoice?: string
+  targetAudience?: string
+  hashtagCount?: number
+  aiCreativity?: number
+  autoEmoji?: boolean
+  autoHashtags?: boolean
 }): Promise<{ caption: string; hashtags: string[]; variations: Record<string, string> }> {
   const zai = await getAI()
   const platformList = opts.platforms.join(', ')
+  const hashCount = opts.hashtagCount || 10
+  const useEmojis = opts.autoEmoji !== false
+  const useHashtags = opts.autoHashtags !== false
+
   const systemPrompt = `You are an elite social media strategist and copywriter for Brazilian companies. You craft engaging, platform-native content in Brazilian Portuguese. You understand each platform's best practices: Instagram (visual, hashtags, emojis), LinkedIn (professional, value-driven), Twitter/X (concise, punchy), Facebook (conversational, community), TikTok (trendy, casual), YouTube (descriptive, keyword-rich). Always respond with STRICT valid JSON only, no markdown, no code fences.`
+
+  const brandVoiceLine = opts.brandVoice
+    ? `\n- VOZ DA MARCA (siga estritamente): ${opts.brandVoice}`
+    : ''
+  const audienceLine = opts.targetAudience
+    ? `\n- Público-alvo: ${opts.targetAudience}`
+    : ''
+  const creativityLine =
+    opts.aiCreativity !== undefined
+      ? `\n- Nível de criatividade: ${opts.aiCreativity}/100 (${opts.aiCreativity < 40 ? 'conservador, direto ao ponto' : opts.aiCreativity > 75 ? 'muito criativo, ousado, surpreendente' : 'equilibrado'})`
+      : ''
 
   const userPrompt = `Gere conteúdo para redes sociais com estes parâmetros:
 - Empresa: ${opts.company}
 - Nicho: ${opts.niche || 'geral'}
-- Tom de voz: ${opts.tone || 'profissional e amigável'}
+- Tom de voz: ${opts.tone || 'profissional e amigável'}${brandVoiceLine}${audienceLine}${creativityLine}
 - Tópico/Mensagem: ${opts.topic}
 - Palavras-chave SEO: ${(opts.keywords || []).join(', ') || 'nenhuma'}
 - Plataformas: ${platformList}
 
 Responda SOMENTE com este JSON exato:
 {
-  "caption": "uma legenda principal envolvente em português (2-4 frases, com emojis moderados)",
-  "hashtags": ["array", "de", "10", "hashtags", "relevantes", "sem", "o", "simbolo"],
+  "caption": "uma legenda principal envolvente em português (2-4 frases${useEmojis ? ', com emojis moderados' : ', sem emojis'}),
+  "hashtags": ${useHashtags ? `["array", "de", "${hashCount}", "hashtags", "relevantes", "sem", "o", "simbolo"]` : '[]'},
   "variations": {
-    "instagram": "legenda adaptada para instagram com emojis",
+    "instagram": "legenda adaptada para instagram${useEmojis ? ' com emojis' : ''}",
     "linkedin": "versão profissional e orientada a valor",
     "twitter": "versão concisa <= 280 caracteres",
     "facebook": "versão conversacional",
@@ -49,7 +70,7 @@ Responda SOMENTE com este JSON exato:
     "youtube": "descrição rica em palavras-chave"
   }
 }
-Inclua apenas as plataformas solicitadas (${platformList}) no objeto variations. NÃO use crases nem markdown. Apenas JSON puro.`
+Inclua apenas as plataformas solicitadas (${platformList}) no objeto variations. ${useHashtags ? `Gere exatamente ${hashCount} hashtags.` : 'Não inclua hashtags.'} NÃO use crases nem markdown. Apenas JSON puro.`
 
   const completion = await zai.chat.completions.create({
     messages: [
