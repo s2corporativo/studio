@@ -128,3 +128,6 @@ coverage/
 manus-logs/
 .diagnostics/
 .models.json
+
+# Config de máquina local do Claude Code (proxy) — nunca versionar
+.claude/settings.local.json
