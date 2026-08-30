@@ -16,6 +16,10 @@ export type DraftGenerationInput = {
   brandAudience?: string | null;
 };
 
+export function buildLegalDraftPrompt(input: DraftGenerationInput) {
+  return `Crie um rascunho para Instagram. Marca: ${input.brandName ?? "não informada"}. Posicionamento/objetivo declarado da marca: ${input.brandPositioning ?? "não informado"}. Público geral da marca: ${input.brandAudience ?? "não informado"}. Público específico desta peça: ${input.audience}. Área: ${input.area}. Tema: ${input.topic}. Formato: ${input.format}. Objetivo editorial da peça: ${input.objective}. Tom: ${input.toneOfVoice ?? "técnico e humano"}. CTA institucional: ${input.primaryCta ?? "Conheça nossos canais oficiais de contato."}. Termos proibidos: ${input.prohibitedTerms ?? "promessas de resultado"}. Fonte jurídica recebida: ${input.legalSource ?? "nenhuma; indique que a fonte precisa ser incluída antes da revisão"}. Para carrossel, a legenda deve convidar a deslizar, mas não crie texto de cada lâmina. Priorize o público específico sem contradizer o público, posicionamento ou limites da marca.`;
+}
+
 export async function generateLegalDraft(input: DraftGenerationInput) {
   const catalog = await listLLMModels();
   const model = pickPreferredLlmModel(catalog);
@@ -30,7 +34,7 @@ export async function generateLegalDraft(input: DraftGenerationInput) {
       },
       {
         role: "user",
-        content: `Crie um rascunho para Instagram. Marca: ${input.brandName ?? "não informada"}. Posicionamento/objetivo declarado da marca: ${input.brandPositioning ?? "não informado"}. Público geral da marca: ${input.brandAudience ?? "não informado"}. Público específico desta peça: ${input.audience}. Área: ${input.area}. Tema: ${input.topic}. Formato: ${input.format}. Objetivo editorial da peça: ${input.objective}. Tom: ${input.toneOfVoice ?? "técnico e humano"}. CTA institucional: ${input.primaryCta ?? "Conheça nossos canais oficiais de contato."}. Termos proibidos: ${input.prohibitedTerms ?? "promessas de resultado"}. Fonte jurídica recebida: ${input.legalSource ?? "nenhuma; indique que a fonte precisa ser incluída antes da revisão"}. Para carrossel, a legenda deve convidar a deslizar, mas não crie texto de cada lâmina. Priorize o público específico sem contradizer o público, posicionamento ou limites da marca.`,
+        content: buildLegalDraftPrompt(input),
       },
     ],
     response_format: {
