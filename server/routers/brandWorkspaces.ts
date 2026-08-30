@@ -2,7 +2,7 @@ import { z } from "zod";
 import { editorialFormats } from "../../drizzle/schema";
 import { protectedProcedure, router } from "../_core/trpc";
 import { AI_TEXT_LIMIT, consumeRateLimit } from "../_core/rateLimit";
-import { archiveBrandWorkspace, bindPostToBrandWorkspace, createBrandWorkspace, getBrandWorkspace, getPostBrandWorkspace, listBrandWorkspaces, listPerformanceLearnings, setDefaultBrandWorkspace, updateBrandWorkspace } from "../brandWorkspaceDb";
+import { archiveBrandWorkspace, bindPostToBrandWorkspace, createBrandWorkspace, getBrandWorkspace, getPostBrandWorkspace, listBrandWorkspaces, listPerformanceLearnings, listWorkspacePostIds, setDefaultBrandWorkspace, updateBrandWorkspace } from "../brandWorkspaceDb";
 import { createBrandBoundPost } from "../brandWorkspaceContentDb";
 import { fetchCurrentRadar } from "../newsRadar";
 import { learnBrandPerformance } from "../performanceLearningEngine";
@@ -47,6 +47,8 @@ export const brandWorkspacesRouter = router({
   list: protectedProcedure.query(({ ctx }) => listBrandWorkspaces(ctx.user.id)),
 
   get: protectedProcedure.input(z.object({ id: z.number().int().positive() })).query(({ ctx, input }) => getBrandWorkspace(ctx.user.id, input.id)),
+
+  postIds: protectedProcedure.input(z.object({ brandWorkspaceId: z.number().int().positive() })).query(({ ctx, input }) => listWorkspacePostIds(ctx.user.id, input.brandWorkspaceId)),
 
   create: protectedProcedure.input(workspacePayload.extend({ key: z.string().trim().min(2).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/) })).mutation(async ({ ctx, input }) => {
     const workspace = await createBrandWorkspace(ctx.user.id, input);
