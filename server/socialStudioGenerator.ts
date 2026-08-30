@@ -11,6 +11,9 @@ export type DraftGenerationInput = {
   primaryCta?: string | null;
   toneOfVoice?: string | null;
   prohibitedTerms?: string | null;
+  brandName?: string | null;
+  brandPositioning?: string | null;
+  brandAudience?: string | null;
 };
 
 export async function generateLegalDraft(input: DraftGenerationInput) {
@@ -23,11 +26,11 @@ export async function generateLegalDraft(input: DraftGenerationInput) {
     messages: [
       {
         role: "system",
-        content: "Você redige conteúdo jurídico brasileiro para Instagram. Seja preciso, claro e sóbrio. Não crie leis, decisões, prazos, números ou fontes. Não prometa resultado, não use sensacionalismo e não substitua análise jurídica individual. Devolva somente JSON válido.",
+        content: "Você redige conteúdo jurídico brasileiro para Instagram. Seja preciso, claro e sóbrio. Não crie leis, decisões, prazos, números, clientes, resultados, qualificações ou fontes. Não prometa resultado, não use sensacionalismo e não substitua análise jurídica individual. O contexto de marca serve apenas para adequar linguagem e posicionamento; nunca transforme objetivo comercial em alegação factual. Devolva somente JSON válido.",
       },
       {
         role: "user",
-        content: `Crie um rascunho para Instagram. Área: ${input.area}. Tema: ${input.topic}. Público: ${input.audience}. Formato: ${input.format}. Objetivo: ${input.objective}. Tom: ${input.toneOfVoice ?? "técnico e humano"}. CTA institucional: ${input.primaryCta ?? "Conheça nossos canais oficiais de contato."}. Termos proibidos: ${input.prohibitedTerms ?? "promessas de resultado"}. Fonte jurídica recebida: ${input.legalSource ?? "nenhuma; indique que a fonte precisa ser incluída antes da revisão"}. Para carrossel, a legenda deve convidar a deslizar, mas não crie texto de cada lâmina.`,
+        content: `Crie um rascunho para Instagram. Marca: ${input.brandName ?? "não informada"}. Posicionamento/objetivo declarado da marca: ${input.brandPositioning ?? "não informado"}. Público geral da marca: ${input.brandAudience ?? "não informado"}. Público específico desta peça: ${input.audience}. Área: ${input.area}. Tema: ${input.topic}. Formato: ${input.format}. Objetivo editorial da peça: ${input.objective}. Tom: ${input.toneOfVoice ?? "técnico e humano"}. CTA institucional: ${input.primaryCta ?? "Conheça nossos canais oficiais de contato."}. Termos proibidos: ${input.prohibitedTerms ?? "promessas de resultado"}. Fonte jurídica recebida: ${input.legalSource ?? "nenhuma; indique que a fonte precisa ser incluída antes da revisão"}. Para carrossel, a legenda deve convidar a deslizar, mas não crie texto de cada lâmina. Priorize o público específico sem contradizer o público, posicionamento ou limites da marca.`,
       },
     ],
     response_format: {
