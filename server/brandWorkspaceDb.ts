@@ -65,6 +65,16 @@ export async function getBrandWorkspace(userId: number, id: number) {
   return row;
 }
 
+export async function getPostBrandWorkspace(userId: number, postId: number) {
+  const db = await dbOrThrow();
+  const [binding] = await db.select({ brandWorkspaceId: brandContentBindings.brandWorkspaceId })
+    .from(brandContentBindings)
+    .where(and(eq(brandContentBindings.userId, userId), eq(brandContentBindings.postId, postId)))
+    .limit(1);
+  if (!binding) return null;
+  return getBrandWorkspace(userId, binding.brandWorkspaceId);
+}
+
 export async function createBrandWorkspace(userId: number, input: Omit<typeof brandWorkspaces.$inferInsert, "id" | "userId" | "createdAt" | "updatedAt" | "status" | "isDefault">) {
   const db = await dbOrThrow();
   return db.transaction(async tx => {
