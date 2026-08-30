@@ -1,5 +1,6 @@
 import { invokeLLM, listLLMModels, type MessageContent } from "./_core/llm";
 import { pickPreferredLlmModel } from "./_core/modelPreference";
+import { getPostBrandWorkspace } from "./brandWorkspaceDb";
 import { addCreativeEvaluation, recordAuditEvent } from "./socialOsDb";
 import { addComplianceCheck } from "./socialGrowthDb";
 import { getPostMedia, getStudioData, getStudioPost } from "./socialStudioDb";
@@ -7,21 +8,27 @@ import { getPostMedia, getStudioData, getStudioPost } from "./socialStudioDb";
 const scoreProperty = { type: "integer", minimum: 0, maximum: 100 } as const;
 
 export async function evaluatePostCreative(userId: number, postId: number, mediaId?: number | null) {
-  const [post, media, studio] = await Promise.all([
+  const [post, media, studio, workspace] = await Promise.all([
     getStudioPost(userId, postId),
     getPostMedia(userId, postId),
     getStudioData(userId),
+    getPostBrandWorkspace(userId, postId),
   ]);
   const assets = mediaId ? media.filter(item => item.id === mediaId) : media.slice(0, 10);
   if (!assets.length) throw new Error("Adicione uma imagem ao post antes de executar o Brand Guardian.");
   if (assets.some(asset => !/^https:\/\//i.test(asset.url))) throw new Error("O Brand Guardian exige URLs HTTPS acessíveis para analisar as imagens.");
+
+  const brandName = workspace?.name ?? studio.brand?.brandName ?? "não definida";
+  const visualGuidelines = workspace?.visualGuidelines ?? studio.brand?.visualGuidelines ?? "não definidas";
+  const toneOfVoice = workspace?.toneOfVoice ?? studio.brand?.toneOfVoice ?? "profissional";
+  const prohibitedTerms = workspace?.prohibitedTerms ?? studio.brand?.prohibitedTerms ?? "promessas de resultado e sensacionalismo";
 
   const catalog = await listLLMModels();
   const model = pickPreferredLlmModel(catalog);
   const userContent: MessageContent[] = [
     {
       type: "text",
-      text: `Marca: ${studio.brand?.brandName ?? "não definida"}\nDiretrizes visuais: ${studio.brand?.visualGuidelines ?? "não definidas"}\nTom: ${studio.brand?.toneOfVoice ?? "profissional"}\nTermos proibidos: ${studio.brand?.prohibitedTerms ?? "promessas de resultado e sensacionalismo"}\nTítulo do post: ${post.title}\nGancho: ${post.hook ?? ""}\nLegenda: ${post.caption ?? ""}\nCTA: ${post.cta ?? ""}\nAlt text: ${post.altText ?? ""}\nQuantidade de peças: ${assets.length}. As imagens seguintes estão na ordem do carrossel. Avalie o conjunto completo e considere como resultado geral o pior problema relevante encontrado em qualquer peça. Em carrosséis, verifique também consistência visual entre páginas.`,
+      text: `Marca: ${brandName}\nDiretrizes visuais: ${visualGuidelines}\nTom: ${toneOfVoice}\nTermos proibidos: ${prohibitedTerms}\nTítulo do post: ${post.title}\nGancho: ${post.hook ?? ""}\nLegenda: ${post.caption ?? ""}\nCTA: ${post.cta ?? ""}\nAlt text: ${post.altText ?? ""}\nQuantidade de peças: ${assets.length}. As imagens seguintes estão na ordem do carrossel. Avalie o conjunto completo e considere como resultado geral o pior problema relevante encontrado em qualquer peça. Em carrosséis, verifique também consistência visual entre páginas.`,
     },
     ...assets.map(asset => ({ type: "image_url" as const, image_url: { url: asset.url, detail: "high" as const } })),
   ];
@@ -102,9 +109,9 @@ export async function evaluatePostCreative(userId: number, postId: number, media
     adPlanId: null,
     checkType: "brand_safety",
     result: conservativePass ? "passed" : review.legalAdvertisingRisk > 50 ? "blocked" : "needs_human",
-    findingsJson: JSON.stringify({ ...review, conservativePass, mediaIds: assets.map(asset => asset.id), mediaUrls: assets.map(asset => asset.url) }),
+    findingsJson: JSON.stringify({ ...review, conservativePass, brandWorkspaceId: workspace?.id ?? null, mediaIds: assets.map(asset => asset.id), mediaUrls: assets.map(asset => asset.url) }),
     checkedBy: "system",
   });
-  await recordAuditEvent(userId, "brand_guardian.evaluated", "content_post", postId, { mediaIds: assets.map(asset => asset.id), conservativePass, legalAdvertisingRisk: review.legalAdvertisingRisk, consistencyScore: review.consistencyScore });
-  return { ...review, passed: conservativePass, evaluationIds, mediaIds: assets.map(asset => asset.id) };
+  await recordAuditEvent(userId, "brand_guardian.evaluated", "content_post", postId, { brandWorkspaceId: workspace?.id ?? null, mediaIds: assets.map(asset => asset.id), conservativePass, legalAdvertisingRisk: review.legalAdvertisingRisk, consistencyScore: review.consistencyScore });
+  return { ...review, passed: conservativePass, brandWorkspaceId: workspace?.id ?? null, evaluationIds, mediaIds: assets.map(asset => asset.id) };
 }
