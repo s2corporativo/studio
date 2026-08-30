@@ -48,6 +48,26 @@ describe("buildArtworkPrompt", () => {
     expect(prompt).toContain("distorted anatomy or malformed hands");
   });
 
+  it("injeta uma família visual e a política anti-repetição no prompt final", () => {
+    const prompt = buildArtworkPrompt({
+      title: "Fraude no Pix: primeiras providências",
+      area: "Consumidor",
+      style: "editorial",
+    });
+    expect(prompt).toContain("Composition family (");
+    expect(prompt).toContain("ANTI-REPETITION:");
+    expect(prompt).toContain("magnifying glass");
+    expect(prompt).toContain("AI templates");
+  });
+
+  it("mantém a mesma família de composição para o mesmo área+tema", () => {
+    const first = buildArtworkPrompt({ title: "Licenciamento ambiental", area: "Ambiental", style: "editorial" });
+    const second = buildArtworkPrompt({ title: "Licenciamento ambiental", area: "Ambiental", style: "photographic" });
+    const family = first.match(/Composition family \(([^)]+)\)/)?.[1];
+    expect(family).toBeTruthy();
+    expect(second).toContain(`Composition family (${family})`);
+  });
+
   it("inclui a direção adicional informada e trunca textos longos da marca", () => {
     const longGuidelines = "a".repeat(600);
     const prompt = buildArtworkPrompt({
