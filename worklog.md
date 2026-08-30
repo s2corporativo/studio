@@ -1025,3 +1025,58 @@ Agent: Main (orchestrator) — autonomous QA & development round
 - Competitor post monitoring (track competitor's recent posts).
 - Social listening / mention tracking.
 - Worker auto-start on system boot (currently manually started).
+
+---
+
+## Round 10 — Hashtag Performance Tracking (cron-triggered)
+
+Task ID: 21
+Agent: Main (orchestrator) — autonomous QA & development round
+
+### Assessment (current project status)
+- Project STABLE with 12 sections, dev server + posting worker both running, lint clean.
+- Prior rounds built: dashboard, companies, posts (calendar+list+approval kanban+detail drawer+bulk actions), creator, media, ideas, hashtags, social, analytics, competitors, seo, settings, notifications, media attachment, idea-to-post, settings→AI pipeline, dashboard widgets (onboarding+activity+worker status), command palette, calendar export, automated posting worker.
+- No bugs found in QA — project is mature and stable.
+
+### QA performed via agent-browser
+- All 12 sections load with zero console errors.
+- Verified posting worker running on port 3010 (1 published, 10 checks).
+- Verified command palette, approval kanban, competitors section all working.
+- No bugs found.
+
+### New features added
+1. **Hashtag Performance Tracking** (new widget in Analytics section)
+   - New API route `/api/hashtag-performance` (GET) — aggregates hashtag usage across all published posts, correlates each hashtag with its engagement metrics (likes, comments, shares, reach, impressions), computes engagement rate, average reach, average engagement per use, and which companies used it.
+   - Returns top N hashtags sorted by total engagement, plus summary stats (total unique tags, total engagement, total reach, average engagement rate).
+   - Respects companyId filter.
+   - New `HashtagPerformance` component at the bottom of the Analytics section:
+     - Header with "Performance de Hashtags" + summary stats (total tags, total engagement, average rate).
+     - Ranked list (top 15) with medal-style rank badges (gold/silver/bronze for top 3).
+     - Each hashtag row: rank badge, tag name + usage count badge, animated gradient progress bar (proportional to max engagement), metrics (likes with Heart icon, avg reach with Eye icon, engagement rate color-coded: green ≥5%, amber ≥2%, rose <2%).
+     - Scrollable (max-h-400px scroll-fancy), framer-motion stagger entrance.
+     - Loading skeletons, empty state with CTA.
+   - Verified: API returns 4 unique hashtags (#novidade, #lifestyle, #brasil, #inspiracao) used across 6 published posts each, with 28.5K total engagement, 3.14% average rate. Widget renders correctly at bottom of Analytics (VLM-confirmed).
+
+### Styling improvements
+- Hashtag performance list: medal-style rank badges (gold/silver/bronze), animated gradient progress bars, color-coded engagement rate, icon-led metrics, hover states.
+- Summary stats in header with bold key figures.
+- All use established purple/fuchsia theme + semantic colors (emerald/amber/rose for rates).
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings (clean).
+- Console: 0 errors across all 12 sections.
+- Posting worker: still running (1 published, 10 checks).
+- Hashtag performance API: returns 4 hashtags with correct engagement metrics.
+- Hashtag performance widget: renders correctly at bottom of Analytics (VLM-confirmed ranked list with progress bars).
+
+### Unresolved / next-phase recommendations
+- OAuth integration with social platforms (posting worker currently simulates publishing).
+- Real analytics ingestion from platform APIs.
+- Multi-user auth with approval roles (NextAuth available but not wired).
+- Drag-and-drop in approval kanban (currently button-based transitions).
+- Real-time notifications via WebSocket (currently polls every 30s).
+- A/B testing of post variations.
+- Competitor post monitoring (track competitor's recent posts).
+- Social listening / mention tracking.
+- Worker auto-start on system boot (currently manually started).
+- Content calendar drag-and-drop rescheduling.

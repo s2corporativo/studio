@@ -33,6 +33,7 @@ import {
   LineChart as LineChartIcon,
   BarChart2,
   Sparkles,
+  Hash,
 } from 'lucide-react'
 
 import { useAppStore } from '@/lib/store'
@@ -772,6 +773,137 @@ export function AnalyticsSection() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Hashtag Performance */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.6 }}
+      >
+        <HashtagPerformance companyId={companyId} />
+      </motion.div>
     </div>
+  )
+}
+
+function HashtagPerformance({ companyId }: { companyId: string | null }) {
+  const url = companyId
+    ? `/api/hashtag-performance?companyId=${companyId}&limit=15`
+    : '/api/hashtag-performance?limit=15'
+  const { data, loading } = useFetch<any>(url, [companyId])
+
+  const hashtags = data?.hashtags || []
+  const summary = data?.summary
+
+  const maxEngagement = hashtags.length > 0 ? hashtags[0].engagement : 1
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Hash className="w-4 h-4 text-primary" />
+            Performance de Hashtags
+          </CardTitle>
+          {summary && (
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-muted-foreground">
+                <span className="font-bold text-foreground">{summary.totalTags}</span> tags
+              </span>
+              <span className="text-muted-foreground">
+                <span className="font-bold text-foreground">{formatNumber(summary.totalEngagement)}</span> engaj.
+              </span>
+              <span className="text-muted-foreground">
+                <span className="font-bold text-foreground">{summary.avgEngagementRate}%</span> taxa média
+              </span>
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 rounded-lg" />
+            ))}
+          </div>
+        ) : hashtags.length === 0 ? (
+          <div className="py-8 text-center">
+            <Hash className="w-10 h-10 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Nenhuma hashtag publicada ainda</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              Publique posts com hashtags para ver a análise de performance aqui.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[400px] overflow-y-auto scroll-fancy pr-1">
+            {hashtags.map((h: any, i: number) => {
+              const pct = (h.engagement / maxEngagement) * 100
+              const rate = h.engagementRate
+              const rateColor =
+                rate >= 5 ? 'text-emerald-600' : rate >= 2 ? 'text-amber-600' : 'text-rose-600'
+              return (
+                <motion.div
+                  key={h.tag}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.3) }}
+                  className="group relative flex items-center gap-3 p-2.5 rounded-lg border border-border hover:border-primary/40 hover:bg-accent/30 transition-colors"
+                >
+                  {/* Rank */}
+                  <div
+                    className={cn(
+                      'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                      i === 0
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                        : i === 1
+                          ? 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                          : i === 2
+                            ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300'
+                            : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {i + 1}
+                  </div>
+
+                  {/* Tag + bar */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm truncate">#{h.tag}</span>
+                      <Badge variant="secondary" className="text-[9px] h-4">
+                        {h.uses}x
+                      </Badge>
+                    </div>
+                    <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
+                      <motion.div
+                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-fuchsia-500 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.5, delay: i * 0.03 }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Metrics */}
+                  <div className="flex items-center gap-3 text-xs shrink-0">
+                    <span className="flex items-center gap-1 text-muted-foreground" title="Curtidas">
+                      <Heart className="w-3 h-3" />
+                      {formatNumber(h.likes)}
+                    </span>
+                    <span className="flex items-center gap-1 text-muted-foreground" title="Alcance médio">
+                      <Eye className="w-3 h-3" />
+                      {formatNumber(h.avgReach)}
+                    </span>
+                    <span className={cn('font-bold tabular-nums', rateColor)} title="Taxa de engajamento">
+                      {rate.toFixed(1)}%
+                    </span>
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
