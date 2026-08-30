@@ -8,6 +8,7 @@ import { socialGovernanceRouter } from "./routers/socialGovernance";
 import { socialCampaignRouter } from "./routers/socialCampaign";
 import { socialGrowthRouter } from "./routers/socialGrowth";
 import { socialIntelligenceRouter } from "./routers/socialIntelligence";
+import { editorialIntelligenceRouter } from "./routers/editorialIntelligence";
 import { socialAutomationRouter } from "./routers/socialAutomation";
 import { brandGuardianRouter } from "./routers/brandGuardian";
 import { creativeDirectorRouter } from "./routers/creativeDirector";
@@ -30,6 +31,7 @@ export const appRouter = router({
   socialCampaign: socialCampaignRouter,
   socialGrowth: socialGrowthRouter,
   socialIntelligence: socialIntelligenceRouter,
+  editorialIntelligence: editorialIntelligenceRouter,
   socialAutomation: socialAutomationRouter,
   brandGuardian: brandGuardianRouter,
   creativeDirector: creativeDirectorRouter,
