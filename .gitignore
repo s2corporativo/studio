@@ -112,19 +112,3 @@ temp/
 # Manus version file (auto-generated, not part of source)
 client/public/__manus__/version.json
 .project-config.json
-
-# S2 Studio specific
-db/*.db
-db/*.db-shm
-db/*.db-wal
-uploads/
-*.log
-.dev/
-.pnp.cjs
-.pnp.loader.mjs
-coverage/
-.turbo/
-.vercel/
-manus-logs/
-.diagnostics/
-.models.json

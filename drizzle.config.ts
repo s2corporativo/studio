@@ -1,15 +1,21 @@
 import { defineConfig } from "drizzle-kit";
 
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required to run drizzle commands");
+}
+
 export default defineConfig({
   schema: [
     "./drizzle/schema.ts",
     "./drizzle/socialOsSchema.ts",
     "./drizzle/socialGrowthSchema.ts",
     "./drizzle/socialAutomationSchema.ts",
+    "./drizzle/brandWorkspaceSchema.ts",
   ],
   out: "./drizzle",
-  dialect: "sqlite",
+  dialect: "mysql",
   dbCredentials: {
-    url: process.env.DATABASE_URL || "file:./db/social-studio.db",
+    url: connectionString,
   },
 });

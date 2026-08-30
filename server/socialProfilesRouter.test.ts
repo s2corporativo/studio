@@ -52,8 +52,8 @@ describe("socialStudio perfis sociais", () => {
     await caller.addSocialProfile({
       network: "instagram",
       displayName: "S2 Studio",
-      handle: "@@depaulateixeira.adv",
-      profileUrl: "https://www.instagram.com/depaulateixeira.adv/",
+      handle: "@@s2studio.adv",
+      profileUrl: "https://www.instagram.com/s2studio.adv/",
       externalAccountId: null,
       notes: "Canal institucional.",
       accessToken: "nunca-deve-ser-persistido",
@@ -61,7 +61,7 @@ describe("socialStudio perfis sociais", () => {
 
     expect(mocks.createSocialProfile).toHaveBeenCalledWith(41, expect.objectContaining({
       network: "instagram",
-      handle: "depaulateixeira.adv",
+      handle: "s2studio.adv",
       connectionMode: "manual",
       state: "active",
     }));

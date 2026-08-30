@@ -1,0 +1,3 @@
+-- TiDB does not support CREATE TRIGGER.
+-- Binding approval before request, confirmation, scheduling and publication
+-- is enforced by the application services and covered by automated tests.

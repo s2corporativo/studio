@@ -35,10 +35,8 @@ function Router() {
       <Route path={"/conhecimento"} component={Home} />
       <Route path={"/instagram"} component={Home} />
       <Route path={"/roadmap"} component={Home} />
+      <Route path={"/marcas"} component={Home} />
       <Route path={"/marca"} component={Home} />
-      <Route path={"/socialhub"} component={Home} />
-      <Route path={"/avancado"} component={Home} />
-      <Route path={"/features-v2"} component={Home} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

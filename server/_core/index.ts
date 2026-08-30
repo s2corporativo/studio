@@ -8,17 +8,9 @@ import { registerInstagramOAuthRoutes } from "../instagramOAuth";
 import { runInstagramPublicationSchedule } from "../instagramSchedule";
 import { registerStorageProxy } from "./storageProxy";
 import { registerHealthRoutes } from "./health";
-import { registerCalendarExport } from "../calendarExport";
-import { registerSocialHubRoutes } from "../socialhub/routes";
-import { registerAdvancedRoutes } from "../socialhub/advanced-routes";
-import { registerFeaturesPackV2 } from "../socialhub/features-v2";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import * as db from "../db";
-import { sdk } from "./sdk";
-import { getSessionCookieOptions } from "./cookies";
-import { COOKIE_NAME } from "../../shared/const";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -46,46 +38,8 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerHealthRoutes(app);
   registerStorageProxy(app);
-  registerCalendarExport(app);
-  registerSocialHubRoutes(app);
-  registerAdvancedRoutes(app);
-  registerFeaturesPackV2(app);
-  // Serve uploaded files
-  app.use("/uploads", express.static("uploads"));
   registerOAuthRoutes(app);
   registerInstagramOAuthRoutes(app);
-
-  // Dev login: creates a user + session without external OAuth
-  app.get("/api/dev-login", async (req, res) => {
-    try {
-      const openId = process.env.OWNER_OPEN_ID || "dev-user";
-      await db.upsertUser({
-        openId,
-        name: "S2 Studio Admin",
-        email: "admin@s2.studio",
-        loginMethod: "dev",
-        lastSignedIn: new Date(),
-        role: "admin",
-      });
-      const sessionToken = await sdk.createSessionToken(openId, {
-        name: "S2 Studio Admin",
-        expiresInMs: 365 * 24 * 60 * 60 * 1000,
-      });
-      const cookieOptions = getSessionCookieOptions(req);
-      // Override for local dev: use Lax instead of None (None requires HTTPS)
-      const isLocal = req.hostname === "localhost" || req.hostname === "127.0.0.1" || req.hostname.includes("localhost");
-      res.cookie(COOKIE_NAME, sessionToken, {
-        ...cookieOptions,
-        maxAge: 365 * 24 * 60 * 60 * 1000,
-        sameSite: isLocal ? "lax" : cookieOptions.sameSite,
-        secure: isLocal ? false : cookieOptions.secure,
-      });
-      res.redirect(302, "/");
-    } catch (error: any) {
-      console.error("[DevLogin] Error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
   app.post("/api/scheduled/instagram-publication", runInstagramPublicationSchedule);
   app.use(
     "/api/trpc",

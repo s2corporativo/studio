@@ -29,7 +29,7 @@ export async function scheduleConfirmedInstagramPublication(userId: number, jobI
       cron,
       path: "/api/scheduled/instagram-publication",
       payload: {},
-      description: `Publicação Instagram #${job.id} do S2 Studio`,
+      description: `Publicação Instagram #${job.id} do S2 Studio Social Studio`,
     }, sessionToken);
     await updatePublicationJob(job.id, { scheduledAt, scheduleCronTaskUid: created.taskUid, lastError: null });
     await updateStudioPost(userId, job.postId, { status: "scheduled", scheduledAt });

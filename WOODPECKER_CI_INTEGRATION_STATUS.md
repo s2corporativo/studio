@@ -36,7 +36,7 @@ O bootstrap foi ajustado com `corepack@0.31.0` fixado antes da ativação do `pn
 | Pipeline | SHA | Situação | Registro |
 |---|---|---|---|
 | #1 manual | `7e53873373` | Falhou | Corepack incompatível e mocks de testes dependentes do ambiente; causa corrigida no commit `49a231e` |
-| #2 do PR #10 | `49a231ecb2` | Aprovado | `clone` em 00:04 e `validate` em 02:38; código de saída 0 |
+| #2 do PR #10 | `49a231ecb2` | Aprovado e em fila | Executará a branch corrigida quando o agente compartilhado estiver disponível |
 
 O pipeline de pull request exige aprovação de mantenedor, política que foi preservada. O pipeline #2 foi aprovado individualmente conforme a autorização recebida; nenhuma política global de aprovação foi alterada.
 
@@ -48,4 +48,4 @@ A VPS possui 6 vCPUs e 11 GiB de memória. Durante a validação, a carga média
 
 ## Próximo passo
 
-O pipeline #2 concluiu com sucesso após a liberação natural da fila única. O PR #10 está apto para revisão humana e integração controlada, desde que o diff permaneça o mesmo commit validado e não sejam incluídos deploys, migrations adicionais ou secrets.
+Aguardar a conclusão automática da fila e confirmar o resultado do pipeline #2. O PR #10 **não deve ser integrado à `main`** até que a validação remota conclua com sucesso e a revisão humana confirme o diff.

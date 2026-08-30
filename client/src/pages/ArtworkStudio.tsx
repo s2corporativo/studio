@@ -66,7 +66,7 @@ function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: ArtworkPost, st
   ctx.fillRect(78, 1184, 70, 5);
   ctx.fillStyle = "#f5edde";
   ctx.font = "700 24px Manrope, sans-serif";
-  ctx.fillText("S2 STUDIO", 78, 1240);
+  ctx.fillText("DE PAULA TEIXEIRA", 78, 1240);
   ctx.fillStyle = "rgba(190,202,190,.92)";
   ctx.font = "500 18px Manrope, sans-serif";
   ctx.fillText("ADVOCACIA • CONTEÚDO INFORMATIVO", 78, 1275);
@@ -83,8 +83,11 @@ export default function ArtworkStudio({ post }: { post: ArtworkPost }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const utils = trpc.useUtils();
-  const generate = trpc.socialStudio.generatePostArtwork.useMutation({
-    onSuccess: data => { setPreviewUrl(data.url); setMessage("Conceito visual gerado. A tipografia e a assinatura serão aplicadas pelo Design Engine."); },
+  const generate = trpc.creativeDirector.generateArtwork.useMutation({
+    onSuccess: data => {
+      setPreviewUrl(data.url);
+      setMessage(`Creative Director: ${data.creativeDirection.visualFamily} · repetição estrutural prévia ${data.repetitionScoreBeforeGeneration}/100. Conceito visual gerado; tipografia e assinatura serão aplicadas pelo Design Engine.`);
+    },
     onError: error => setMessage(error.message),
   });
   const upload = trpc.socialStudio.uploadPostMedia.useMutation({
@@ -132,7 +135,7 @@ export default function ArtworkStudio({ post }: { post: ArtworkPost }) {
 
   return <section className="saas-card p-5 sm:p-6">
     <div className="flex items-start justify-between gap-4">
-      <div><div className="saas-eyebrow"><WandSparkles className="h-3.5 w-3.5" /> Design AI</div><h3 className="mt-3 text-xl font-semibold text-white">Criação visual profissional</h3><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">A IA cria o conceito visual sem texto; o sistema monta título, área e assinatura com precisão. O Brand Guardian multimodal avalia a arte final salva, não apenas o prompt.</p></div>
+      <div><div className="saas-eyebrow"><WandSparkles className="h-3.5 w-3.5" /> Creative Director + Design AI</div><h3 className="mt-3 text-xl font-semibold text-white">Criação visual profissional</h3><p className="mt-2 max-w-2xl text-xs leading-5 text-slate-500">O Creative Director compara o histórico recente, define composição, ambiente, câmera e objetos; só depois o gerador cria o conceito sem texto. O Brand Guardian multimodal avalia a arte final salva.</p></div>
       <ImagePlus className="h-5 w-5 text-[#e3bd7f]" />
     </div>
     <div className="mt-5 grid gap-3 md:grid-cols-[220px_1fr_auto]">

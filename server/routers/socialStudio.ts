@@ -2,7 +2,7 @@ import { z } from "zod";
 import { contentStatuses, editorialFormats } from "../../drizzle/schema";
 import { canSubmitForReview } from "../studioRules";
 import { generateLegalDraft } from "../socialStudioGenerator";
-import { createContentSource, createHashtagGroup, createKnowledgeMaterial, createSocialProfile, createStudioPost, getHashtagGroups, getInstagramStudioData, getOrCreateContentSource, getPostMedia, getPublicationJob, getSocialProfiles, getStudioData, getStudioPost, linkInstagramProfileToConnection, recordHashtagGroupUsage, recordPublicationAttempt, removeHashtagGroup, removeSocialProfile, updateAutomationSettings, updateBrandProfile, updateHashtagGroup, updatePublicationJob, updateSocialProfile, updateStudioPost, addPostMedia, removePostMedia } from "../socialStudioDb";
+import { createContentSource, createKnowledgeMaterial, createSocialProfile, createStudioPost, getInstagramStudioData, getOrCreateContentSource, getPostMedia, getPublicationJob, getSocialProfiles, getStudioData, getStudioPost, linkInstagramProfileToConnection, recordPublicationAttempt, removeSocialProfile, updateAutomationSettings, updateBrandProfile, updatePublicationJob, updateSocialProfile, updateStudioPost, addPostMedia, removePostMedia } from "../socialStudioDb";
 import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
 import { buildInstagramBusinessLoginUrl, isInstagramMetaConfigured, validateInstagramMetaCredentials } from "../instagramApi";
@@ -52,25 +52,6 @@ export const socialStudioRouter = router({
     return updateSocialProfile(ctx.user.id, id, patch);
   }),
   removeSocialProfile: protectedProcedure.input(z.object({ id: z.number() })).mutation(({ ctx, input }) => removeSocialProfile(ctx.user.id, input.id)),
-  hashtagGroups: protectedProcedure.query(({ ctx }) => getHashtagGroups(ctx.user.id)),
-  addHashtagGroup: protectedProcedure.input(z.object({
-    name: z.string().trim().min(2).max(120),
-    area: z.string().trim().max(80).nullable(),
-    tags: z.string().trim().min(1).max(2000),
-    description: z.string().trim().max(500).nullable(),
-  })).mutation(({ ctx, input }) => createHashtagGroup(ctx.user.id, input)),
-  updateHashtagGroup: protectedProcedure.input(z.object({
-    id: z.number().int().positive(),
-    name: z.string().trim().min(2).max(120),
-    area: z.string().trim().max(80).nullable(),
-    tags: z.string().trim().min(1).max(2000),
-    description: z.string().trim().max(500).nullable(),
-  })).mutation(({ ctx, input }) => {
-    const { id, ...patch } = input;
-    return updateHashtagGroup(ctx.user.id, id, patch);
-  }),
-  removeHashtagGroup: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => removeHashtagGroup(ctx.user.id, input.id)),
-  useHashtagGroup: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => recordHashtagGroupUsage(ctx.user.id, input.id)),
   radar: protectedProcedure.query(() => fetchCurrentRadar()),
   updateAutomation: protectedProcedure.input(z.object({
     enabled: z.boolean(),

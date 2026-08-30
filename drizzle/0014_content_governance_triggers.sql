@@ -1,0 +1,2 @@
+-- TiDB does not support CREATE TRIGGER.
+-- Equivalent guards execute in server/socialOsGovernance.ts before content and media mutations.

@@ -1,5 +1,5 @@
 {
-  "name": "s2-studio",
+  "name": "depaula-social-studio",
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
@@ -11,6 +11,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:meta-credentials": "RUN_META_CREDENTIALS_CHECK=true vitest run server/instagramMetaCredentials.integration.test.ts",
+    "brand:validate": "tsx scripts/validate-de-paula-brand-pack.ts",
+    "brand:import": "tsx scripts/import-de-paula-brand-memory.ts",
     "db:generate": "node scripts/safe-generate-migration.mjs",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit migrate",
@@ -53,7 +55,6 @@
     "@trpc/react-query": "^11.18.0",
     "@trpc/server": "^11.18.0",
     "axios": "^1.20.0",
-    "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -74,7 +75,6 @@
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.64.0",
-    "react-icons": "^5.7.0",
     "react-resizable-panels": "^3.0.6",
     "recharts": "^3.10.1",
     "sonner": "^2.0.7",
@@ -84,7 +84,6 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
-    "z-ai-web-dev-sdk": "^0.0.18",
     "zod": "^4.1.12"
   },
   "devDependencies": {

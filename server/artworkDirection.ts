@@ -1,3 +1,5 @@
+import { antiRepetitionDirective, compositionDirectiveFor } from "@shared/visualRepetition";
+
 export const artworkStyles = {
   tech_premium:
     "premium institutional campaign photography, sophisticated contemporary legal visual language, deep charcoal green, restrained bronze highlights and ivory details, elegant architectural geometry",
@@ -39,6 +41,7 @@ export function buildArtworkPrompt(input: {
   const audience = sanitizeFreeText(input.brand?.targetAudience, 300);
   const guidelines = sanitizeFreeText(input.brand?.visualGuidelines, MAX_BRAND_GUIDELINE_CHARS);
   const extraDirection = sanitizeFreeText(input.direction, 1000);
+  const compositionFamily = compositionDirectiveFor(`${input.area}|${input.title}`);
 
   const parts: string[] = [
     "Create a vertical 4:5 Instagram background image for a Brazilian law firm social-media post.",
@@ -49,10 +52,12 @@ export function buildArtworkPrompt(input: {
   if (segment) parts.push(`Brand segment: ${segment}.`);
   if (audience) parts.push(`Audience the image must feel welcoming to: ${audience}.`);
   parts.push(`Visual direction: ${artworkStyles[input.style]}.`);
+  parts.push(`Composition family (${compositionFamily.key}): ${compositionFamily.prompt}`);
   if (guidelines) parts.push(`Brand visual guidelines to honor: ${guidelines}.`);
   if (extraDirection) parts.push(`Additional creative direction: ${extraDirection}.`);
   parts.push(
     "COMPOSITION: clean and uncluttered with a single clear focal point; generous intentional negative space reserved for professionally rendered typography; balanced harmonious institutional palette of deep charcoal green, restrained bronze and ivory; soft flattering light; premium, pleasant and inviting atmosphere.",
+    antiRepetitionDirective(),
     "IMPORTANT: image only, NO words, NO letters, NO numbers, NO logos, NO watermarks, NO scales of justice, NO gavels, NO generic AI-looking humanoid imagery.",
     "AVOID: visual clutter, busy patterns, collage of many competing elements, oversaturated or neon colors, harsh shadows, distorted anatomy or malformed hands, plastic artificial-looking skin, stocky clichés.",
     "High-end advertising art direction, realistic materials, excellent lighting, visually striking yet sober and credible."

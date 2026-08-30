@@ -7,7 +7,7 @@
 - [x] Construir calendário editorial com visualizações mensal e semanal e estados de conteúdo.
 - [x] Implementar fluxo de revisão e aprovação com responsável, observações, bloqueio e rastreabilidade de status.
 - [x] Criar central de preparação para Instagram com prévia de legenda, mídia/link e checklist pré-publicação.
-- [x] Aplicar identidade visual editorial da S2 Studio Teixeira: verde-carvão, bronze, marfim, tipografia elegante e layout responsivo.
+- [x] Aplicar identidade visual editorial da S2 Studio: verde-carvão, bronze, marfim, tipografia elegante e layout responsivo.
 - [x] Implementar persistência em banco de dados e procedimentos protegidos para as rotinas editoriais.
 - [x] Criar testes automatizados para regras de aprovação e transição de status.
 - [x] Validar o fluxo principal, revisar a interface em desktop e mobile e corrigir falhas encontradas.
@@ -47,7 +47,7 @@
 - [x] Organizar as artes importadas por área, tema, formato e sequência de carrossel na biblioteca interna.
 - [x] Exibir a galeria de artes no painel Biblioteca e validar o acesso em desktop e mobile.
 - [x] Garantir o encerramento limpo do importador de artes após a execução idempotente em lote.
-- [x] Sincronizar a versão atual do S2 Studio com o repositório GitHub s2corporativo/studio.
+- [x] Sincronizar a versão atual do S2 Studio Social Studio com o repositório GitHub s2corporativo/studio.
 - [x] Integrar de forma controlada o main remoto do Studio, preservando a versão atual e o histórico de dados.
 - [x] Adequar as novas telas e o Design AI ao padrão verde-carvão, bronze, marfim e tipografia editorial do escritório.
 - [x] Validar previamente e aplicar com segurança a migration de automação do Social OS.
@@ -133,44 +133,11 @@
 - [x] Inventariar de forma não destrutiva a VPS compartilhada e confirmar o acesso ao Woodpecker existente.
 - [x] Validar a saúde do Woodpecker, seus agentes e a integração GitHub sem alterar serviços de produção.
 - [x] Revisar e habilitar de modo seguro o pipeline `.woodpecker.yml` da branch `ci/woodpecker-studio`, sem secrets de produção.
-- [x] Executar a primeira validação manual do pipeline do Studio e registrar cada etapa sem efetuar deploy ou migrations.
+- [ ] Executar a primeira validação manual do pipeline do Studio e registrar cada etapa sem efetuar deploy ou migrations.
 - [x] Documentar o estado de Woodpecker, GitHub, recursos da VPS e a prontidão do PR #10 para merge.
 - [x] Corrigir os testes unitários de integração Instagram para fornecer configuração fictícia segura na CI, sem usar secrets de produção.
-- [x] Reexecutar o pipeline Woodpecker do PR #10 após a correção e registrar o resultado de cada etapa.
-- [x] Confirmar o commit remoto da main e revisar a migration 0020 de allowSelfApproval antes de qualquer aplicação.
-- [x] Sincronizar a main no projeto e aplicar a migration 0020 de forma não destrutiva antes da publicação.
-- [x] Revalidar tipos, testes, build, segurança, banco e smoke test de produção após a sincronização da main.
-- [x] Registrar e publicar a evidência de sincronização, migration e versão de produção resultante.
-- [x] Inventariar os commits e o diff recente da main, identificando as alterações feitas pelo Claude.
-- [x] Confirmar novamente a presença da migration 0020 na main e o estado da coluna allowSelfApproval no TiDB.
-- [x] Sincronizar a main recente somente após a confirmação do schema e revalidar a publicação resultante.
-- [x] Reavaliar a capacidade atual da VPS compartilhada e o estado da fila Woodpecker sem alterar serviços ou concorrência.
-- [x] Confirmar se o pipeline pendente do Studio iniciou, concluiu ou permanece aguardando e registrar sua situação atual.
-- [x] Preparar a versão horizontal oficial da logomarca para uso estático seguro no Social Studio.
-- [x] Inserir a logomarca oficial no cabeçalho e na raiz do sistema, com texto alternativo e proporção responsiva.
-- [x] Validar a logomarca em desktop e mobile e publicar a atualização visual.
-- [x] Mapear o design de referência EJC e os componentes existentes para preservar fluxos e dados do Social Studio.
-- [x] Redesenhar a raiz e a navegação com hierarquia operacional inspirada no EJC, sem substituir os módulos do Social Studio.
-- [x] Inserir a logomarca horizontal oficial no cabeçalho redesenhado com texto alternativo e comportamento responsivo.
-- [x] Validar visualmente o novo layout em desktop e mobile, além de TypeScript, testes e build, antes da publicação.
-- [x] Mapear os módulos de calendário, agendamento e tema para preservar seus fluxos durante o redesenho.
-- [x] Aplicar a identidade visual institucional ao calendário e ao agendamento, com logomarca e hierarquia operacional coerentes.
-- [x] Adicionar animações de carregamento e feedbacks de hover acessíveis aos controles do Studio.
-- [x] Implementar alternância persistente de modo escuro compatível com a identidade visual institucional.
-- [x] Validar em desktop e mobile as melhorias visuais, o modo escuro, tipos, testes, build e produção antes da publicação.
-- [x] Inventariar os módulos e componentes restantes para identificar desvios do padrão visual institucional unificado.
-- [x] Consolidar tokens compartilhados de superfícies, cores contextuais, interação e modo escuro para todos os módulos.
-- [x] Aplicar o padrão visual às áreas de criação, inteligência, crescimento, distribuição e governança sem alterar comportamento.
-- [x] Validar todas as rotas em desktop/mobile e nos dois temas, executar testes/build e publicar a identidade visual unificada.
-- [x] Mapear os módulos de redes, Instagram e distribuição para aplicar cores oficiais sem afetar os fluxos protegidos.
-- [x] Inserir ícones e acentos cromáticos oficiais de Instagram, Facebook, LinkedIn, TikTok e YouTube nos pontos apropriados do sistema.
-- [x] Adicionar destaques de cor complementares aos painéis operacionais, preservando contraste, modo escuro e identidade institucional.
-- [x] Validar visualmente em desktop e mobile, rodar tipos, testes e build e publicar a evolução cromática.
-- [x] Corrigir o contraste do título e metadados do Command Center sobre a área de conteúdo clara, preservando os cartões operacionais escuros.
-- [x] Corrigir a importação do componente de ícones de redes para manter a renderização SSR usada pela suíte de testes.
-- [x] Corrigir o contraste de textos nos painéis legados em modo escuro, preservando a legibilidade dos módulos de redes e Instagram.
-- [ ] Verificar de forma sanitizada se App ID e App Secret Meta foram atualizados no cofre antes da validação mínima.
-- [ ] Executar uma única validação técnica das credenciais Meta atualizadas, sem OAuth de usuário, mídia ou publicação.
-- [ ] Registrar o resultado sanitizado da validação Meta e manter os bloqueios externos coerentes com a evidência.
-- [x] Confirmar no TiDB a aplicação e o estado da última migration registrada antes de orientar novas alterações do Claude.
-- [x] Preparar e entregar um roteiro operacional de branch, PR, CI, migrations e limites de acesso para o Claude.
+- [ ] Reexecutar o pipeline Woodpecker do PR #10 após a correção e registrar o resultado de cada etapa.
+- [ ] Confirmar o commit remoto da main e revisar a migration 0020 de allowSelfApproval antes de qualquer aplicação.
+- [ ] Sincronizar a main no projeto e aplicar a migration 0020 de forma não destrutiva antes da publicação.
+- [ ] Revalidar tipos, testes, build, segurança, banco e smoke test de produção após a sincronização da main.
+- [ ] Registrar e publicar a evidência de sincronização, migration e versão de produção resultante.
