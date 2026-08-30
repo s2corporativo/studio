@@ -1,0 +1,196 @@
+import ZAI from 'z-ai-web-dev-sdk'
+
+let zaiInstance: Awaited<ReturnType<typeof ZAI.create>> | null = null
+
+export async function getAI() {
+  if (!zaiInstance) {
+    zaiInstance = await ZAI.create()
+  }
+  return zaiInstance
+}
+
+export interface GeneratedContent {
+  caption: string
+  hashtags: string[]
+  variations: { platform: string; content: string }[]
+}
+
+/** Generate social media content variations per platform */
+export async function generateContent(opts: {
+  topic: string
+  company: string
+  niche?: string
+  tone?: string
+  platforms: string[]
+  keywords?: string[]
+}): Promise<{ caption: string; hashtags: string[]; variations: Record<string, string> }> {
+  const zai = await getAI()
+  const platformList = opts.platforms.join(', ')
+  const systemPrompt = `You are an elite social media strategist and copywriter for Brazilian companies. You craft engaging, platform-native content in Brazilian Portuguese. You understand each platform's best practices: Instagram (visual, hashtags, emojis), LinkedIn (professional, value-driven), Twitter/X (concise, punchy), Facebook (conversational, community), TikTok (trendy, casual), YouTube (descriptive, keyword-rich). Always respond with STRICT valid JSON only, no markdown, no code fences.`
+
+  const userPrompt = `Gere conteúdo para redes sociais com estes parâmetros:
+- Empresa: ${opts.company}
+- Nicho: ${opts.niche || 'geral'}
+- Tom de voz: ${opts.tone || 'profissional e amigável'}
+- Tópico/Mensagem: ${opts.topic}
+- Palavras-chave SEO: ${(opts.keywords || []).join(', ') || 'nenhuma'}
+- Plataformas: ${platformList}
+
+Responda SOMENTE com este JSON exato:
+{
+  "caption": "uma legenda principal envolvente em português (2-4 frases, com emojis moderados)",
+  "hashtags": ["array", "de", "10", "hashtags", "relevantes", "sem", "o", "simbolo"],
+  "variations": {
+    "instagram": "legenda adaptada para instagram com emojis",
+    "linkedin": "versão profissional e orientada a valor",
+    "twitter": "versão concisa <= 280 caracteres",
+    "facebook": "versão conversacional",
+    "tiktok": "versão casual e trend",
+    "youtube": "descrição rica em palavras-chave"
+  }
+}
+Inclua apenas as plataformas solicitadas (${platformList}) no objeto variations. NÃO use crases nem markdown. Apenas JSON puro.`
+
+  const completion = await zai.chat.completions.create({
+    messages: [
+      { role: 'assistant', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    thinking: { type: 'disabled' },
+  })
+
+  const raw = completion.choices[0]?.message?.content || ''
+  return parseAIJSON(raw)
+}
+
+export interface SeoSuggestion {
+  title: string
+  metaDescription: string
+  keywords: string[]
+  googleTips: string[]
+  aiEngineTips: string[]
+  schema: string
+}
+
+/** Generate SEO + AI engine optimization suggestions */
+export async function generateSeo(opts: {
+  topic: string
+  company: string
+  website?: string
+  niche?: string
+  content?: string
+}): Promise<SeoSuggestion> {
+  const zai = await getAI()
+  const systemPrompt = `You are a world-class SEO and AI-search (AEO/GEO) specialist. You optimize content for both Google Search AND AI engines (ChatGPT, Google AI Overviews, Perplexity). You know schema.org, E-E-A-T, semantic SEO, entity optimization, and how to get cited by LLMs. Respond with STRICT valid JSON only, no markdown.`
+
+  const userPrompt = `Gere recomendações de SEO e otimização para motores de IA para:
+- Empresa: ${opts.company}
+- Website: ${opts.website || 'não informado'}
+- Nicho: ${opts.niche || 'geral'}
+- Tópico: ${opts.topic}
+- Conteúdo existente: ${(opts.content || '').slice(0, 800) || 'nenhum'}
+
+Responda SOMENTE com este JSON:
+{
+  "title": "title tag otimizado (50-60 caracteres)",
+  "metaDescription": "meta description persuasiva (140-160 caracteres)",
+  "keywords": ["8", "palavras", "chave", "principais"],
+  "googleTips": ["5", "dicas", "praticas", "para", "Google"],
+  "aiEngineTips": ["5", "estrategias", "para", "ser", "citado", "por", "IAs"],
+  "schema": "JSON-LD schema.org valido para o conteudo"
+}
+NÃO use crases nem markdown. Apenas JSON puro.`
+
+  const completion = await zai.chat.completions.create({
+    messages: [
+      { role: 'assistant', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    thinking: { type: 'disabled' },
+  })
+
+  const raw = completion.choices[0]?.message?.content || ''
+  return parseAIJSON(raw)
+}
+
+/** Generate SEO keyword research */
+export async function generateKeywords(opts: {
+  company: string
+  niche: string
+  location?: string
+}): Promise<{ keyword: string; volume: number; difficulty: number; intent: string }[]> {
+  const zai = await getAI()
+  const systemPrompt = `You are an SEO keyword research expert. You analyze search volume, difficulty and intent. Respond with STRICT valid JSON only.`
+
+  const userPrompt = `Pesquise 12 palavras-chave de cauda longa para SEO para:
+- Empresa: ${opts.company}
+- Nicho: ${opts.niche}
+- Local: ${opts.location || 'Brasil'}
+
+Responda SOMENTE com:
+{
+  "keywords": [
+    {"keyword": "palavra chave", "volume": 1200, "difficulty": 35, "intent": "informational"}
+  ]
+}
+Use volumes realistas (100-10000), difficulty (1-100), intent entre: informational, commercial, transactional, navigational. Apenas JSON puro, sem markdown.`
+
+  const completion = await zai.chat.completions.create({
+    messages: [
+      { role: 'assistant', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    thinking: { type: 'disabled' },
+  })
+
+  const raw = completion.choices[0]?.message?.content || ''
+  const parsed = parseAIJSON(raw)
+  return parsed.keywords || []
+}
+
+/** Generate best posting time recommendations */
+export async function generateBestTimes(opts: {
+  niche: string
+  platforms: string[]
+}): Promise<Record<string, { day: string; time: string; reason: string }[]>> {
+  const zai = await getAI()
+  const systemPrompt = `You are a social media analytics expert who knows optimal posting times by platform and niche. Respond with STRICT valid JSON only.`
+
+  const userPrompt = `Para o nicho "${opts.niche}", recomende os melhores horários para postar em: ${opts.platforms.join(', ')}.
+Responda SOMENTE com:
+{
+  "instagram": [{"day": "segunda", "time": "12:00", "reason": "motivo"}],
+  "linkedin": [{"day": "...", "time": "...", "reason": "..."}]
+}
+Cada plataforma com 3 horários. Dias em português. Apenas JSON puro.`
+
+  const completion = await zai.chat.completions.create({
+    messages: [
+      { role: 'assistant', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    thinking: { type: 'disabled' },
+  })
+
+  const raw = completion.choices[0]?.message?.content || ''
+  return parseAIJSON(raw)
+}
+
+function parseAIJSON(raw: string): any {
+  let text = raw.trim()
+  // Strip code fences if present
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '')
+  }
+  // Find first { and last }
+  const first = text.indexOf('{')
+  const last = text.lastIndexOf('}')
+  if (first !== -1 && last !== -1) {
+    text = text.slice(first, last + 1)
+  }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { caption: raw, hashtags: [], variations: {} }
+  }
+}

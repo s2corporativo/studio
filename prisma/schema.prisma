@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  logo        String?
+  description String?
+  niche       String?
+  website     String?
+  brandColor  String?  @default("#6366f1")
+  city        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  socialAccounts SocialAccount[]
+  posts          Post[]
+  analytics      AnalyticsSnapshot[]
+  seoKeywords    SeoKeyword[]
+  templates      ContentTemplate[]
+}
+
+model SocialAccount {
+  id           String   @id @default(cuid())
+  companyId    String
+  platform     String   // instagram, facebook, linkedin, twitter, tiktok, youtube
+  handle       String
+  displayName  String?
+  avatarUrl    String?
+  profileUrl   String?
+  followers    Int      @default(0)
+  following    Int      @default(0)
+  posts        Int      @default(0)
+  connected    Boolean  @default(false)
+  verified     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company     Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  postTargets PostTarget[]
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  companyId   String
+  title       String
+  content     String
+  mediaUrls   String   @default("[]") // JSON array of URLs
+  hashtags    String   @default("[]") // JSON array of strings
+  scheduledAt DateTime?
+  status      String   @default("draft") // draft, scheduled, publishing, published, failed
+  category    String?  // promo, educational, engagement, announcement, story
+  tone        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  targets PostTarget[]
+}
+
+model PostTarget {
+  id             String   @id @default(cuid())
+  postId         String
+  platform       String
+  content        String   // platform-specific tailored content
+  status         String   @default("pending") // pending, published, failed
+  publishedAt    DateTime?
+  likes          Int      @default(0)
+  comments       Int      @default(0)
+  shares         Int      @default(0)
+  saves          Int      @default(0)
+  reach          Int      @default(0)
+  impressions    Int      @default(0)
+
+  post           Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccountId String?
+  socialAccount  SocialAccount? @relation(fields: [socialAccountId], references: [id])
+}
+
+model AnalyticsSnapshot {
+  id          String   @id @default(cuid())
+  companyId   String
+  platform    String
+  date        DateTime
+  followers   Int      @default(0)
+  reach       Int      @default(0)
+  engagement  Int      @default(0)
+  clicks      Int      @default(0)
+  impressions Int      @default(0)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model SeoKeyword {
+  id         String   @id @default(cuid())
+  companyId  String
+  keyword    String
+  volume     Int      @default(0)
+  difficulty Int      @default(0)
+  rank       Int      @default(0)
+  trend      String   @default("up") // up, down, stable
+  intent     String   @default("informational") // informational, commercial, transactional, navigational
+  createdAt  DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model ContentTemplate {
+  id        String   @id @default(cuid())
+  companyId String?
+  name      String
+  structure String
+  tone      String?
+  category  String?
+  createdAt DateTime @default(now())
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
