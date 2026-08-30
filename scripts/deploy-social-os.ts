@@ -33,6 +33,7 @@ const requiredTables = [
   "agent_runs",
   "compliance_checks",
   "generated_reports",
+  "hashtag_groups",
 ] as const;
 
 const requiredAutomationColumns = [

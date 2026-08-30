@@ -122,6 +122,20 @@ export const editorialTopics = mysqlTable("editorial_topics", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const hashtagGroups = mysqlTable("hashtag_groups", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 120 }).notNull(),
+  area: varchar("area", { length: 80 }),
+  tags: text("tags").notNull(),
+  description: text("description"),
+  usageCount: int("usageCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  index("hashtag_groups_user_idx").on(table.userId),
+]);
+
 export const contentPosts = mysqlTable("content_posts", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -301,3 +315,4 @@ export type InstagramConnection = typeof instagramConnections.$inferSelect;
 export type SocialProfile = typeof socialProfiles.$inferSelect;
 export type PublicationJob = typeof publicationJobs.$inferSelect;
 export type AutomationSetting = typeof automationSettings.$inferSelect;
+export type HashtagGroup = typeof hashtagGroups.$inferSelect;

@@ -148,6 +148,13 @@
       "when": 1787965000000,
       "tag": "0020_automation_allow_self_approval",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1787966000000,
+      "tag": "0021_hashtag_groups",
+      "breakpoints": true
     }
   ]
 }

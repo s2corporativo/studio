@@ -8,6 +8,7 @@ import { registerInstagramOAuthRoutes } from "../instagramOAuth";
 import { runInstagramPublicationSchedule } from "../instagramSchedule";
 import { registerStorageProxy } from "./storageProxy";
 import { registerHealthRoutes } from "./health";
+import { registerCalendarExport } from "../calendarExport";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -38,6 +39,7 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerHealthRoutes(app);
   registerStorageProxy(app);
+  registerCalendarExport(app);
   registerOAuthRoutes(app);
   registerInstagramOAuthRoutes(app);
   app.post("/api/scheduled/instagram-publication", runInstagramPublicationSchedule);
