@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
+import { AI_TEXT_LIMIT, consumeRateLimit } from "../_core/rateLimit";
 import { ensureDefaultBrandWorkspace, listWorkspacePostIds } from "../brandWorkspaceDb";
 import { fetchCurrentRadar } from "../newsRadar";
 import { getStudioData } from "../socialStudioDb";
@@ -66,6 +67,7 @@ export const editorialIntelligenceRouter = router({
   }),
 
   refreshRadarOpportunities: protectedProcedure.input(z.object({ limit: z.number().int().min(1).max(8).default(5) })).mutation(async ({ ctx, input }) => {
+    consumeRateLimit(ctx.user.id, "editorialIntelligence.refreshRadarOpportunities", AI_TEXT_LIMIT);
     const [radar, studio, existing, workspace] = await Promise.all([
       fetchCurrentRadar(),
       getStudioData(ctx.user.id),
