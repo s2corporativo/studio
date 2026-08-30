@@ -81,3 +81,9 @@ Atualize o **App ID** correspondente ao DPT no formulário seguro já disponibil
 
 [1] [Meta for Developers — Access Tokens](https://developers.facebook.com/docs/facebook-login/guides/access-tokens/)  
 [2] [Meta for Developers — Instagram API with Instagram Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login/)
+
+## Calendário, automação e modo escuro — 30/08/2026
+
+O calendário e o módulo de automação receberam a mesma linguagem operacional da raiz: superfícies claras, hierarquia editorial, indicadores de status, fluxo protegido e ações visíveis. O modo escuro é acionado no cabeçalho, persiste no navegador e preserva contraste nos formulários, etapas, cards e Autopilot.
+
+Estados de carregamento usam shimmer discreto e indicador rotativo; botões possuem hover, foco visível e resposta de pressão. Os efeitos respeitam a preferência de redução de movimento do sistema. A versão publicada foi verificada em desktop e mobile e o smoke test do domínio confirmou `health`, `readiness` e as 14 rotas principais com HTTP 200.
