@@ -19,11 +19,12 @@ export default function SocialOsCommandCenter() {
   const leads = trpc.socialOs.leads.useQuery();
   const competitors = trpc.socialOs.competitors.useQuery();
   const rules = trpc.socialOs.automationRules.useQuery();
+  const editorial = trpc.editorialIntelligence.overview.useQuery();
 
-  const refreshRadar = trpc.socialIntelligence.refreshRadarOpportunities.useMutation({
+  const refreshRadar = trpc.editorialIntelligence.refreshRadarOpportunities.useMutation({
     onSuccess: async result => {
-      await Promise.all([utils.socialOs.opportunities.invalidate(), utils.socialOs.dashboard.invalidate(), utils.socialGrowth.workspace.invalidate()]);
-      toast.success(`${result.created} oportunidade(s) nova(s) analisada(s) pela IA.`);
+      await Promise.all([utils.socialOs.opportunities.invalidate(), utils.socialOs.dashboard.invalidate(), utils.socialGrowth.workspace.invalidate(), utils.editorialIntelligence.overview.invalidate()]);
+      toast.success(`${result.created} oportunidade(s) criada(s); ${result.blocked} item(ns) bloqueado(s) por data, frescor ou evidência insuficiente.`);
     },
     onError: error => toast.error(error.message),
   });
@@ -88,10 +89,10 @@ export default function SocialOsCommandCenter() {
         <CardContent className="space-y-3">
           {(opportunities.data ?? []).slice(0, 8).map(item => <div key={item.id} className="rounded-2xl border border-white/[.06] bg-white/[.02] p-4">
             <div className="flex items-start justify-between gap-4"><div><p className="font-medium">{item.title}</p><p className="mt-1 text-xs text-[#8f9c93]">{item.area ?? "Geral"}{item.sourceName ? ` · ${item.sourceName}` : ""}</p></div><div className={`text-xl font-semibold ${scoreTone(item.totalScore)}`}>{item.totalScore}</div></div>
-            {item.rationale && <p className="mt-3 text-sm leading-6 text-[#a9b4ad]">{item.rationale}</p>}
+            {item.rationale && <p className="mt-3 whitespace-pre-line text-sm leading-6 text-[#a9b4ad]">{item.rationale}</p>}
             <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => setOpportunityStatus.mutate({ id: item.id, status: "selected" })}>Selecionar</Button><Button size="sm" variant="ghost" onClick={() => setOpportunityStatus.mutate({ id: item.id, status: "dismissed" })}>Ignorar</Button></div>
           </div>)}
-          {!opportunities.data?.length && <p className="text-sm text-[#8f9c93]">Nenhuma oportunidade cadastrada. Use “Atualizar oportunidades IA” para pesquisar as fontes oficiais configuradas.</p>}
+          {!opportunities.data?.length && <p className="text-sm text-[#8f9c93]">Nenhuma oportunidade cadastrada. O Radar só converte automaticamente itens com fonte, resumo, data e validade editorial suficientes.</p>}
         </CardContent>
       </Card>
 
@@ -107,7 +108,7 @@ export default function SocialOsCommandCenter() {
 
       <Card className="border-[#daba7d]/10 bg-[#10201b] text-[#f3ebdd]"><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Bot className="h-5 w-5 text-[#e2ba7c]" />Automações</CardTitle></CardHeader><CardContent className="space-y-2">{(rules.data ?? []).slice(0, 6).map(item => <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.06] p-3"><div><p className="text-sm font-medium">{item.name}</p><p className="text-xs text-[#8f9c93]">{item.triggerType} → {item.actionType}</p></div><Button size="sm" variant={item.enabled ? "default" : "outline"} onClick={() => setAutomationEnabled.mutate({ id: item.id, enabled: !item.enabled })}>{item.enabled ? "Ativa" : "Ativar"}</Button></div>)}{!rules.data?.length && <p className="text-sm text-[#8f9c93]">Nenhuma regra configurada.</p>}</CardContent></Card>
 
-      <Card className="border-[#daba7d]/10 bg-[#10201b] text-[#f3ebdd]"><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><BarChart3 className="h-5 w-5 text-[#e2ba7c]" />Analytics & aprendizado</CardTitle></CardHeader><CardContent><p className="text-sm leading-6 text-[#9aa89f]">Snapshots de alcance, impressões, engajamento, cliques e leads alimentam relatórios e recomendações de tema, formato, canal e CTA. O sistema diferencia evidência de hipótese e não inventa benchmarks.</p></CardContent></Card>
+      <Card className="border-[#daba7d]/10 bg-[#10201b] text-[#f3ebdd]"><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><BarChart3 className="h-5 w-5 text-[#e2ba7c]" />Inteligência editorial</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm leading-6 text-[#9aa89f]">Fingerprints comparam tema, formato, intenção, CTA e família visual antes da criação. Os scores são heurísticas de priorização, não promessa de desempenho.</p>{editorial.data && <div className="space-y-2 text-xs text-[#b9c2bc]"><p>Maior repetição recente: <strong className={scoreTone(editorial.data.repetition.highest?.score ?? 0)}>{editorial.data.repetition.highest?.score ?? 0}/100</strong></p><p>Presença humana estimada: <strong>{editorial.data.humanization.humanPresencePercent}%</strong></p><p>Próxima categoria recomendada: <strong>{editorial.data.humanization.nextRecommendedCategory ?? "mix equilibrado"}</strong></p><p>Peças acima de 70% de repetição: <strong>{editorial.data.repetition.above70.length}</strong></p></div>}</CardContent></Card>
     </div>
   </div>;
 }
