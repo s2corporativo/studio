@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { brandContentBindings, brandMemorySnapshots, brandWorkspaces, performanceLearnings } from "../drizzle/brandWorkspaceSchema";
-import { contentPosts } from "../drizzle/schema";
+import { brandProfiles, contentPosts } from "../drizzle/schema";
 import { canonicalJson } from "../shared/canonicalJson";
 import { getDb } from "./db";
 
@@ -11,8 +11,50 @@ async function dbOrThrow() {
   return db;
 }
 
+export async function ensureDefaultBrandWorkspace(userId: number) {
+  const db = await dbOrThrow();
+  const [existingDefault] = await db.select().from(brandWorkspaces)
+    .where(and(eq(brandWorkspaces.userId, userId), eq(brandWorkspaces.isDefault, true), eq(brandWorkspaces.status, "active")))
+    .limit(1);
+  if (existingDefault) return existingDefault;
+
+  const [existingActive] = await db.select().from(brandWorkspaces)
+    .where(and(eq(brandWorkspaces.userId, userId), eq(brandWorkspaces.status, "active")))
+    .orderBy(desc(brandWorkspaces.updatedAt))
+    .limit(1);
+  if (existingActive) {
+    await db.update(brandWorkspaces).set({ isDefault: true, updatedAt: new Date() })
+      .where(and(eq(brandWorkspaces.userId, userId), eq(brandWorkspaces.id, existingActive.id)));
+    return getBrandWorkspace(userId, existingActive.id);
+  }
+
+  const [legacy] = await db.select().from(brandProfiles).where(eq(brandProfiles.userId, userId)).limit(1);
+  if (!legacy) return null;
+  const key = `legacy-${userId}`;
+  await db.insert(brandWorkspaces).values({
+    userId,
+    key,
+    name: legacy.brandName,
+    segment: legacy.segment,
+    location: legacy.location,
+    targetAudience: legacy.targetAudience,
+    commercialGoal: legacy.commercialGoal,
+    toneOfVoice: legacy.toneOfVoice,
+    primaryCta: legacy.primaryCta,
+    prohibitedTerms: legacy.prohibitedTerms,
+    visualGuidelines: legacy.visualGuidelines,
+    websiteUrl: legacy.websiteUrl,
+    whatsapp: legacy.whatsapp,
+    status: "active",
+    isDefault: true,
+  }).onDuplicateKeyUpdate({ set: { isDefault: true, status: "active", updatedAt: new Date() } });
+  const [created] = await db.select().from(brandWorkspaces).where(and(eq(brandWorkspaces.userId, userId), eq(brandWorkspaces.key, key))).limit(1);
+  return created ?? null;
+}
+
 export async function listBrandWorkspaces(userId: number) {
   const db = await dbOrThrow();
+  await ensureDefaultBrandWorkspace(userId);
   return db.select().from(brandWorkspaces).where(eq(brandWorkspaces.userId, userId)).orderBy(desc(brandWorkspaces.isDefault), desc(brandWorkspaces.updatedAt));
 }
 
