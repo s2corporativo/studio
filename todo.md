@@ -137,7 +137,7 @@
 - [x] Documentar o estado de Woodpecker, GitHub, recursos da VPS e a prontidão do PR #10 para merge.
 - [x] Corrigir os testes unitários de integração Instagram para fornecer configuração fictícia segura na CI, sem usar secrets de produção.
 - [ ] Reexecutar o pipeline Woodpecker do PR #10 após a correção e registrar o resultado de cada etapa.
-- [ ] Confirmar o commit remoto da main e revisar a migration 0020 de allowSelfApproval antes de qualquer aplicação.
-- [ ] Sincronizar a main no projeto e aplicar a migration 0020 de forma não destrutiva antes da publicação.
-- [ ] Revalidar tipos, testes, build, segurança, banco e smoke test de produção após a sincronização da main.
-- [ ] Registrar e publicar a evidência de sincronização, migration e versão de produção resultante.
+- [x] Confirmar o commit remoto da main e revisar a migration 0020 de allowSelfApproval antes de qualquer aplicação.
+- [x] Sincronizar a main no projeto e aplicar a migration 0020 de forma não destrutiva antes da publicação.
+- [x] Revalidar tipos, testes, build, segurança, banco e smoke test de produção após a sincronização da main.
+- [x] Registrar e publicar a evidência de sincronização, migration e versão de produção resultante.
