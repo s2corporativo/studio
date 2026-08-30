@@ -71,7 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <div className="min-h-screen bg-[#0c1715] px-5 py-10 text-[#f3ebdd]">
       <div className="mx-auto flex min-h-[80vh] max-w-md items-center justify-center">
         <div className="saas-card w-full p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#c99550]/15 text-[#e7c58f] ring-1 ring-[#c99550]/25"><Sparkles className="h-6 w-6" /></div>
+          <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="De Paula Teixeira Advocacia" className="mx-auto h-16 w-56 object-contain" />
           <h1 className="mt-6 font-serif text-3xl tracking-tight">De Paula Social Studio</h1>
           <p className="mt-2 text-sm leading-6 text-[#9aa89f]">Entre para acessar inteligência, criação, agenda, publicação responsável e análise de desempenho.</p>
           <Button onClick={() => startLogin()} className="saas-button-primary mt-7 w-full">Entrar no Social Studio</Button>
@@ -81,12 +81,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return <SidebarProvider defaultOpen>
-    <div className="flex min-h-screen w-full bg-[#0c1715] text-[#f3ebdd]">
-      <Sidebar collapsible="icon" className="border-r border-[#daba7d]/10 bg-[#08130f]/95 backdrop-blur-xl">
-        <SidebarHeader className="border-b border-[#daba7d]/10 p-4">
-          <button onClick={() => setLocation("/")} className="flex min-h-12 items-center gap-3 rounded-2xl px-2 text-left transition hover:bg-white/[.03]">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#a87339] to-[#dbb577] text-sm font-black text-[#14221e] shadow-[0_0_35px_rgba(201,149,80,.20)]">DP</div>
-            <div className="min-w-0 group-data-[collapsible=icon]:hidden"><p className="truncate font-serif text-lg font-semibold tracking-tight text-[#f3ebdd]">Social Studio</p><p className="truncate text-[10px] uppercase tracking-[.16em] text-[#b8945d]">De Paula Teixeira</p></div>
+    <div className="flex min-h-screen w-full bg-[#f4f6f1] text-[#172520]">
+      <Sidebar collapsible="icon" className="border-r border-[#12382d] bg-[#061813] text-[#e9eee7]">
+        <SidebarHeader className="border-b border-[#daba7d]/15 p-3">
+          <button onClick={() => setLocation("/")} className="flex min-h-14 w-full items-center rounded-xl px-1 text-left transition hover:bg-white/[.04]">
+            <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="De Paula Teixeira Advocacia" className="h-12 w-[188px] object-contain object-center group-data-[collapsible=icon]:w-11" />
           </button>
         </SidebarHeader>
         <SidebarContent className="px-2 py-3">
@@ -98,17 +97,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             })}</SidebarMenu>
           </div>)}
         </SidebarContent>
-        <SidebarFooter className="border-t border-[#daba7d]/10 p-3">
+        <SidebarFooter className="border-t border-[#daba7d]/15 p-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild><button className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/[.04]"><Avatar className="h-9 w-9 border border-[#c99550]/25"><AvatarFallback className="bg-[#c99550]/10 text-xs text-[#e7c58f]">{user.name?.charAt(0)?.toUpperCase() ?? "U"}</AvatarFallback></Avatar><div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden"><p className="truncate text-xs font-medium text-[#eee5d7]">{user.name ?? "Usuário"}</p><p className="truncate text-[10px] text-[#8f9c93]">Conta ativa</p></div></button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" side="right" className="w-48 border-[#daba7d]/15 bg-[#12221e] text-[#eee5d7]"><DropdownMenuItem onClick={() => logout()} className="focus:bg-white/[.05] focus:text-white"><LogOut className="mr-2 h-4 w-4" />Sair</DropdownMenuItem></DropdownMenuContent>
           </DropdownMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset className="min-w-0 bg-transparent">
-        <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#daba7d]/10 bg-[#0c1715]/80 px-4 backdrop-blur-xl sm:px-6">
-          <div className="flex items-center gap-3"><SidebarTrigger className="text-[#9aa89f] hover:text-[#f3ebdd]" /><div className="hidden h-5 w-px bg-[#daba7d]/12 sm:block" /><div className="hidden text-xs text-[#93a096] sm:block">Social Media OS · operação responsável</div></div>
-          <div className="flex items-center gap-2"><div className="hidden items-center gap-2 rounded-full border border-[#c99550]/20 bg-[#c99550]/[.06] px-3 py-1.5 text-[10px] font-medium text-[#e5bd7e] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#c99550] shadow-[0_0_8px_rgba(201,149,80,.65)]" />Controle editorial ativo</div></div>
+      <SidebarInset className="min-w-0 bg-[#f4f6f1]">
+        <div className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#d9ded5] bg-[#fcfdf9]/92 px-4 backdrop-blur-xl sm:px-6">
+          <div className="flex items-center gap-3"><SidebarTrigger className="text-[#506158] hover:text-[#17352b]" /><div className="hidden h-5 w-px bg-[#d9ded5] sm:block" /><div className="hidden text-xs font-medium text-[#6d7c72] sm:block">Social Media OS · operação responsável</div></div>
+          <div className="flex items-center gap-2"><div className="hidden items-center gap-2 rounded-full border border-[#c99550]/30 bg-[#fffaf0] px-3 py-1.5 text-[10px] font-semibold text-[#77511f] sm:flex"><span className="h-1.5 w-1.5 rounded-full bg-[#b98238] shadow-[0_0_8px_rgba(185,130,56,.40)]" />Controle editorial ativo</div></div>
         </div>
         <main className="min-w-0 p-4 sm:p-6 lg:p-8">{children}</main>
       </SidebarInset>

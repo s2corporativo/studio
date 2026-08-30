@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, Bot, CalendarClock, CheckCircle2, FilePenLine, Instagram, Radar, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, Bot, CalendarClock, CheckCircle2, Clock3, FilePenLine, Instagram, Radar, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ContentPost } from "../../../drizzle/schema";
 
@@ -15,30 +15,88 @@ type OverviewProps = {
   onOpenNetworks: () => void;
 };
 
+const statusLabel: Record<ContentPost["status"], string> = {
+  draft: "Em produção",
+  review: "Em revisão",
+  approved: "Aprovado",
+  scheduled: "Agendado",
+  published: "Publicado",
+  rejected: "Ajustes necessários",
+};
+
+function formatSchedule(value: ContentPost["scheduledAt"]) {
+  if (!value) return "Sem data definida";
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
 export default function SaasOverview({ data, counts, onCreate, onOpenCalendar, onOpenRadar, onOpenAutomation, onOpenNetworks }: OverviewProps) {
-  const upcoming = data.posts.filter(post => post.scheduledAt).sort((a, b) => new Date(a.scheduledAt ?? 0).getTime() - new Date(b.scheduledAt ?? 0).getTime()).slice(0, 5);
-  const pipeline = counts.review + counts.approved + counts.scheduled;
-  return <div className="space-y-6">
-    <section className="saas-hero overflow-hidden rounded-3xl p-6 sm:p-8">
-      <div className="relative z-10 grid gap-8 xl:grid-cols-[1.25fr_.75fr] xl:items-end">
-        <div><div className="saas-eyebrow"><Sparkles className="h-3.5 w-3.5" /> AI Social Operations</div><h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">Conteúdo jurídico atual, visual premium e publicação sob controle.</h2><p className="mt-4 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">Uma operação única para descobrir pautas, produzir, revisar, agendar e distribuir conteúdo nas redes sociais.</p><div className="mt-7 flex flex-wrap gap-3"><Button onClick={onCreate} className="saas-button-primary"><FilePenLine className="mr-2 h-4 w-4" />Criar conteúdo</Button><Button onClick={onOpenRadar} variant="outline" className="saas-button-secondary"><Radar className="mr-2 h-4 w-4" />Ver radar de hoje</Button></div></div>
-        <div className="saas-glow-card p-5"><p className="text-xs font-medium text-slate-400">Fluxo pronto para operação</p><div className="mt-5 grid grid-cols-2 gap-3"><Metric label="Em produção" value={counts.draft + counts.review} /><Metric label="No pipeline" value={pipeline} /><Metric label="Agendados" value={counts.scheduled} /><Metric label="Publicados" value={counts.published} /></div></div>
+  const upcoming = data.posts.filter(post => post.scheduledAt).sort((a, b) => new Date(a.scheduledAt ?? 0).getTime() - new Date(b.scheduledAt ?? 0).getTime()).slice(0, 4);
+  const attentionPosts = data.posts.filter(post => post.status === "review" || post.status === "approved" || post.status === "scheduled").slice(0, 4);
+  const metrics = [
+    { icon: FilePenLine, label: "Em produção", value: counts.draft + counts.review, detail: `${counts.review} em revisão`, accent: "bronze" },
+    { icon: ShieldCheck, label: "Aprovações pendentes", value: counts.review, detail: "Revisão humana ativa", accent: "green" },
+    { icon: CalendarClock, label: "Agendados", value: counts.scheduled, detail: "Com confirmação exigida", accent: "gold" },
+    { icon: TrendingUp, label: "Publicados", value: counts.published, detail: "Histórico rastreável", accent: "clay" },
+  ];
+
+  return <div className="studio-overview space-y-5">
+    <section className="studio-overview-heading">
+      <div>
+        <p className="studio-overview-kicker">De Paula Teixeira Advocacia</p>
+        <h1>Visão geral da operação</h1>
+        <p>Acompanhe o conteúdo jurídico em produção, as aprovações e a distribuição responsável.</p>
       </div>
+      <div className="studio-overview-actions"><Button variant="outline" className="studio-light-button" onClick={onOpenRadar}><Radar className="mr-2 h-4 w-4" />Radar jurídico</Button><Button className="studio-new-entry" onClick={onCreate}><FilePenLine className="mr-2 h-4 w-4" />Nova entrada</Button></div>
     </section>
 
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-      <Action icon={Radar} label="Radar jurídico" text="Atualizações oficiais para novas pautas" onClick={onOpenRadar} accent="folhagem" />
-      <Action icon={Bot} label="Piloto automático" text="Cadência e políticas da operação" onClick={onOpenAutomation} accent="bronze" />
-      <Action icon={CalendarClock} label="Calendário" text="Planeje e acompanhe os próximos posts" onClick={onOpenCalendar} accent="bronze" />
-      <Action icon={Instagram} label="Redes sociais" text="Conexões, testes e publicação" onClick={onOpenNetworks} accent="argila" />
+    <section className="studio-brand-strip">
+      <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="Logomarca De Paula Teixeira Advocacia" className="h-16 w-[250px] object-contain object-left sm:h-20 sm:w-[310px]" />
+      <div className="studio-brand-copy"><span>Social Media OS</span><p>Planejamento, criação e divulgação sob governança editorial.</p></div>
     </section>
 
-    <section className="grid gap-6 xl:grid-cols-[1.1fr_.9fr]">
-      <div className="saas-card p-6"><div className="flex items-center justify-between"><div><p className="saas-section-label">Pipeline editorial</p><h3 className="mt-1 text-xl font-semibold text-white">O que exige atenção</h3></div><TrendingUp className="h-5 w-5 text-[#e2ba7c]" /></div><div className="mt-5 space-y-3">{data.posts.slice(0, 6).map(post => <div key={post.id} className="flex items-center gap-3 rounded-2xl border border-white/[.06] bg-white/[.025] p-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#c99550]/10 text-[10px] font-bold text-[#e2ba7c]">{post.area.slice(0,3).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-slate-200">{post.title}</p><p className="mt-1 text-[11px] text-slate-500">{post.area} · {post.format}</p></div><span className="rounded-full border border-white/[.06] px-2.5 py-1 text-[10px] text-slate-400">{post.status}</span></div>)}{data.posts.length === 0 && <p className="py-8 text-center text-sm text-slate-500">Nenhum conteúdo criado ainda.</p>}</div></div>
-      <div className="saas-card p-6"><div className="flex items-center justify-between"><div><p className="saas-section-label">Próximas publicações</p><h3 className="mt-1 text-xl font-semibold text-white">Agenda</h3></div><CheckCircle2 className="h-5 w-5 text-emerald-300" /></div><div className="mt-5 space-y-4">{upcoming.map(post => <div key={post.id} className="border-b border-white/[.06] pb-4 last:border-0 last:pb-0"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-slate-200">{post.title}</p><p className="mt-1 text-xs text-slate-500">{new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(post.scheduledAt ?? 0))}</p></div><ArrowUpRight className="h-4 w-4 text-slate-600" /></div></div>)}{upcoming.length === 0 && <div className="flex min-h-48 flex-col items-center justify-center text-center"><CalendarClock className="h-7 w-7 text-slate-700" /><p className="mt-3 text-sm font-medium text-slate-300">Agenda livre</p><p className="mt-1 text-xs text-slate-600">Aprove e programe os próximos conteúdos.</p></div>}</div></div>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {metrics.map(metric => <MetricCard key={metric.label} {...metric} />)}
+    </section>
+
+    <section className="grid gap-5 xl:grid-cols-[1.55fr_.85fr]">
+      <div className="studio-light-card studio-pipeline-card">
+        <div className="studio-card-heading"><div><p className="studio-card-kicker">Pipeline editorial</p><h2>Conteúdos que exigem atenção</h2></div><button onClick={onCreate} className="studio-text-action">Criar conteúdo <ArrowRight className="h-4 w-4" /></button></div>
+        <div className="mt-4 divide-y divide-[#e7ebe5]">
+          {attentionPosts.map(post => <article key={post.id} className="studio-content-row"><div className="studio-row-area">{post.area.slice(0, 3).toUpperCase()}</div><div className="min-w-0 flex-1"><h3>{post.title}</h3><p>{post.area} · {post.format}</p></div><span className="studio-status-chip">{statusLabel[post.status]}</span><ArrowRight className="h-4 w-4 text-[#a4aca5]" /></article>)}
+          {attentionPosts.length === 0 && <div className="studio-empty-state"><CheckCircle2 className="h-5 w-5" /><p>Não há itens aguardando decisão editorial.</p><button onClick={onCreate}>Criar primeiro conteúdo</button></div>}
+        </div>
+      </div>
+
+      <aside className="studio-intelligence-card">
+        <div className="flex items-start justify-between gap-4"><div className="studio-intelligence-icon"><Sparkles className="h-5 w-5" /></div><span>REVISÃO HUMANA ATIVA</span></div>
+        <h2>Inteligência editorial</h2>
+        <p>Encontre pautas em fontes oficiais, transforme sinais em rascunhos e preserve a trilha de validação jurídica.</p>
+        <button onClick={onOpenRadar} className="studio-intelligence-search"><Radar className="h-4 w-4" />Abrir Radar Jurídico <ArrowRight className="ml-auto h-4 w-4" /></button>
+        <div className="mt-5 flex flex-wrap gap-2"><button onClick={onOpenRadar}>Fontes oficiais</button><button onClick={onCreate}>Novo rascunho</button></div>
+      </aside>
+    </section>
+
+    <section className="grid gap-5 xl:grid-cols-[1.15fr_.85fr]">
+      <div className="studio-light-card">
+        <div className="studio-card-heading"><div><p className="studio-card-kicker">Agenda editorial</p><h2>Próximas publicações</h2></div><button onClick={onOpenCalendar} className="studio-text-action">Calendário <ArrowRight className="h-4 w-4" /></button></div>
+        <div className="mt-4 space-y-1">
+          {upcoming.map(post => <article className="studio-agenda-row" key={post.id}><time><Clock3 className="h-4 w-4" />{formatSchedule(post.scheduledAt)}</time><div><h3>{post.title}</h3><p>{post.area} · {statusLabel[post.status]}</p></div></article>)}
+          {upcoming.length === 0 && <div className="studio-empty-state"><CalendarClock className="h-5 w-5" /><p>A agenda editorial está livre.</p><button onClick={onOpenCalendar}>Planejar calendário</button></div>}
+        </div>
+      </div>
+
+      <div className="studio-light-card studio-workspace-card">
+        <div className="studio-card-heading"><div><p className="studio-card-kicker">Atalhos operacionais</p><h2>Fluxo sob controle</h2></div><Bot className="h-5 w-5 text-[#b98238]" /></div>
+        <div className="mt-4 grid gap-2"><WorkspaceLink icon={Radar} label="Radar jurídico" text="Fontes permitidas e novas pautas" onClick={onOpenRadar} /><WorkspaceLink icon={CalendarClock} label="Automação assistida" text="Cadência com aprovação humana" onClick={onOpenAutomation} /><WorkspaceLink icon={Instagram} label="Redes sociais" text="Conexões e pré-publicação" onClick={onOpenNetworks} /></div>
+      </div>
     </section>
   </div>;
 }
 
-function Metric({ label, value }: { label: string; value: number }) { return <div className="rounded-2xl border border-white/[.06] bg-black/20 p-4"><p className="text-3xl font-semibold tracking-tight text-white">{value}</p><p className="mt-1 text-[11px] text-slate-500">{label}</p></div>; }
-function Action({ icon: Icon, label, text, onClick, accent }: { icon: LucideIcon; label: string; text: string; onClick: () => void; accent: string }) { return <button onClick={onClick} className="saas-card group p-5 text-left transition hover:-translate-y-0.5 hover:border-[#c99550]/30"><div className={`saas-icon saas-icon-${accent}`}><Icon className="h-5 w-5" /></div><div className="mt-5 flex items-center justify-between"><h3 className="font-semibold text-slate-100">{label}</h3><ArrowUpRight className="h-4 w-4 text-slate-600 transition group-hover:text-[#e2ba7c]" /></div><p className="mt-1 text-xs leading-5 text-slate-500">{text}</p></button>; }
+function MetricCard({ icon: Icon, label, value, detail, accent }: { icon: LucideIcon; label: string; value: number; detail: string; accent: string }) {
+  return <div className={`studio-metric-card studio-metric-${accent}`}><div className="studio-metric-icon"><Icon className="h-4 w-4" /></div><p>{label}</p><strong>{value}</strong><small>{detail}</small></div>;
+}
+
+function WorkspaceLink({ icon: Icon, label, text, onClick }: { icon: LucideIcon; label: string; text: string; onClick: () => void }) {
+  return <button onClick={onClick} className="studio-workspace-link"><span><Icon className="h-4 w-4" /></span><div><strong>{label}</strong><small>{text}</small></div><ArrowRight className="ml-auto h-4 w-4" /></button>;
+}
