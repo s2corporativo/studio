@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Bot, CalendarClock, CheckCircle2, Clock3, FilePenLine, Instagram, Radar, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, Bot, Building2, CalendarClock, CheckCircle2, Clock3, FilePenLine, Instagram, Radar, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ContentPost } from "../../../drizzle/schema";
 
@@ -8,6 +8,8 @@ type OverviewCounts = Record<ContentPost["status"], number>;
 type OverviewProps = {
   data: OverviewData;
   counts: OverviewCounts;
+  brandName: string | null;
+  brandKey: string | null;
   onCreate: () => void;
   onOpenCalendar: () => void;
   onOpenRadar: () => void;
@@ -29,9 +31,16 @@ function formatSchedule(value: ContentPost["scheduledAt"]) {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
-export default function SaasOverview({ data, counts, onCreate, onOpenCalendar, onOpenRadar, onOpenAutomation, onOpenNetworks }: OverviewProps) {
+function isDePaulaBrand(brandKey: string | null, brandName: string | null) {
+  const normalized = `${brandKey ?? ""} ${brandName ?? ""}`.toLocaleLowerCase("pt-BR");
+  return normalized.includes("de-paula") || normalized.includes("de paula teixeira");
+}
+
+export default function SaasOverview({ data, counts, brandName, brandKey, onCreate, onOpenCalendar, onOpenRadar, onOpenAutomation, onOpenNetworks }: OverviewProps) {
   const upcoming = data.posts.filter(post => post.scheduledAt).sort((a, b) => new Date(a.scheduledAt ?? 0).getTime() - new Date(b.scheduledAt ?? 0).getTime()).slice(0, 4);
   const attentionPosts = data.posts.filter(post => post.status === "review" || post.status === "approved" || post.status === "scheduled").slice(0, 4);
+  const displayBrand = brandName || "Marca não selecionada";
+  const dptBrand = isDePaulaBrand(brandKey, brandName);
   const metrics = [
     { icon: FilePenLine, label: "Em produção", value: counts.draft + counts.review, detail: `${counts.review} em revisão`, accent: "bronze" },
     { icon: ShieldCheck, label: "Aprovações pendentes", value: counts.review, detail: "Revisão humana ativa", accent: "green" },
@@ -42,16 +51,18 @@ export default function SaasOverview({ data, counts, onCreate, onOpenCalendar, o
   return <div className="studio-overview space-y-5">
     <section className="studio-overview-heading">
       <div>
-        <p className="studio-overview-kicker">De Paula Teixeira Advocacia</p>
+        <p className="studio-overview-kicker">{displayBrand}</p>
         <h1>Visão geral da operação</h1>
-        <p>Acompanhe o conteúdo jurídico em produção, as aprovações e a distribuição responsável.</p>
+        <p>Acompanhe somente o conteúdo da marca ativa, suas aprovações e a distribuição responsável.</p>
       </div>
       <div className="studio-overview-actions"><Button variant="outline" className="studio-light-button" onClick={onOpenRadar}><Radar className="mr-2 h-4 w-4" />Radar jurídico</Button><Button className="studio-new-entry" onClick={onCreate}><FilePenLine className="mr-2 h-4 w-4" />Nova entrada</Button></div>
     </section>
 
     <section className="studio-brand-strip">
-      <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="Logomarca De Paula Teixeira Advocacia" className="h-16 w-[250px] object-contain object-left sm:h-20 sm:w-[310px]" />
-      <div className="studio-brand-copy"><span>Social Media OS</span><p>Planejamento, criação e divulgação sob governança editorial.</p></div>
+      {dptBrand
+        ? <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="Logomarca De Paula Teixeira Advocacia" className="h-16 w-[250px] object-contain object-left sm:h-20 sm:w-[310px]" />
+        : <div className="flex min-h-20 items-center gap-4"><div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#c99550]/20 bg-[#c99550]/10"><Building2 className="h-6 w-6 text-[#b98238]" /></div><div><p className="text-sm font-semibold text-[#23352d]">{displayBrand}</p><p className="mt-1 text-xs text-[#718078]">Identidade visual específica ainda sem logomarca cadastrada.</p></div></div>}
+      <div className="studio-brand-copy"><span>Social Media OS</span><p>Planejamento, criação e divulgação sob governança editorial da marca ativa.</p></div>
     </section>
 
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -63,14 +74,14 @@ export default function SaasOverview({ data, counts, onCreate, onOpenCalendar, o
         <div className="studio-card-heading"><div><p className="studio-card-kicker">Pipeline editorial</p><h2>Conteúdos que exigem atenção</h2></div><button onClick={onCreate} className="studio-text-action">Criar conteúdo <ArrowRight className="h-4 w-4" /></button></div>
         <div className="mt-4 divide-y divide-[#e7ebe5]">
           {attentionPosts.map(post => <article key={post.id} className="studio-content-row"><div className="studio-row-area">{post.area.slice(0, 3).toUpperCase()}</div><div className="min-w-0 flex-1"><h3>{post.title}</h3><p>{post.area} · {post.format}</p></div><span className="studio-status-chip">{statusLabel[post.status]}</span><ArrowRight className="h-4 w-4 text-[#a4aca5]" /></article>)}
-          {attentionPosts.length === 0 && <div className="studio-empty-state"><CheckCircle2 className="h-5 w-5" /><p>Não há itens aguardando decisão editorial.</p><button onClick={onCreate}>Criar primeiro conteúdo</button></div>}
+          {attentionPosts.length === 0 && <div className="studio-empty-state"><CheckCircle2 className="h-5 w-5" /><p>Não há itens desta marca aguardando decisão editorial.</p><button onClick={onCreate}>Criar primeiro conteúdo</button></div>}
         </div>
       </div>
 
       <aside className="studio-intelligence-card">
         <div className="flex items-start justify-between gap-4"><div className="studio-intelligence-icon"><Sparkles className="h-5 w-5" /></div><span>REVISÃO HUMANA ATIVA</span></div>
         <h2>Inteligência editorial</h2>
-        <p>Encontre pautas em fontes oficiais, transforme sinais em rascunhos e preserve a trilha de validação jurídica.</p>
+        <p>Encontre pautas em fontes oficiais, transforme sinais em rascunhos da marca ativa e preserve a trilha de validação.</p>
         <button onClick={onOpenRadar} className="studio-intelligence-search"><Radar className="h-4 w-4" />Abrir Radar Jurídico <ArrowRight className="ml-auto h-4 w-4" /></button>
         <div className="mt-5 flex flex-wrap gap-2"><button onClick={onOpenRadar}>Fontes oficiais</button><button onClick={onCreate}>Novo rascunho</button></div>
       </aside>
@@ -81,7 +92,7 @@ export default function SaasOverview({ data, counts, onCreate, onOpenCalendar, o
         <div className="studio-card-heading"><div><p className="studio-card-kicker">Agenda editorial</p><h2>Próximas publicações</h2></div><button onClick={onOpenCalendar} className="studio-text-action">Calendário <ArrowRight className="h-4 w-4" /></button></div>
         <div className="mt-4 space-y-1">
           {upcoming.map(post => <article className="studio-agenda-row" key={post.id}><time><Clock3 className="h-4 w-4" />{formatSchedule(post.scheduledAt)}</time><div><h3>{post.title}</h3><p>{post.area} · {statusLabel[post.status]}</p></div></article>)}
-          {upcoming.length === 0 && <div className="studio-empty-state"><CalendarClock className="h-5 w-5" /><p>A agenda editorial está livre.</p><button onClick={onOpenCalendar}>Planejar calendário</button></div>}
+          {upcoming.length === 0 && <div className="studio-empty-state"><CalendarClock className="h-5 w-5" /><p>A agenda desta marca está livre.</p><button onClick={onOpenCalendar}>Planejar calendário</button></div>}
         </div>
       </div>
 
