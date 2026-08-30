@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
 import { brandContentBindings, brandMemorySnapshots, brandWorkspaces, performanceLearnings } from "../drizzle/brandWorkspaceSchema";
 import { contentPosts } from "../drizzle/schema";
+import { canonicalJson } from "../shared/canonicalJson";
 import { getDb } from "./db";
 
 async function dbOrThrow() {
@@ -95,14 +96,6 @@ export async function upsertPerformanceLearning(userId: number, brandWorkspaceId
       updatedAt: new Date(),
     },
   });
-}
-
-function canonicalJson(value: unknown) {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (value && typeof value === "object") {
-    return `{${Object.entries(value as Record<string, unknown>).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
 }
 
 export async function createBrandMemorySnapshot(userId: number, brandWorkspaceId: number, memory: unknown, source = "system") {
