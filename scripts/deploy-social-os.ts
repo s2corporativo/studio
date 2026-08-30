@@ -37,7 +37,7 @@ const requiredTables = [
 
 const requiredAutomationColumns = [
   "id", "userId", "enabled", "cadence", "postsPerWeek", "defaultPublishTime",
-  "planningHorizonDays", "requireApproval", "refreshRadarDaily", "preferredAreas",
+  "planningHorizonDays", "requireApproval", "allowSelfApproval", "refreshRadarDaily", "preferredAreas",
   "preferredFormats", "createdAt", "updatedAt",
 ];
 
