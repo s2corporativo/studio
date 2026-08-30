@@ -11,6 +11,7 @@ import { registerHealthRoutes } from "./health";
 import { registerCalendarExport } from "../calendarExport";
 import { registerSocialHubRoutes } from "../socialhub/routes";
 import { registerAdvancedRoutes } from "../socialhub/advanced-routes";
+import { registerFeaturesPackV2 } from "../socialhub/features-v2";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -48,6 +49,7 @@ async function startServer() {
   registerCalendarExport(app);
   registerSocialHubRoutes(app);
   registerAdvancedRoutes(app);
+  registerFeaturesPackV2(app);
   // Serve uploaded files
   app.use("/uploads", express.static("uploads"));
   registerOAuthRoutes(app);

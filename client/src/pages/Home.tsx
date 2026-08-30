@@ -20,6 +20,7 @@ const NewsRadar = lazy(() => import("./NewsRadar"));
 const SaasOverview = lazy(() => import("./SaasOverview"));
 const SocialHubPanel = lazy(() => import("./SocialHubPanel"));
 const AdvancedFeatures = lazy(() => import("./AdvancedFeatures"));
+const FeaturesPackV2 = lazy(() => import("./FeaturesPackV2"));
 const SocialOsCommandCenter = lazy(() => import("./SocialOsCommandCenter"));
 const BrandPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.BrandPanel })));
 const CalendarPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.CalendarPanel })));
@@ -97,6 +98,8 @@ export default function Home() {
     content = <SocialHubPanel />;
   } else if (location === "/avancado") {
     content = <AdvancedFeatures />;
+  } else if (location === "/features-v2") {
+    content = <FeaturesPackV2 />;
   } else if (location === "/roadmap") {
     content = <MarketingRoadmap />;
   } else if (location === "/planejamento") {

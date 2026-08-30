@@ -42,6 +42,7 @@ export const navigationSections: NavigationSection[] = [
     items: [
       { icon: Sparkles, label: "SocialHub — Integrações", path: "/socialhub" },
       { icon: Zap, label: "Funcionalidades Avançadas", path: "/avancado" },
+      { icon: Sparkles, label: "Features Pack v2", path: "/features-v2" },
       { icon: Video, label: "Video Studio", path: "/video" },
       { icon: FileSearch, label: "SEO & Local", path: "/seo" },
       { icon: Megaphone, label: "Ads Intelligence", path: "/ads" },
