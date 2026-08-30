@@ -9,6 +9,7 @@ import {
   PLATFORMS,
   PLATFORM_META,
   POST_CATEGORIES,
+  POST_STATUS_META,
   TONES,
   type Platform,
 } from '@/lib/types'
@@ -19,6 +20,7 @@ import {
   PlatformBadge,
   StatusBadge,
 } from '@/components/shared/ui'
+import { PostDetailDrawer } from '@/components/sections/post-detail-drawer'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -82,6 +84,11 @@ import {
   X,
   Loader2,
   Image as ImageIcon,
+  LayoutGrid,
+  ArrowRight,
+  Check,
+  RotateCcw,
+  Calendar,
 } from 'lucide-react'
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -111,7 +118,7 @@ export function PostsSection() {
   const selectedCompanyId = useAppStore((s) => s.selectedCompanyId)
   const setSection = useAppStore((s) => s.setSection)
 
-  const [view, setView] = useState<'calendar' | 'list'>('calendar')
+  const [view, setView] = useState<'calendar' | 'list' | 'kanban'>('calendar')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [companyOverride, setCompanyOverride] = useState<string | null>(null)
@@ -122,6 +129,11 @@ export function PostsSection() {
   })
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [editing, setEditing] = useState<any | null>(null)
+  const [detailPost, setDetailPost] = useState<any | null>(null)
+  const [transitionLoading, setTransitionLoading] = useState<{
+    id: string
+    status: string
+  } | null>(null)
 
   // Bulk selection state
   const [selectionMode, setSelectionMode] = useState(false)
@@ -261,6 +273,31 @@ export function PostsSection() {
     } finally {
       setRowActionLoading(null)
       setSingleDeletePost(null)
+    }
+  }
+
+  const handleStatusTransition = async (
+    post: any,
+    newStatus: string,
+    scheduledAt?: string
+  ) => {
+    setTransitionLoading({ id: post.id, status: newStatus })
+    try {
+      const body: any = { status: newStatus }
+      if (scheduledAt) body.scheduledAt = scheduledAt
+      await apiPut(`/api/posts/${post.id}`, body)
+      const labels: Record<string, string> = {
+        review: 'Post enviado para revisão!',
+        approved: 'Post aprovado!',
+        scheduled: 'Post agendado!',
+        draft: 'Post voltou para rascunho',
+      }
+      toast.success(labels[newStatus] || 'Status atualizado!')
+      refresh()
+    } catch (e: any) {
+      toast.error(e?.message || 'Erro ao atualizar status')
+    } finally {
+      setTransitionLoading(null)
     }
   }
 
@@ -439,7 +476,7 @@ export function PostsSection() {
       <Tabs
         value={view}
         onValueChange={(v) => {
-          const next = v as 'calendar' | 'list'
+          const next = v as 'calendar' | 'list' | 'kanban'
           setView(next)
           if (next !== 'list' && selectionMode) exitSelectionMode()
         }}
@@ -450,6 +487,9 @@ export function PostsSection() {
           </TabsTrigger>
           <TabsTrigger value="list" className="gap-1.5">
             <ListIcon className="w-4 h-4" /> Lista
+          </TabsTrigger>
+          <TabsTrigger value="kanban" className="gap-1.5">
+            <LayoutGrid className="w-4 h-4" /> Aprovação
           </TabsTrigger>
         </TabsList>
 
@@ -610,13 +650,13 @@ export function PostsSection() {
                         tabIndex={0}
                         onClick={() => {
                           if (selectionMode) toggleSelect(post.id)
-                          else setEditing(post)
+                          else setDetailPost(post)
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
                             if (selectionMode) toggleSelect(post.id)
-                            else setEditing(post)
+                            else setDetailPost(post)
                           }
                         }}
                         className={cn(
@@ -757,6 +797,71 @@ export function PostsSection() {
               </div>
             )}
           </Card>
+        </TabsContent>
+
+        {/* Kanban (approval) view */}
+        <TabsContent value="kanban" className="mt-4">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Card key={i} className="p-4">
+                  <Skeleton className="h-6 w-2/3 mb-3" />
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-3/4 mb-3" />
+                  <Skeleton className="h-8 w-full" />
+                </Card>
+              ))}
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <EmptyState
+              icon={LayoutGrid}
+              title="Nenhum post para revisar"
+              description="Crie posts no Creator e gerencie o fluxo de aprovação por aqui."
+              action={
+                <Button className="gap-2" onClick={() => setSection('creator')}>
+                  <Sparkles className="w-4 h-4" /> Criar com IA
+                </Button>
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <KanbanColumn
+                title="Rascunhos"
+                statusColor={POST_STATUS_META.draft.color}
+                posts={filteredPosts.filter((p) => p.status === 'draft')}
+                onOpen={setDetailPost}
+                onTransition={handleStatusTransition}
+                loadingId={transitionLoading?.id || null}
+              />
+              <KanbanColumn
+                title="Em revisão"
+                statusColor={POST_STATUS_META.review.color}
+                posts={filteredPosts.filter((p) => p.status === 'review')}
+                onOpen={setDetailPost}
+                onTransition={handleStatusTransition}
+                loadingId={transitionLoading?.id || null}
+              />
+              <KanbanColumn
+                title="Aprovado"
+                statusColor={POST_STATUS_META.approved.color}
+                posts={filteredPosts.filter((p) => p.status === 'approved')}
+                onOpen={setDetailPost}
+                onTransition={handleStatusTransition}
+                loadingId={transitionLoading?.id || null}
+              />
+              <KanbanColumn
+                title="Agendado / Publicado"
+                statusColor={POST_STATUS_META.scheduled.color}
+                posts={filteredPosts.filter(
+                  (p) =>
+                    p.status === 'scheduled' || p.status === 'published'
+                )}
+                onOpen={setDetailPost}
+                onTransition={handleStatusTransition}
+                loadingId={transitionLoading?.id || null}
+              />
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -995,6 +1100,18 @@ export function PostsSection() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Post detail drawer */}
+      <PostDetailDrawer
+        post={detailPost}
+        open={!!detailPost}
+        onOpenChange={(v) => !v && setDetailPost(null)}
+        onEdit={() => {
+          if (detailPost) setEditing(detailPost)
+          setDetailPost(null)
+        }}
+        onRefresh={refresh}
+      />
     </div>
   )
 }
@@ -1223,5 +1340,271 @@ function EditPostDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function KanbanCard({
+  post,
+  statusColor,
+  onOpen,
+  onTransition,
+  loading,
+}: {
+  post: any
+  statusColor: string
+  onOpen: (post: any) => void
+  onTransition: (post: any, newStatus: string, scheduledAt?: string) => void
+  loading: boolean
+}) {
+  const platforms = (post.targets || []).map((t: any) => t.platform)
+  const [scheduling, setScheduling] = useState(false)
+  const [scheduleDate, setScheduleDate] = useState('')
+
+  const startScheduling = () => {
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    tomorrow.setHours(12, 0, 0, 0)
+    setScheduleDate(toLocalInputValue(tomorrow.toISOString()))
+    setScheduling(true)
+  }
+
+  const confirmSchedule = () => {
+    if (!scheduleDate) {
+      toast.error('Escolha uma data e hora')
+      return
+    }
+    onTransition(post, 'scheduled', new Date(scheduleDate).toISOString())
+    setScheduling(false)
+  }
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.25 }}
+    >
+      <Card
+        role="button"
+        tabIndex={0}
+        onClick={() => onOpen(post)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onOpen(post)
+          }
+        }}
+        className="relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+      >
+        <span
+          className="absolute left-0 top-0 bottom-0 w-1 shrink-0"
+          style={{ backgroundColor: statusColor }}
+        />
+        <div className="p-3 pl-4">
+          <div className="font-semibold text-sm truncate mb-1.5">
+            {post.title}
+          </div>
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+            <span
+              className="w-2 h-2 rounded-full shrink-0"
+              style={{
+                backgroundColor: post.company?.brandColor || '#7C3AED',
+              }}
+            />
+            <span className="truncate">{post.company?.name || '—'}</span>
+          </div>
+          {post.scheduledAt && (
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-2">
+              <Calendar className="w-3 h-3" />
+              {formatDateTime(post.scheduledAt)}
+            </div>
+          )}
+          {platforms.length > 0 && (
+            <div className="flex items-center gap-1 mb-2 flex-wrap">
+              {platforms.map((p: string) => (
+                <PlatformBadge key={p} platform={p} />
+              ))}
+            </div>
+          )}
+
+          {/* Transition buttons */}
+          <div
+            className="pt-2 border-t flex flex-wrap gap-1.5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {post.status === 'draft' && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-[11px] gap-1"
+                onClick={() => onTransition(post, 'review')}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <ArrowRight className="w-3 h-3" />
+                )}
+                Revisar
+              </Button>
+            )}
+            {post.status === 'review' && (
+              <>
+                <Button
+                  size="sm"
+                  className="h-7 text-[11px] gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={() => onTransition(post, 'approved')}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Check className="w-3 h-3" />
+                  )}
+                  Aprovar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-[11px] gap-1 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 border-rose-200 dark:border-rose-900"
+                  onClick={() => onTransition(post, 'draft')}
+                  disabled={loading}
+                >
+                  <X className="w-3 h-3" />
+                  Rejeitar
+                </Button>
+              </>
+            )}
+            {post.status === 'approved' && (
+              <>
+                {scheduling ? (
+                  <div className="flex items-center gap-1.5 w-full">
+                    <Input
+                      type="datetime-local"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      className="h-7 text-[11px] flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      className="h-7 text-[11px] gap-1 px-2 bg-emerald-600 hover:bg-emerald-700"
+                      onClick={confirmSchedule}
+                      disabled={loading || !scheduleDate}
+                    >
+                      {loading ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Check className="w-3 h-3" />
+                      )}
+                      OK
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-[11px] px-2"
+                      onClick={() => setScheduling(false)}
+                      disabled={loading}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px] gap-1"
+                    onClick={startScheduling}
+                    disabled={loading}
+                  >
+                    <Calendar className="w-3 h-3" />
+                    Agendar
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 text-[11px] gap-1"
+                  onClick={() => onTransition(post, 'draft')}
+                  disabled={loading}
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Rascunho
+                </Button>
+              </>
+            )}
+            {(post.status === 'scheduled' || post.status === 'published') && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-[11px] gap-1"
+                onClick={() => onTransition(post, 'draft')}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RotateCcw className="w-3 h-3" />
+                )}
+                Voltar para rascunho
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  )
+}
+
+function KanbanColumn({
+  title,
+  statusColor,
+  posts,
+  onOpen,
+  onTransition,
+  loadingId,
+}: {
+  title: string
+  statusColor: string
+  posts: any[]
+  onOpen: (post: any) => void
+  onTransition: (post: any, newStatus: string, scheduledAt?: string) => void
+  loadingId: string | null
+}) {
+  return (
+    <div className="flex flex-col rounded-xl border border-border bg-muted/30 min-h-[200px]">
+      <div
+        className="h-1 rounded-t-xl shrink-0"
+        style={{ backgroundColor: statusColor }}
+      />
+      <div className="p-3 pb-2 flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {title}
+        </h3>
+        <Badge variant="secondary" className="text-[10px]">
+          {posts.length}
+        </Badge>
+      </div>
+      <div className="flex-1 overflow-y-auto scroll-fancy px-3 pb-3 max-h-[600px] space-y-2">
+        {posts.length === 0 ? (
+          <div className="text-center py-6 text-[11px] text-muted-foreground/60">
+            Vazio
+          </div>
+        ) : (
+          <AnimatePresence initial={false}>
+            {posts.map((post) => (
+              <KanbanCard
+                key={post.id}
+                post={post}
+                statusColor={statusColor}
+                onOpen={onOpen}
+                onTransition={onTransition}
+                loading={loadingId === post.id}
+              />
+            ))}
+          </AnimatePresence>
+        )}
+      </div>
+    </div>
   )
 }

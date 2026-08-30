@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { CommandPalette } from '@/components/layout/command-palette'
 import {
   Menu,
   Moon,
@@ -80,6 +81,9 @@ export function TopBar() {
         <h2 className="font-semibold text-base sm:text-lg leading-tight truncate">{meta.title}</h2>
         <p className="text-xs text-muted-foreground truncate hidden sm:block">{meta.subtitle}</p>
       </div>
+
+      {/* Command palette trigger */}
+      <CommandPalette />
 
       {/* Company selector */}
       <DropdownMenu>

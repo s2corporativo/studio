@@ -165,6 +165,14 @@ export function PlatformBadge({
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     draft: { label: 'Rascunho', cls: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
+    review: {
+      label: 'Em revisão',
+      cls: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+    },
+    approved: {
+      label: 'Aprovado',
+      cls: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300',
+    },
     scheduled: { label: 'Agendado', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
     publishing: { label: 'Publicando', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
     published: { label: 'Publicado', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },

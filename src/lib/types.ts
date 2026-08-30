@@ -57,11 +57,21 @@ export const PLATFORM_META: Record<
   },
 }
 
-export const POST_STATUSES = ['draft', 'scheduled', 'publishing', 'published', 'failed'] as const
+export const POST_STATUSES = [
+  'draft',
+  'review',
+  'approved',
+  'scheduled',
+  'publishing',
+  'published',
+  'failed',
+] as const
 export type PostStatus = (typeof POST_STATUSES)[number]
 
 export const POST_STATUS_META: Record<PostStatus, { label: string; color: string }> = {
   draft: { label: 'Rascunho', color: '#6B7280' },
+  review: { label: 'Em revisão', color: '#8B5CF6' },
+  approved: { label: 'Aprovado', color: '#06B6D4' },
   scheduled: { label: 'Agendado', color: '#F59E0B' },
   publishing: { label: 'Publicando', color: '#3B82F6' },
   published: { label: 'Publicado', color: '#10B981' },

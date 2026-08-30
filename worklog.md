@@ -625,3 +625,164 @@ Agent: Main (orchestrator) — autonomous QA & development round
 - Real-time notifications via WebSocket (currently polls every 30s).
 - A/B testing of post variations.
 - Content calendar export (iCal/CSV).
+
+---
+
+Task ID: 15
+Agent: Subagent (Post Detail Drawer + Approval Kanban Workflow)
+Task: Build a slide-in PostDetailDrawer (read-only) for posts and add a content approval workflow with a 4-column kanban view + 2 new post statuses (review, approved) + activity logging for status transitions.
+
+Work Log:
+- Read worklog.md to absorb 14 prior sections: design language (purple/fuchsia, shadcn tokens, p-4/p-6 cards, gap-4, scroll-fancy, framer-motion, sonner pt-BR), shared UI/StatusBadge patterns, store/hooks/utils imports, post/[id] API contract (PUT accepts status+scheduledAt, POST duplicate), activity log helper (logActivity, ACTIVITY_TYPES, ACTIVITY_COLORS), posts-section.tsx structure (1227 lines, calendar+list Tabs, EditPostDialog, motion.div rows, bulk selection, 3-dot dropdown).
+- Read posts-section.tsx (1227 lines), api/posts/[id]/route.ts, lib/activity.ts, lib/hooks.ts, lib/types.ts, lib/platform-icons.tsx, lib/utils.ts, components/ui/sheet.tsx (right-side SheetContent with built-in close button), ui/tooltip.tsx (auto-wraps TooltipProvider), ui/badge.tsx.
+
+Task A — PostDetailDrawer (NEW file: src/components/sections/post-detail-drawer.tsx, ~430 lines, 'use client'):
+- Exported `PostDetailDrawer` with props { post, open, onOpenChange, onEdit, onRefresh }.
+- Uses shadcn `Sheet` (side="right", className="sm:max-w-xl w-full p-0 flex flex-col gap-0"). Built-in close button (top-right absolute via SheetContent).
+- Ref-guard pattern (`lastPostRef`) keeps last non-null post during exit animation: when parent sets detailPost=null after onOpenChange(false), the drawer body still has valid data so radix Portal can play the slide-out animation before unmounting.
+- Layout (top-to-bottom):
+  1. SheetHeader (p-6 pb-4 border-b): SheetTitle (text-xl font-bold), SheetDescription asChild div with StatusBadge + category Badge + tone Badge.
+  2. Scrollable body (flex-1 overflow-y-auto scroll-fancy p-6 space-y-6) containing 5 sections:
+     - Mídia: parses mediaUrls JSON via safeParseArray<string> (try/catch fallback []); 2-col grid of up to 4 images, each <a target=_blank> with hover overlay showing ExternalLink icon; 4th tile shows "+N" overlay when more than 4 images.
+     - Conteúdo: Card p-4 bg-muted/30 border-dashed with <p whitespace-pre-wrap break-words leading-relaxed>; "Copiar" ghost button calls navigator.clipboard.writeText + toast.
+     - Hashtags: section header with Hash icon + count, "Copiar todas" button; badges with Hash prefix.
+     - Plataformas: per PostTarget Card with platform icon tile (colored PLATFORM_META.color), platform name, StatusBadge (target status), platform-specific content (line-clamp-3) + copy button, and either 5-metric engagement grid (Heart/MessageCircle/Share2/Eye/BarChart3 with formatNumber + colored icons) when target.status==='published' or "Pendente de publicação" hint otherwise. motion.div entrance stagger per target.
+     - Meta footer (after Separator): 2-col grid showing company (Building2 + color dot + name), scheduled (Calendar + formatDateTime), created (Clock + formatDateTime), tone (Palette + capitalize), category (Tag + label).
+  3. Sticky action bar (border-t p-3 bg-background): 3 equal-flex buttons — Editar (Pencil, calls onEdit), Duplicar (Copy + Loader2 spinner, calls apiPost /api/posts/[id] {action:'duplicate'}, toast, onRefresh, onOpenChange(false)), Excluir (Trash2, opens AlertDialog confirm, then apiDelete, toast, onRefresh, close).
+- AlertDialog for delete confirmation: shows post title, rose-destructive AlertDialogAction with Loader2 spinner. AlertDialogAction uses e.preventDefault() to avoid auto-dismiss before handleDelete completes.
+- Tooltip wrapping the "Copiar conteúdo" button with TooltipProvider/TooltipTrigger/TooltipContent "Copiar conteúdo do post".
+- Metric helper component: 5-col mini grid showing icon (colored), value (formatNumber), label.
+
+Task A — Wiring into posts-section.tsx (targeted MultiEdit on existing 1227-line file, ~8 surgical edits):
+- Added import `PostDetailDrawer from '@/components/sections/post-detail-drawer'`.
+- Added new state: `detailPost: any | null`, `transitionLoading: {id, status} | null`.
+- Changed list-view row onClick/onKeyDown from `setEditing(post)` to `setDetailPost(post)` (so row click opens the read-only drawer first; user can then click Editar to enter edit mode).
+- Rendered `<PostDetailDrawer>` after the floating bulk action bar's </AnimatePresence>, with `post={detailPost}`, `open={!!detailPost}`, `onOpenChange={(v) => !v && setDetailPost(null)}`, `onEdit` callback that calls `setEditing(detailPost)` + clears detailPost (closing drawer + opening EditPostDialog).
+- Preserved 3-dot menu "Editar" option → still calls `setEditing(post)` directly (bypassing drawer).
+
+Task B — Status extension + Kanban approval workflow:
+- Updated src/lib/types.ts: extended POST_STATUSES array to ['draft', 'review', 'approved', 'scheduled', 'publishing', 'published', 'failed']; added `review: { label: 'Em revisão', color: '#8B5CF6' }` and `approved: { label: 'Aprovado', color: '#06B6D4' }` to POST_STATUS_META. PostStatus type auto-derived.
+- Updated src/components/shared/ui.tsx StatusBadge: added `review` (violet-100/violet-700 dark:violet-950/violet-300) and `approved` (cyan-100/cyan-700 dark:cyan-950/cyan-300) entries to the status map.
+- Added a new "Aprovação" TabsTrigger (LayoutGrid icon) to posts-section.tsx Tabs; updated `view` state type to `'calendar' | 'list' | 'kanban'` and the onValueChange cast.
+- Kanban view (TabsContent value="kanban"): 4-column grid (lg:grid-cols-4) with columns:
+  - Rascunhos (draft, color #6B7280)
+  - Em revisão (review, color #8B5CF6)
+  - Aprovado (approved, color #06B6D4)
+  - Agendado / Publicado (scheduled+published, color #F59E0B)
+- Loading state: 4 Skeleton cards. Empty state: LayoutGrid EmptyState with "Criar com IA" CTA.
+- KanbanColumn component: rounded-xl border + bg-muted/30 + colored top stripe (h-1) + header with uppercase title + count Badge + scrollable card list (max-h-[600px] overflow-y-auto scroll-fancy) + AnimatePresence for card enter/exit + "Vazio" empty state.
+- KanbanCard component (motion.div layout for smooth reflow on status changes):
+  - Card with role=button + tabIndex=0 + onClick opens PostDetailDrawer (same as list view).
+  - Status-colored left stripe (w-1 absolute).
+  - Body: title (truncate, font-semibold), company color dot + name (truncate), scheduled date (Calendar icon + formatDateTime), platform badges row.
+  - Transition buttons (in a stopPropagation-wrapped div so button clicks don't trigger card onClick):
+    - draft → "Revisar" (ArrowRight outline) calls onTransition(post, 'review').
+    - review → "Aprovar" (Check, bg-emerald-600) + "Rejeitar" (X, rose-tinted outline) — calls onTransition(post, 'approved'|'draft').
+    - approved → "Agendar" (Calendar outline) toggles inline datetime-local Input + "OK" + Cancel X; default value = tomorrow noon via toLocalInputValue. On confirm calls onTransition(post, 'scheduled', isoString). Plus "Rascunho" ghost button (RotateCcw) → onTransition(post, 'draft').
+    - scheduled/published → "Voltar para rascunho" (RotateCcw ghost) → onTransition(post, 'draft').
+  - All buttons show Loader2 spinner when loading=true (i.e., when transitionLoading.id === post.id).
+- handleStatusTransition handler in PostsSection: PUT /api/posts/[id] with {status, scheduledAt?} → toast success with per-status label ("Post enviado para revisão!" / "Post aprovado!" / "Post agendado!" / "Post voltou para rascunho") → refresh. Catches errors with toast.
+
+Task B — API activity logging on status transitions:
+- Updated src/app/api/posts/[id]/route.ts PUT route to fetch the existing post (id, companyId, title, status) BEFORE update. After update, if `status` is provided and differs from existing.status, logs an activity event via `logActivity` with appropriate type/title/icon/color:
+  - → review: post_created, "Post enviado para revisão: {title}", icon 'eye', color #8B5CF6.
+  - → approved: post_created, "Post aprovado: {title}", icon 'check', color #06B6D4.
+  - → scheduled: post_scheduled, "Post agendado: {title}", icon 'calendar', color ACTIVITY_COLORS.post_scheduled.
+  - → published: post_published, "Post publicado: {title}", icon 'send', color ACTIVITY_COLORS.post_published.
+  - → draft: post_created, "Post voltou para rascunho: {title}", icon 'rotate-ccw', color #6B7280.
+  - description: "Status alterado de \"{old}\" para \"{new}\"", meta: {postId, from, to}.
+- Best-effort logging (logActivity swallows errors and logs to console, never fails the main PUT).
+
+Verification:
+- bun run lint: 0 errors, 0 warnings (exit 0). Clean.
+- Removed unused `AnimatePresence` import from post-detail-drawer.tsx (only motion.div is used).
+- Dev server healthy: GET / 200, GET /api/posts 200, GET /api/activity 200.
+- E2E tested via curl: PUT /api/posts/[id] {"status":"review"} on a draft post ("Bastidores") → 200 response with updated post + ActivityEvent INSERT (visible in dev.log: prisma COMMIT + INSERT INTO ActivityEvent) + new event "Post enviado para revisão: Bastidores" appeared in /api/activity list (icon 'eye', color #8B5CF6, meta from=draft to=review). Then reverted the test post back to 'draft' (also generated a "Post voltou para rascunho" event).
+- All imports verified used: POST_STATUS_META (Kanban columns), LayoutGrid/ArrowRight/Check/RotateCcw/Calendar (Kanban card buttons + tab trigger), PostDetailDrawer (rendered).
+
+Stage Summary:
+- PostDetailDrawer: feature-complete read-only slide-in sheet (sm:max-w-xl) with media gallery (2-col grid, +N overlay), content card with copy, hashtag badges with "Copiar todas", per-platform target cards with engagement metrics (5-col grid) for published targets / "Pendente" otherwise, meta footer (company/scheduled/created/tone/category), sticky action bar (Editar/Duplicar/Excluir with AlertDialog confirm). Last-post ref-guard preserves exit animation.
+- Posts section wiring: list-view row click now opens the drawer (setDetailPost); drawer's "Editar" calls setEditing(detailPost) and closes the drawer; 3-dot "Editar" still opens edit dialog directly. Day-detail dialog untouched (still opens edit) for minimal change.
+- Kanban approval view: 4 status-coded columns with count badges, colored top stripes, scrollable card lists, framer-motion layout animations. Each card has status-aware transition buttons implementing a real approval workflow: draft → review → approved → scheduled (with inline datetime picker) → published, plus "Voltar para rascunho" from any non-draft status.
+- New statuses: 'review' (Em revisão, violet #8B5CF6) and 'approved' (Aprovado, cyan #06B6D4) added to types.ts, StatusBadge, and POST_STATUS_META. Type-safe PostStatus union extended.
+- Activity logging: every status transition now creates an ActivityEvent with type-appropriate icon/color/title/description/meta, surfacing in the NotificationsBell dropdown in real time.
+- Lint: 100% clean. Dev server healthy on port 3000.
+
+---
+
+## Round 6 — Post Detail Drawer + Approval Kanban + Command Palette (cron-triggered)
+
+Task ID: 16
+Agent: Main (orchestrator) — autonomous QA & development round
+
+### Assessment (current project status)
+- Project STABLE with 10 sections, dev server running, lint clean.
+- Prior rounds built: dashboard, companies, posts (calendar+list), creator, media, ideas, social, analytics, seo, settings, notifications, media attachment, idea-to-post, settings→AI pipeline, dashboard onboarding+activity widgets.
+- Project is mature and feature-rich. This round focused on UX depth: post detail view, content approval workflow, and global quick navigation.
+
+### QA performed via agent-browser
+- All 10 sections load with zero console errors.
+- Verified command palette, settings→AI pipeline, dashboard widgets all working from prior round.
+- No bugs found — project is stable.
+
+### New features added
+1. **Post Detail Drawer** (`post-detail-drawer.tsx` — NEW) — built by subagent
+   - Slide-in Sheet (side="right", sm:max-w-xl) showing full post details when a post is clicked.
+   - Header: large title + status/category/tone badges.
+   - Media gallery: 2-col grid of thumbnails (clickable → new tab) with "+N" overlay.
+   - Content card (whitespace-pre-wrap) with copy button.
+   - Hashtags as badges + "Copiar todas" button.
+   - Per-platform target cards: platform icon, status, truncated content + copy, engagement metrics grid (likes/comments/shares/reach/impressions) for published targets, "Pendente de publicação" otherwise.
+   - Meta footer: company dot+name, scheduled/created dates, tone, category.
+   - Sticky action bar: Editar / Duplicar / Excluir (with AlertDialog confirm).
+   - Ref-guard pattern preserves exit animation.
+   - Wired into posts-section.tsx: list row click now opens drawer (was: edit dialog); 3-dot menu "Editar" still opens edit dialog directly.
+   - Verified: clicked Black Friday post → drawer slid in with content/hashtags/platforms sections + action buttons (VLM-confirmed).
+
+2. **Content Approval Workflow** (kanban view + status extension) — built by subagent
+   - Extended `POST_STATUSES` with 2 new statuses: `review` (Em revisão, #8B5CF6 violet) and `approved` (Aprovado, #06B6D4 cyan). Updated `StatusBadge` to render the new variants.
+   - New "Aprovação" tab in Posts section with 4-column kanban: **Rascunhos** (draft), **Em revisão** (review), **Aprovado** (approved), **Agendado/Publicado** (scheduled+published).
+   - Each column: colored top stripe, count badge, scrollable card list (max-h-600px scroll-fancy).
+   - KanbanCard: status-colored left stripe, title, company dot+name, scheduled date, platform badges, status-aware transition buttons:
+     - draft → "Revisar" (ArrowRight)
+     - review → "Aprovar" (Check, emerald) + "Rejeitar" (X, rose)
+     - approved → "Agendar" (Calendar) with inline datetime-local input → PUT with scheduledAt + "Rascunho" (RotateCcw)
+     - scheduled/published → "Voltar para rascunho" (RotateCcw)
+   - Transitions call PUT `/api/posts/[id]` with `{status, scheduledAt?}` + toast + refresh.
+   - Activity logging added to PUT route: detects status change, logs ActivityEvent with type-appropriate title/icon/color (e.g. "Post enviado para revisão", "Post aprovado").
+   - Verified: clicked "Revisar" on a draft post → moved to review column, confirmed via API (1 post in review status).
+
+3. **Command Palette (Cmd+K)** (`command-palette.tsx` — NEW) — built by main agent
+   - Global Cmd/Ctrl+K shortcut opens a cmdk-based dialog.
+   - Trigger button in TopBar: "Buscar ou ir para..." with ⌘K kbd badge (hidden on mobile).
+   - Searchable navigation: all 10 sections (Painel, Empresas, Posts, Criador, Mídia, Ideias, Redes, Analytics, SEO, Configurações).
+   - Quick actions: Criar novo post (N), Gerar imagem (G), Gerar ideias (I), Alternar tema (T).
+   - Single-key shortcuts (when not typing in an input): N→creator, G→media, I→ideas.
+   - Fuzzy search filtering, keyboard navigation, Enter to select.
+   - Verified: opened palette, typed "analytics", pressed Enter → navigated to Analytics section.
+
+### Styling improvements
+- Post detail drawer: slide-in animation, sticky action bar, platform cards with metric grids, copy buttons throughout.
+- Approval kanban: 4 colored columns, status-colored card stripes, inline datetime picker, transition button icons.
+- Command palette: ⌘K kbd badge, icon-led items, shortcut hints, section headings.
+- All use established purple/fuchsia theme, framer-motion animations, scroll-fancy.
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings (clean).
+- Console: 0 errors across all 10 sections.
+- Command palette: verified Cmd+K opens, search filters, Enter navigates.
+- Approval kanban: verified 4 columns render, "Revisar" transition moved post to review (API-confirmed).
+- Post detail drawer: verified slide-in with content/hashtags/platforms/actions (VLM-confirmed).
+- Status transition activity logging: verified events created on status change.
+
+### Unresolved / next-phase recommendations
+- OAuth integration with social platforms (still simulated).
+- Real analytics ingestion from platform APIs.
+- Multi-user auth with approval roles (NextAuth available but not wired).
+- Drag-and-drop in approval kanban (currently button-based transitions).
+- Automated posting execution (cron worker to publish at scheduledAt).
+- Real-time notifications via WebSocket (currently polls every 30s).
+- A/B testing of post variations.
+- Content calendar export (iCal/CSV).
+- Hashtag bank/suggestions per niche.
+- Competitor analysis dashboard.

@@ -79,6 +79,12 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
   } = body
 
   try {
+    // Fetch existing post (to detect status transition for activity logging)
+    const existing = await db.post.findUnique({
+      where: { id },
+      select: { id: true, companyId: true, title: true, status: true },
+    })
+
     // Replace targets if platforms provided
     if (platforms) {
       await db.postTarget.deleteMany({ where: { postId: id } })
@@ -108,6 +114,64 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
       },
       include: { targets: true },
     })
+
+    // Activity logging for status transitions (best-effort)
+    if (
+      status &&
+      existing &&
+      status !== existing.status
+    ) {
+      const postTitle = existing.title || 'Sem título'
+      const companyId = existing.companyId
+      let logType = ACTIVITY_TYPES.POST_CREATED
+      let logTitle = ''
+      let logIcon = 'plus'
+      let logColor = ACTIVITY_COLORS.post_created
+
+      switch (status) {
+        case 'review':
+          logTitle = `Post enviado para revisão: ${postTitle}`
+          logIcon = 'eye'
+          logColor = '#8B5CF6'
+          break
+        case 'approved':
+          logTitle = `Post aprovado: ${postTitle}`
+          logIcon = 'check'
+          logColor = '#06B6D4'
+          break
+        case 'scheduled':
+          logType = ACTIVITY_TYPES.POST_SCHEDULED
+          logTitle = `Post agendado: ${postTitle}`
+          logIcon = 'calendar'
+          logColor = ACTIVITY_COLORS.post_scheduled
+          break
+        case 'published':
+          logType = ACTIVITY_TYPES.POST_PUBLISHED
+          logTitle = `Post publicado: ${postTitle}`
+          logIcon = 'send'
+          logColor = ACTIVITY_COLORS.post_published
+          break
+        case 'draft':
+          logTitle = `Post voltou para rascunho: ${postTitle}`
+          logIcon = 'rotate-ccw'
+          logColor = '#6B7280'
+          break
+        default:
+          logTitle = `Post atualizado: ${postTitle}`
+          break
+      }
+
+      await logActivity({
+        companyId,
+        type: logType,
+        title: logTitle,
+        description: `Status alterado de "${existing.status}" para "${status}"`,
+        icon: logIcon,
+        color: logColor,
+        meta: { postId: id, from: existing.status, to: status },
+      })
+    }
+
     return NextResponse.json({ post })
   } catch (e) {
     console.error(e)
