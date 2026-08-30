@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { logActivity, ACTIVITY_TYPES, ACTIVITY_COLORS } from '@/lib/activity'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -34,6 +35,15 @@ export async function POST(req: NextRequest) {
         brandColor: brandColor || '#6366f1',
         city: city || null,
       },
+    })
+    await logActivity({
+      companyId: company.id,
+      type: ACTIVITY_TYPES.COMPANY_ADDED,
+      title: `Empresa criada: ${name}`,
+      description: niche ? `Nicho: ${niche}` : undefined,
+      icon: 'building',
+      color: ACTIVITY_COLORS.company_added,
+      meta: { companyId: company.id },
     })
     return NextResponse.json({ company }, { status: 201 })
   } catch (e) {

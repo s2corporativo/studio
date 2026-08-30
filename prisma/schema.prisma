@@ -29,6 +29,7 @@ model Company {
   templates      ContentTemplate[]
   mediaAssets    MediaAsset[]
   contentIdeas   ContentIdea[]
+  activityEvents ActivityEvent[]
 }
 
 model SocialAccount {
@@ -161,6 +162,21 @@ model ContentIdea {
   status      String   @default("idea") // idea, planned, used
   score       Int      @default(50) // relevance score 0-100
   createdAt   DateTime @default(now())
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  companyId String?
+  type      String   // post_created, post_scheduled, post_published, media_generated, idea_generated, company_added, account_connected, seo_optimized
+  title     String
+  description String?
+  icon      String?
+  color     String?
+  meta      String?  // JSON extra data
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

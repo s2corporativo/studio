@@ -31,7 +31,10 @@ const NAV: { id: Section; label: string; icon: any; description: string }[] = [
 ]
 
 export function Sidebar() {
-  const { activeSection, setSection, sidebarOpen, setSidebar } = useAppStore()
+  const activeSection = useAppStore((s) => s.activeSection)
+  const setSection = useAppStore((s) => s.setSection)
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen)
+  const setSidebar = useAppStore((s) => s.setSidebar)
 
   return (
     <>

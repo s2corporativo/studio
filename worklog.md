@@ -349,3 +349,77 @@ Task: Assess project status, QA via agent-browser, fix bugs, add new features, i
 - Drag-and-drop content calendar.
 - Automated posting execution (cron worker to publish at scheduledAt).
 - Content idea → post conversion: one-click "Create post from idea" pre-filling the Creator with idea title/description/platform.
+
+---
+
+## Round 3 — QA + Notifications + Media Attachment + Idea-to-Post (cron-triggered)
+
+Task ID: 11
+Agent: Main (orchestrator) — autonomous QA & development round
+
+### Assessment (current project status)
+- Project STABLE with 9 sections (Dashboard, Companies, Posts, Creator, Media, Ideas, Social, Analytics, SEO).
+- Dev server running, lint clean.
+- All AI integrations verified working in prior rounds.
+
+### QA performed via agent-browser
+- All 9 sections load correctly, zero console errors on fresh load.
+- Tested Companies CRUD (created "Padaria Pão Dourado" round 2, "Restaurante Sabor Caseiro" this round).
+- Tested Creator → AI generate → Save as Post pipeline.
+- Tested Analytics period selector.
+- Tested dark mode, calendar interactions.
+- **Found missing feature**: Ideas "Criar" button navigated to Creator but didn't prefill the form.
+- **Found missing feature**: Creator had no media attachment capability (posts text-only).
+- **Found dead button**: TopBar notifications Bell had no dropdown — just a static icon with a fake red dot.
+- **Found architecture issue**: Sidebar and TopBar used `useAppStore()` without selectors, subscribing to the entire store → caused "Cannot update a component while rendering a different component" runtime errors when the Creator's prefill effect updated the store.
+
+### Bugs found & fixed
+- **BUG 1**: Dead notifications Bell button → replaced with full NotificationsBell component (real dropdown with live events, unread badge count, "Marcar todas" action, auto-refresh every 30s, relative timestamps via date-fns ptBR).
+- **BUG 2**: Sidebar/TopBar used `useAppStore()` without selectors → migrated both to use individual selectors (`useAppStore((s) => s.field)`), eliminating cross-component setState-during-render errors.
+- **BUG 3**: Ideas "Criar" button didn't prefill Creator → now sets `creatorPrefill` in store (topic, category, platforms from the idea), Creator consumes it via useEffect.
+
+### New features added
+1. **Activity Log / Notifications system** (new)
+   - New Prisma model `ActivityEvent` (id, companyId, type, title, description, icon, color, meta, read, createdAt) + back-relation on Company.
+   - New API `/api/activity` (GET list with unreadCount, POST create, PATCH mark-read / mark-all-read).
+   - New helper `src/lib/activity.ts` with `logActivity()`, `ACTIVITY_TYPES`, `ACTIVITY_COLORS`.
+   - Wired activity logging into 5 API routes: posts (created/scheduled), media/generate, ideas/generate, companies (added), social-accounts (connected).
+   - Seeded 14 historical activity events via `scripts/seed-activity.ts`.
+   - **NotificationsBell component** in TopBar: real dropdown, live unread badge (number), 25 recent events with colored icons + relative timestamps, "Marcar todas" button, auto-refresh every 30s, company-filtered.
+   - Verified end-to-end: created "Restaurante Sabor Caseiro" → "Empresa criada" event appeared in notifications within seconds.
+
+2. **Media attachment in Creator** (new)
+   - New `MediaPickerDialog` component in creator-section.tsx: opens media library filtered by company, multi-select with checkmarks, grid of thumbnails with AI badges, "Anexar N imagens" button.
+   - New `attachedMedia` state + UI in Creator form: "Mídia anexada" section with 4-col thumbnail grid, per-image remove button (X), "+ Add more" dashed tile, or empty-state dashed "Anexar imagem da biblioteca" button.
+   - attachedMedia passed as `mediaUrls` to POST /api/posts on save.
+   - Verified end-to-end: opened picker, selected the AI coffee image, attached to form, VLM-confirmed thumbnail visible.
+
+3. **Idea → Post conversion** (new)
+   - New `creatorPrefill` field in Zustand store + `setCreatorPrefill`/`clearCreatorPrefill` actions.
+   - Ideas "Criar" button now sets prefill {topic: "title: description", category, platforms: [idea.platform]} + navigates to Creator + selects the idea's company.
+   - Creator consumes prefill via useEffect (applies topic/category/platforms, then clears).
+   - Verified: clicked "Criar" on "Semana de Degustação Especial" idea → Creator opened with textarea prefilled, Facebook platform checked (matching idea), company switched.
+
+### Styling improvements
+- NotificationsBell dropdown: colored icon tiles per event type, unread highlight (bg-primary/5), unread dot indicator, relative timestamps, hover states, empty state with Bell icon.
+- Media picker: 3/4-col grid thumbnails with selection ring, AI badges, hover effects.
+- Media attachment in Creator: thumbnail grid with hover-remove, dashed "+" add-more tile, empty-state dashed button.
+- All new UI uses the established purple/fuchsia theme, motion animations, scroll-fancy for long lists.
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings (clean).
+- Dev server: HTTP 200, all APIs 200.
+- Console: 0 errors after clearing and navigating all 9 sections (previously had "Cannot update component while rendering" errors — now fixed via store selectors).
+- Notifications dropdown: verified live events, unread badge, mark-all-read.
+- Media picker: verified image selection and attachment to form.
+- Idea→Creator prefill: verified textarea + platform + category prefilled, no runtime errors.
+- Activity logging: verified real-time event creation on company creation.
+
+### Unresolved / next-phase recommendations
+- Post preview cards with media thumbnails in Posts list (mediaUrls are now saved but not displayed in list).
+- OAuth integration with social platforms (still simulated).
+- Real analytics ingestion from platform APIs.
+- Multi-user auth (NextAuth available but not wired).
+- Drag-and-drop content calendar.
+- Automated posting execution (cron worker to publish at scheduledAt).
+- Real-time notifications via WebSocket (currently polls every 30s).

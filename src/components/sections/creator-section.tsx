@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useFetch, apiPost } from '@/lib/hooks'
 import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
@@ -62,6 +62,9 @@ import {
   FileText,
   ChevronDown,
   Loader2,
+  ImageIcon,
+  X,
+  Plus,
 } from 'lucide-react'
 
 const TONE_LABELS: Record<string, string> = {
@@ -83,6 +86,8 @@ interface GeneratedResult {
 export function CreatorSection() {
   const selectedCompanyId = useAppStore((s) => s.selectedCompanyId)
   const setSection = useAppStore((s) => s.setSection)
+  const creatorPrefill = useAppStore((s) => s.creatorPrefill)
+  const clearCreatorPrefill = useAppStore((s) => s.clearCreatorPrefill)
 
   const { data: companiesData } = useFetch<{ companies: any[] }>(
     '/api/companies',
@@ -108,6 +113,18 @@ export function CreatorSection() {
     'facebook',
   ])
   const [keywords, setKeywords] = useState('')
+  const [attachedMedia, setAttachedMedia] = useState<string[]>([])
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false)
+
+  // Apply prefill from Ideas section
+  useEffect(() => {
+    if (creatorPrefill) {
+      if (creatorPrefill.topic) setTopic(creatorPrefill.topic)
+      if (creatorPrefill.category) setCategory(creatorPrefill.category)
+      if (creatorPrefill.platforms?.length) setPlatforms(creatorPrefill.platforms as string[])
+      clearCreatorPrefill()
+    }
+  }, [creatorPrefill, clearCreatorPrefill])
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<GeneratedResult | null>(null)
@@ -249,6 +266,7 @@ export function CreatorSection() {
         title: topic.slice(0, 100) || 'Post gerado por IA',
         content: result.caption,
         hashtags: result.hashtags || [],
+        mediaUrls: attachedMedia,
         platforms,
         variations: result.variations || {},
         scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
@@ -414,6 +432,49 @@ export function CreatorSection() {
                   </Badge>
                 ))}
               </div>
+            )}
+          </div>
+
+          {/* Media attachment */}
+          <div>
+            <Label className="flex items-center justify-between">
+              <span>Mídia anexada</span>
+              <span className="text-[10px] font-normal text-muted-foreground">
+                {attachedMedia.length} imagem(ns)
+              </span>
+            </Label>
+            {attachedMedia.length > 0 ? (
+              <div className="grid grid-cols-4 gap-2 mt-1.5">
+                {attachedMedia.map((url, i) => (
+                  <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-border bg-muted">
+                    <img src={url} alt={`Mídia ${i + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setAttachedMedia((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-500"
+                      aria-label="Remover mídia"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setMediaPickerOpen(true)}
+                  className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setMediaPickerOpen(true)}
+                className="w-full mt-1.5 py-3 rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                <ImageIcon className="w-4 h-4" />
+                Anexar imagem da biblioteca
+              </button>
             )}
           </div>
 
@@ -863,7 +924,117 @@ export function CreatorSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Media picker dialog */}
+      <MediaPickerDialog
+        open={mediaPickerOpen}
+        onOpenChange={setMediaPickerOpen}
+        companyId={companyId}
+        selected={attachedMedia}
+        onSelect={(urls) => setAttachedMedia(urls)}
+      />
     </div>
+  )
+}
+
+function MediaPickerDialog({
+  open,
+  onOpenChange,
+  companyId,
+  selected,
+  onSelect,
+}: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  companyId: string
+  selected: string[]
+  onSelect: (urls: string[]) => void
+}) {
+  const url = companyId ? `/api/media?companyId=${companyId}` : '/api/media'
+  const { data, loading } = useFetch<{ assets: any[] }>(url, [companyId])
+  const [localSel, setLocalSel] = useState<string[]>(selected)
+
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (open) setLocalSel(selected)
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [open, selected])
+
+  const assets = data?.assets || []
+
+  const toggle = (u: string) => {
+    setLocalSel((prev) => (prev.includes(u) ? prev.filter((x) => x !== u) : [...prev, u]))
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ImageIcon className="w-4 h-4 text-primary" />
+            Selecionar mídia da biblioteca
+          </DialogTitle>
+          <DialogDescription>
+            {assets.length} imagens disponíveis · {localSel.length} selecionada(s)
+          </DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-y-auto scroll-fancy">
+          {loading ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">Carregando biblioteca...</div>
+          ) : assets.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              Nenhuma imagem na biblioteca. Gere imagens na seção Mídia & Imagens primeiro.
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {assets.map((a) => {
+                const isSel = localSel.includes(a.url)
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    onClick={() => toggle(a.url)}
+                    className={cn(
+                      'relative aspect-square rounded-lg overflow-hidden border-2 bg-muted transition-all',
+                      isSel ? 'border-primary ring-2 ring-primary/30' : 'border-transparent hover:border-primary/40'
+                    )}
+                  >
+                    <img src={a.url} alt={a.title} className="w-full h-full object-cover" loading="lazy" />
+                    {isSel && (
+                      <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                        <Check className="w-3 h-3" />
+                      </div>
+                    )}
+                    {a.source === 'ai' && (
+                      <Badge className="absolute bottom-1 left-1 h-4 gap-0.5 text-[8px] bg-primary/90 backdrop-blur px-1">
+                        <Sparkles className="w-2 h-2" /> IA
+                      </Badge>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => {
+              onSelect(localSel)
+              onOpenChange(false)
+              toast.success(`${localSel.length} mídia(s) anexada(s)`)
+            }}
+            disabled={localSel.length === 0}
+            className="gap-2"
+          >
+            <Check className="w-4 h-4" />
+            Anexar {localSel.length} {localSel.length === 1 ? 'imagem' : 'imagens'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

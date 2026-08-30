@@ -3,6 +3,7 @@ import ZAI from 'z-ai-web-dev-sdk'
 import fs from 'fs'
 import path from 'path'
 import { db } from '@/lib/db'
+import { logActivity, ACTIVITY_TYPES, ACTIVITY_COLORS } from '@/lib/activity'
 
 const SIZE_MAP: Record<string, string> = {
   square: '1024x1024',
@@ -61,6 +62,15 @@ export async function POST(req: NextRequest) {
           height: h,
           tags: JSON.stringify([]),
         },
+      })
+      await logActivity({
+        companyId: companyId || null,
+        type: ACTIVITY_TYPES.MEDIA_GENERATED,
+        title: `Imagem gerada: ${title || prompt.slice(0, 40)}`,
+        description: `${size} · IA`,
+        icon: 'image',
+        color: ACTIVITY_COLORS.media_generated,
+        meta: { assetId: asset.id, url },
       })
     }
 

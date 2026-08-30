@@ -77,6 +77,7 @@ export function IdeasSection() {
   const companyId = useAppStore((s) => s.selectedCompanyId)
   const setSection = useAppStore((s) => s.setSection)
   const setSelectedCompany = useAppStore((s) => s.setSelectedCompany)
+  const setCreatorPrefill = useAppStore((s) => s.setCreatorPrefill)
 
   const [genOpen, setGenOpen] = useState(false)
   const [genNiche, setGenNiche] = useState('')
@@ -457,9 +458,15 @@ export function IdeasSection() {
                         variant="ghost"
                         className="h-7 text-xs gap-1"
                         onClick={() => {
-                          if (companyId !== idea.companyId) setSelectedCompany(idea.companyId)
+                          if (idea.companyId) setSelectedCompany(idea.companyId)
+                          setCreatorPrefill({
+                            topic: `${idea.title}: ${idea.description}`,
+                            category: idea.category,
+                            platforms: [idea.platform],
+                            source: 'idea',
+                          })
                           setSection('creator')
-                          toast.success('Use a ideia como tópico no criador')
+                          toast.success('Ideia enviada para o criador')
                         }}
                       >
                         <ArrowRight className="w-3 h-3" />

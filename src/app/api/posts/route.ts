@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { logActivity, ACTIVITY_TYPES, ACTIVITY_COLORS } from '@/lib/activity'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -72,6 +73,17 @@ export async function POST(req: NextRequest) {
         },
       },
       include: { targets: true },
+    })
+
+    const isScheduled = (status || 'draft') === 'scheduled' && scheduledAt
+    await logActivity({
+      companyId,
+      type: isScheduled ? ACTIVITY_TYPES.POST_SCHEDULED : ACTIVITY_TYPES.POST_CREATED,
+      title: isScheduled ? `Post agendado: ${title}` : `Post criado: ${title}`,
+      description: `Para ${platforms?.length || 0} plataforma(s)`,
+      icon: isScheduled ? 'calendar-clock' : 'plus',
+      color: isScheduled ? ACTIVITY_COLORS.post_scheduled : ACTIVITY_COLORS.post_created,
+      meta: { postId: post.id, platforms },
     })
 
     return NextResponse.json({ post }, { status: 201 })

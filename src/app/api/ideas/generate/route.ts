@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAI } from '@/lib/ai'
 import { db } from '@/lib/db'
+import { logActivity, ACTIVITY_TYPES, ACTIVITY_COLORS } from '@/lib/activity'
 
 interface GeneratedIdea {
   title: string
@@ -82,6 +83,15 @@ Varie os scores entre 60-95 baseado no potencial de engajamento. NÃO use crases
         })
         saved.push(created)
       }
+      await logActivity({
+        companyId,
+        type: ACTIVITY_TYPES.IDEA_GENERATED,
+        title: `${ideas.length} ideias geradas`,
+        description: `Banco de ideias atualizado via IA`,
+        icon: 'lightbulb',
+        color: ACTIVITY_COLORS.idea_generated,
+        meta: { count: ideas.length },
+      })
     }
 
     return NextResponse.json({

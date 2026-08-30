@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { logActivity, ACTIVITY_TYPES, ACTIVITY_COLORS } from '@/lib/activity'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
@@ -34,6 +35,15 @@ export async function POST(req: NextRequest) {
         posts: Math.floor(Math.random() * 200) + 10,
         connected: true,
       },
+    })
+    await logActivity({
+      companyId,
+      type: ACTIVITY_TYPES.ACCOUNT_CONNECTED,
+      title: `Conta conectada: ${platform} · ${handle}`,
+      description: `Nova conta em ${platform}`,
+      icon: 'share',
+      color: ACTIVITY_COLORS.account_connected,
+      meta: { accountId: account.id, platform },
     })
     return NextResponse.json({ account }, { status: 201 })
   } catch (e) {
