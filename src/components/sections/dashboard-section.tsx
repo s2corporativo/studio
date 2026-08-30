@@ -478,6 +478,7 @@ export function DashboardSection() {
                 </button>
               )
             })}
+            <WorkerStatus />
           </CardContent>
         </Card>
       </div>
@@ -772,5 +773,44 @@ function OnboardingChecklist({
         )}
       </CardContent>
     </Card>
+  )
+}
+
+function WorkerStatus() {
+  const { data, loading } = useFetch<any>('/api/worker-status', [])
+  const running = data?.running
+  const stats = data?.stats
+
+  return (
+    <div className="mt-2 rounded-lg border border-border bg-muted/30 p-2.5">
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            'relative flex w-2 h-2 rounded-full',
+            loading ? 'bg-muted-foreground' : running ? 'bg-emerald-500' : 'bg-rose-500'
+          )}
+        >
+          {running && <span className="absolute inset-0 rounded-full bg-emerald-500 animate-ping" />}
+        </span>
+        <span className="text-xs font-semibold flex-1">Posting Worker</span>
+        <Badge variant={running ? 'default' : 'secondary'} className={cn('text-[9px] gap-0.5', running && 'bg-emerald-500 hover:bg-emerald-600 text-white')}>
+          {loading ? 'Verificando...' : running ? 'Ativo' : 'Offline'}
+        </Badge>
+      </div>
+      {running && stats && (
+        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
+          <span>✓ {stats.published} publicados</span>
+          <span>🔍 {stats.checked} verificações</span>
+          {stats.lastRun && (
+            <span>Última: {new Date(stats.lastRun).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+          )}
+        </div>
+      )}
+      {!running && !loading && (
+        <p className="text-[10px] text-muted-foreground mt-1">
+          Worker offline — posts agendados não serão publicados automaticamente.
+        </p>
+      )}
+    </div>
   )
 }

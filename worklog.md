@@ -968,3 +968,60 @@ Agent: Main (orchestrator) — autonomous QA & development round
 - Hashtag performance tracking (which hashtags drive most engagement).
 - Competitor post monitoring (track competitor's recent posts).
 - Social listening / mention tracking.
+
+---
+
+## Round 9 — Automated Posting Worker (cron-triggered)
+
+Task ID: 20
+Agent: Main (orchestrator) — autonomous QA & development round
+
+### Assessment (current project status)
+- Project STABLE with 12 sections, dev server running, lint clean.
+- Prior rounds built: dashboard, companies, posts (calendar+list+approval kanban+detail drawer+bulk actions), creator, media, ideas, hashtags, social, analytics, competitors, seo, settings, notifications, media attachment, idea-to-post, settings→AI pipeline, dashboard widgets, command palette, calendar export.
+- No bugs found in QA — project is mature and stable.
+
+### QA performed via agent-browser
+- All 12 sections load with zero console errors.
+- Verified competitors section, command palette, approval kanban all working.
+- No bugs found.
+
+### New features added
+1. **Automated Posting Worker** (mini-service — NEW)
+   - New mini-service at `mini-services/posting-worker/` with its own package.json and port 3010.
+   - Polls the database every 60 seconds for posts with status 'scheduled' whose scheduledAt is in the past.
+   - For each due post: marks as 'publishing', publishes each PostTarget (simulates platform publishing with realistic engagement metrics based on platform + follower count), generates per-platform engagement (reach, impressions, likes, comments, shares, saves), marks as 'published', creates an analytics snapshot for today, logs an activity event.
+   - Engagement rates vary by platform: Instagram 4.5%, Facebook 2.5%, LinkedIn 3.5%, Twitter 1.5%, TikTok 8%, YouTube 3%.
+   - Minimal HTTP status server on port 3010: `/health` returns status + stats, `/trigger` triggers immediate poll.
+   - Uses `bun --hot` for auto-restart on file changes.
+   - Imports PrismaClient from the main project's generated client (absolute path to avoid mini-service Prisma client init issues).
+   - Dashboard "Foco de hoje" card now includes a **WorkerStatus widget**: pulsing green dot (when running) / red dot (when offline), "Ativo"/"Offline" badge, stats (posts published, checks count, last run time), offline warning message.
+   - New API route `/api/worker-status` proxies the worker's `/health` endpoint (with 3s timeout) for the dashboard widget.
+   - Verified end-to-end: created a test post scheduled in 2020, triggered the worker → post was published (Instagram: 580 likes, 10591 reach; Facebook: 87 likes, 1682 reach), status changed to 'published', engagement metrics populated, activity event logged. Dashboard widget shows "Ativo" with 1 published, 4 checks.
+
+### Technical challenges & solutions
+- **Prisma client init error**: mini-service's own node_modules had a stale @prisma/client. Solved by importing from the main project's absolute path: `import { PrismaClient } from '/home/z/my-project/node_modules/@prisma/client'`.
+- **Port 3010 in use**: previous bun process lingering. Solved by finding and killing the specific PID via `lsof -i :3010`.
+
+### Styling improvements
+- WorkerStatus widget: pulsing green dot with `animate-ping` animation, status badge (emerald when running, muted when offline), stats row with checkmarks, offline warning.
+- Seamlessly integrated into the "Foco de hoje" card on the dashboard.
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings (clean).
+- Console: 0 errors across all 12 sections.
+- Posting worker: verified running on port 3010, 1 post published, 5 checks, activity event logged, analytics snapshot created.
+- Dashboard WorkerStatus widget: verified showing "Ativo" with correct stats (DOM-confirmed text content).
+- Worker health endpoint: responds with status, stats, uptime.
+
+### Unresolved / next-phase recommendations
+- OAuth integration with social platforms (posting worker currently simulates publishing).
+- Real analytics ingestion from platform APIs.
+- Multi-user auth with approval roles (NextAuth available but not wired).
+- Drag-and-drop in approval kanban (currently button-based transitions).
+- Real-time notifications via WebSocket (currently polls every 30s).
+- A/B testing of post variations.
+- Hashtag performance tracking (which hashtags drive most engagement).
+- Competitor post monitoring (track competitor's recent posts).
+- Social listening / mention tracking.
+- Worker auto-start on system boot (currently manually started).
