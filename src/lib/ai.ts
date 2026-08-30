@@ -257,3 +257,75 @@ Cada grupo com 6-10 hashtags SEM o símbolo #. Tags em português quando relevan
   const parsed = parseAIJSON(raw)
   return parsed.groups || []
 }
+
+/** Generate competitor analysis via AI */
+export async function generateCompetitorAnalysis(opts: {
+  company: string
+  niche: string
+  location?: string
+}): Promise<{
+  competitors: {
+    name: string
+    handle: string
+    strengths: string[]
+    weaknesses: string[]
+    contentThemes: string[]
+    postingFrequency: string
+    avgEngagement: string
+    threatLevel: string
+    opportunity: string
+  }[]
+  insights: {
+    marketGaps: string[]
+    contentOpportunities: string[]
+    differentiationTips: string[]
+  }
+}> {
+  const zai = await getAI()
+  const systemPrompt = `You are a senior competitive intelligence analyst for Brazilian companies. You analyze social media competitors, identify market gaps, and recommend differentiation strategies. You respond with STRICT valid JSON only, no markdown, no code fences.`
+
+  const userPrompt = `Analise os concorrentes para:
+- Empresa: ${opts.company}
+- Nicho: ${opts.niche}
+- Local: ${opts.location || 'Brasil'}
+
+Identifique 4 concorrentes reais ou realistas neste nicho (use marcas conhecidas se aplicável, ou perfis plausíveis). Para cada um, analise presença em redes sociais.
+
+Responda SOMENTE com este JSON:
+{
+  "competitors": [
+    {
+      "name": "nome do concorrente",
+      "handle": "@handle_principal",
+      "strengths": ["3", "pontos", "fortes"],
+      "weaknesses": ["3", "pontos", "fracos"],
+      "contentThemes": ["3-4", "temas", "de", "conteudo"],
+      "postingFrequency": "diário|semanal|3x semana",
+      "avgEngagement": "alto|médio|baixo",
+      "threatLevel": "low|medium|high",
+      "opportunity": "como sua empresa pode se diferenciar deste concorrente"
+    }
+  ],
+  "insights": {
+    "marketGaps": ["3", "lacunas", "de", "mercado", "identificadas"],
+    "contentOpportunities": ["3", "oportunidades", "de", "conteudo"],
+    "differentiationTips": ["3", "dicas", "de", "diferenciação"]
+  }
+}
+NÃO use crases nem markdown. Apenas JSON puro.`
+
+  const completion = await zai.chat.completions.create({
+    messages: [
+      { role: 'assistant', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    thinking: { type: 'disabled' },
+  })
+
+  const raw = completion.choices[0]?.message?.content || ''
+  const parsed = parseAIJSON(raw)
+  return {
+    competitors: parsed.competitors || [],
+    insights: parsed.insights || { marketGaps: [], contentOpportunities: [], differentiationTips: [] },
+  }
+}

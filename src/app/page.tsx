@@ -13,6 +13,7 @@ import { IdeasSection } from '@/components/sections/ideas-section'
 import { HashtagsSection } from '@/components/sections/hashtags-section'
 import { SocialSection } from '@/components/sections/social-section'
 import { AnalyticsSection } from '@/components/sections/analytics-section'
+import { CompetitorsSection } from '@/components/sections/competitors-section'
 import { SeoSection } from '@/components/sections/seo-section'
 import { SettingsSection } from '@/components/sections/settings-section'
 
@@ -36,6 +37,7 @@ export default function Home() {
     hashtags: <HashtagsSection />,
     social: <SocialSection />,
     analytics: <AnalyticsSection />,
+    competitors: <CompetitorsSection />,
     seo: <SeoSection />,
     settings: <SettingsSection />,
   }

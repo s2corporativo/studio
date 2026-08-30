@@ -13,6 +13,7 @@ export type Section =
   | 'hashtags'
   | 'social'
   | 'analytics'
+  | 'competitors'
   | 'seo'
   | 'settings'
 

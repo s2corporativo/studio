@@ -48,6 +48,7 @@ const SECTION_TITLES: Record<string, { title: string; subtitle: string }> = {
   hashtags: { title: 'Banco de Hashtags', subtitle: 'Grupos de hashtags gerados por IA' },
   social: { title: 'Redes Sociais', subtitle: 'Contas conectadas e métricas' },
   analytics: { title: 'Analytics', subtitle: 'Desempenho e alcance por plataforma' },
+  competitors: { title: 'Concorrentes', subtitle: 'Análise competitiva com IA e insights estratégicos' },
   seo: { title: 'SEO & Motores de IA', subtitle: 'Otimização para Google e ChatGPT, Perplexity, etc.' },
   settings: { title: 'Configurações', subtitle: 'Voz da marca, padrões de postagem e IA' },
 }

@@ -32,6 +32,7 @@ model Company {
   activityEvents ActivityEvent[]
   settings       CompanySettings?
   hashtagGroups  HashtagGroup[]
+  competitors    Competitor[]
 }
 
 model SocialAccount {
@@ -219,4 +220,29 @@ model HashtagGroup {
   updatedAt   DateTime @updatedAt
 
   company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model Competitor {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  handle      String?
+  website     String?
+  niche       String?
+  platform    String?
+  followers  Int      @default(0)
+  engagementRate Float @default(0)
+  postingFrequency String?
+  strengths   String?  // JSON array
+  weaknesses  String?  // JSON array
+  contentThemes String? // JSON array
+  avgLikes    Int      @default(0)
+  avgComments Int      @default(0)
+  sentiment   String   @default("neutral") // positive, neutral, negative
+  threatLevel String   @default("medium") // low, medium, high
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

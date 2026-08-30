@@ -906,3 +906,65 @@ Agent: Main (orchestrator) — autonomous QA & development round
 - A/B testing of post variations.
 - Competitor analysis dashboard.
 - Hashtag performance tracking (which hashtags drive most engagement).
+
+---
+
+## Round 8 — Competitor Analysis Dashboard (cron-triggered)
+
+Task ID: 19
+Agent: Main (orchestrator) — autonomous QA & development round
+
+### Assessment (current project status)
+- Project STABLE with 11 sections, dev server running, lint clean.
+- Prior rounds built: dashboard, companies, posts (calendar+list+approval kanban+detail drawer), creator, media, ideas, hashtags, social, analytics, seo, settings, notifications, media attachment, idea-to-post, settings→AI pipeline, dashboard widgets, command palette, calendar export.
+- No bugs found in QA — project is mature and stable.
+
+### QA performed via agent-browser
+- All 11 sections load with zero console errors.
+- Verified hashtags section, command palette, approval kanban all working.
+- No bugs found.
+
+### New features added
+1. **Competitor Analysis Dashboard** (`competitors-section.tsx` — NEW, 12th section)
+   - New Prisma model `Competitor` (id, companyId, name, handle, website, niche, platform, followers, engagementRate, postingFrequency, strengths JSON, weaknesses JSON, contentThemes JSON, avgLikes, avgComments, sentiment, threatLevel, notes, timestamps) + back-relation on Company.
+   - New AI function `generateCompetitorAnalysis()` in `lib/ai.ts` — generates 4 competitor profiles with strengths/weaknesses/contentThemes/postingFrequency/engagement/threatLevel/opportunity + strategic insights (marketGaps, contentOpportunities, differentiationTips) via LLM.
+   - New API routes: `/api/competitors` (GET/POST/DELETE), `/api/competitors/analyze` (POST — AI analysis + save + activity logging).
+   - New nav item "Concorrentes" (Target icon) in sidebar + topbar title.
+   - KPI row: total concorrentes, ameaça alta, alcance total, engajamento médio.
+   - Competitor cards: color-coded threat stripe (high=rose/medium=amber/low=emerald), avatar with initial, name + handle, threat badge, delete button. Stats grid (seguidores/curtidas/comentários). Engagement + posting frequency badges. Strengths list (emerald bullets), weaknesses list (rose bullets), content themes as badges, opportunity note (primary-tinted card).
+   - Insights panel: 3-column layout with market gaps (rose/Target icon), content opportunities (amber/Lightbulb), differentiation tips (emerald/Zap).
+   - AI Analysis dialog: company info display, description of what will be generated (4 competitors + insights).
+   - Manual add dialog: name, handle, website, threat level (3-button selector), notes.
+   - Delete with AlertDialog confirmation.
+   - Company filter: shows "select a company" empty state when none selected.
+   - Loading skeletons, framer-motion animations, scroll-fancy.
+   - Verified: ran AI analysis for Café Aurora (Gastronomia/Cafeteria) → 4 competitors generated (Blue Bottle Coffee, Pão de Açúcar Café, Café do Bairro, Café Novo) with realistic followers (10K-29K), engagement rates (2.2%-7.2%), threat levels, strengths/weaknesses/themes. Insights panel showed market gaps, opportunities, differentiation tips. All saved to DB, VLM-confirmed cards render.
+
+### Bugs found & fixed
+- **BUG**: Used non-existent `Crosshairs` icon from lucide-react → caused Turbopack build error (500). Fixed by using `Target` icon instead (exists in lucide-react).
+- **BUG**: After the icon rename, `Target` was imported twice (once for the section icon, once for the InsightColumn component) → "name defined multiple times" error. Fixed by removing the duplicate import.
+- **BUG**: Turbopack crashed with "Resource temporarily unavailable" (thread pool exhaustion from multiple dev server restarts). Fixed by killing all processes, clearing .next cache, and restarting fresh.
+
+### Styling improvements
+- Competitor cards: threat-colored top stripe, avatar with initial on threat-colored background, 3-col stats grid with icons, strength/weakness bullet lists with semantic colors, opportunity note in primary-tinted card.
+- Insights panel: 3-column layout with icon-led titles, colored bullet points.
+- KPI cards: consistent icon-led design.
+- All use established purple/fuchsia theme + semantic threat colors (rose/amber/emerald).
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings (clean).
+- Console: 0 errors across all 12 sections.
+- Competitor AI analysis: 4 competitors generated with realistic data, all saved to DB, insights panel rendered, VLM-confirmed cards.
+- All 12 nav sections load correctly.
+
+### Unresolved / next-phase recommendations
+- OAuth integration with social platforms (still simulated).
+- Real analytics ingestion from platform APIs.
+- Multi-user auth with approval roles (NextAuth available but not wired).
+- Drag-and-drop in approval kanban (currently button-based transitions).
+- Automated posting execution (cron worker to publish at scheduledAt).
+- Real-time notifications via WebSocket (currently polls every 30s).
+- A/B testing of post variations.
+- Hashtag performance tracking (which hashtags drive most engagement).
+- Competitor post monitoring (track competitor's recent posts).
+- Social listening / mention tracking.
