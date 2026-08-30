@@ -169,3 +169,8 @@
 - [x] Corrigir o contraste do título e metadados do Command Center sobre a área de conteúdo clara, preservando os cartões operacionais escuros.
 - [x] Corrigir a importação do componente de ícones de redes para manter a renderização SSR usada pela suíte de testes.
 - [x] Corrigir o contraste de textos nos painéis legados em modo escuro, preservando a legibilidade dos módulos de redes e Instagram.
+- [ ] Verificar de forma sanitizada se App ID e App Secret Meta foram atualizados no cofre antes da validação mínima.
+- [ ] Executar uma única validação técnica das credenciais Meta atualizadas, sem OAuth de usuário, mídia ou publicação.
+- [ ] Registrar o resultado sanitizado da validação Meta e manter os bloqueios externos coerentes com a evidência.
+- [x] Confirmar no TiDB a aplicação e o estado da última migration registrada antes de orientar novas alterações do Claude.
+- [x] Preparar e entregar um roteiro operacional de branch, PR, CI, migrations e limites de acesso para o Claude.
