@@ -161,11 +161,11 @@
 - [x] Inventariar os módulos e componentes restantes para identificar desvios do padrão visual institucional unificado.
 - [x] Consolidar tokens compartilhados de superfícies, cores contextuais, interação e modo escuro para todos os módulos.
 - [x] Aplicar o padrão visual às áreas de criação, inteligência, crescimento, distribuição e governança sem alterar comportamento.
-- [ ] Validar todas as rotas em desktop/mobile e nos dois temas, executar testes/build e publicar a identidade visual unificada.
+- [x] Validar todas as rotas em desktop/mobile e nos dois temas, executar testes/build e publicar a identidade visual unificada.
 - [x] Mapear os módulos de redes, Instagram e distribuição para aplicar cores oficiais sem afetar os fluxos protegidos.
 - [x] Inserir ícones e acentos cromáticos oficiais de Instagram, Facebook, LinkedIn, TikTok e YouTube nos pontos apropriados do sistema.
 - [x] Adicionar destaques de cor complementares aos painéis operacionais, preservando contraste, modo escuro e identidade institucional.
-- [ ] Validar visualmente em desktop e mobile, rodar tipos, testes e build e publicar a evolução cromática.
+- [x] Validar visualmente em desktop e mobile, rodar tipos, testes e build e publicar a evolução cromática.
 - [x] Corrigir o contraste do título e metadados do Command Center sobre a área de conteúdo clara, preservando os cartões operacionais escuros.
 - [x] Corrigir a importação do componente de ícones de redes para manter a renderização SSR usada pela suíte de testes.
 - [x] Corrigir o contraste de textos nos painéis legados em modo escuro, preservando a legibilidade dos módulos de redes e Instagram.
