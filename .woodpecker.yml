@@ -18,4 +18,5 @@ steps:
       - pnpm check
       - pnpm test
       - pnpm build
+      - pnpm brand:validate
       - node scripts/validate-migrations.mjs

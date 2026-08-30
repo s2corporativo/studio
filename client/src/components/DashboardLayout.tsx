@@ -5,9 +5,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
 import {
-  BarChart3, BookOpenText, Bot, BrainCircuit, CalendarDays, FilePenLine, FileSearch,
+  BarChart3, BookOpenText, Bot, BrainCircuit, Building2, CalendarDays, FilePenLine, FileSearch,
   FolderKanban, Inbox, LayoutDashboard, LibraryBig, LogOut, Megaphone, Network,
-  Moon, Radar, ScrollText, ShieldCheck, Sparkles, Sun, Target, Users, Video, Workflow,
+  Moon, Radar, ScrollText, ShieldCheck, Sun, Target, Users, Video, Workflow,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
@@ -57,6 +57,7 @@ const sections = [
     items: [
       { icon: Network, label: "Redes sociais", path: "/redes" },
       { icon: ShieldCheck, label: "Compliance", path: "/governanca" },
+      { icon: Building2, label: "Central de Marcas", path: "/marcas" },
       { icon: ShieldCheck, label: "DNA da marca", path: "/marca" },
       { icon: Workflow, label: "Arquitetura", path: "/roadmap" },
     ],

@@ -1,3 +1,5 @@
+import { calculateRadarValidity, type RadarFreshnessStatus } from "../shared/radarFreshness";
+
 export type RadarItem = {
   id: string;
   source: string;
@@ -5,6 +7,11 @@ export type RadarItem = {
   title: string;
   url: string;
   publishedAt: string | null;
+  consultedAt: string;
+  validUntil: string;
+  freshnessStatus: RadarFreshnessStatus;
+  ageDays: number | null;
+  ttlDays: number;
   summary: string | null;
   area: string;
   score: number;
@@ -120,11 +127,17 @@ function isAllowedSourceUrl(candidate: string, source: OfficialSource) {
   }
 }
 
+function withValidity(item: Omit<RadarItem, "consultedAt" | "validUntil" | "freshnessStatus" | "ageDays" | "ttlDays">, consultedAt = new Date()): RadarItem {
+  const validity = calculateRadarValidity({ source: item.source, area: item.area, publishedAt: item.publishedAt, consultedAt });
+  return { ...item, ...validity };
+}
+
 export function parseXmlFeed(xml: string, source: XmlSource): RadarItem[] {
   const blocks = [
     ...(xml.match(/<item\b[\s\S]*?<\/item>/gi) ?? []),
     ...(xml.match(/<entry\b[\s\S]*?<\/entry>/gi) ?? []),
   ];
+  const consultedAt = new Date();
 
   return blocks.slice(0, 12).map((block, index) => {
     const title = tag(block, "title");
@@ -136,7 +149,7 @@ export function parseXmlFeed(xml: string, source: XmlSource): RadarItem[] {
     const timeBonus = parsedDate
       ? Math.max(0, 7 - Math.floor((Date.now() - parsedDate) / 86_400_000))
       : 0;
-    return {
+    return withValidity({
       id: itemId(source.source, index, link || title),
       source: source.source,
       sourceUrl: source.url,
@@ -146,7 +159,7 @@ export function parseXmlFeed(xml: string, source: XmlSource): RadarItem[] {
       summary,
       area: source.area,
       score: Math.min(100, source.weight + timeBonus),
-    };
+    }, consultedAt);
   }).filter(item => item.title.length >= 8);
 }
 
@@ -154,6 +167,7 @@ export function parseHtmlLinks(html: string, source: HtmlLinkSource): RadarItem[
   const anchorPattern = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   const found: RadarItem[] = [];
   const seen = new Set<string>();
+  const consultedAt = new Date();
   let match: RegExpExecArray | null;
 
   while ((match = anchorPattern.exec(html)) && found.length < 12) {
@@ -175,7 +189,7 @@ export function parseHtmlLinks(html: string, source: HtmlLinkSource): RadarItem[
     if (seen.has(url)) continue;
     seen.add(url);
 
-    found.push({
+    found.push(withValidity({
       id: itemId(source.source, found.length, url),
       source: source.source,
       sourceUrl: source.url,
@@ -185,7 +199,7 @@ export function parseHtmlLinks(html: string, source: HtmlLinkSource): RadarItem[
       summary: null,
       area: source.area,
       score: source.weight,
-    });
+    }, consultedAt));
   }
 
   return found;

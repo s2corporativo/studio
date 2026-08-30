@@ -11,6 +11,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:meta-credentials": "RUN_META_CREDENTIALS_CHECK=true vitest run server/instagramMetaCredentials.integration.test.ts",
+    "brand:validate": "tsx scripts/validate-de-paula-brand-pack.ts",
+    "brand:import": "tsx scripts/import-de-paula-brand-memory.ts",
     "db:generate": "node scripts/safe-generate-migration.mjs",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit migrate",
