@@ -1143,3 +1143,74 @@ Agent: Main (orchestrator) — autonomous QA & development round
 - Worker auto-start on system boot (currently manually started).
 - Content calendar drag-and-drop rescheduling.
 - Auto-reply suggestions for negative mentions via AI.
+
+---
+
+## Round 12 — Professionalization: API Integrations Hub + Reports (user-requested)
+
+Task ID: 23
+Agent: Main (orchestrator) — professionalization round per user request
+
+### User Request
+"PROFISSIONALISE O SISTEMA, VERIFIQUE AS APIS NECESSARIAS E MAIS FUNCIONALIDADES PARA CONSEGUIR ESCALAR MINHAS EMPRESAS NA INTERNET"
+
+### Assessment (current project status)
+- Project STABLE with 13 sections, dev server + posting worker both running, lint clean.
+- Prior rounds built comprehensive features across 13 sections.
+- User requested professionalization: verify necessary APIs and add more features for scaling businesses online.
+
+### New features added
+
+1. **API Integrations Hub** (`integrations-section.tsx` — NEW, 14th section)
+   - New Prisma models: `Integration` (companyId, platform, status, accountId, apiKey, apiSecret, autoPublish, syncFrequency, features, tokenExpiry, lastSync, errorMessage, webhookUrl, scopes) with `@@unique([companyId, platform])` + `Report` (type, title, period, summary, data, insights, format, status, url).
+   - New comprehensive integrations config file `src/lib/integrations.ts` documenting 8 real platform APIs:
+     - **Instagram** (Instagram Graph API) — posting, analytics, mentions, stories, reels, scheduling, insights
+     - **Facebook** (Facebook Graph API) — posting, analytics, mentions, reels, scheduling, insights, DM
+     - **LinkedIn** (LinkedIn Marketing API) — posting, analytics, scheduling, insights
+     - **Twitter/X** (Twitter API v2) — posting, analytics, mentions, scheduling, insights, DM
+     - **TikTok** (TikTok Business API, beta) — posting, analytics, mentions, reels, scheduling, insights
+     - **YouTube** (YouTube Data API v3) — posting, analytics, scheduling, insights
+     - **Google Meu Negócio** (Google Business Profile API) — posting, analytics, mentions, scheduling, insights
+     - **Google Analytics** (Google Analytics Data API) — analytics, insights
+   - Each integration includes: API name, docs URL, auth type, capabilities matrix, requirements, rate limits, OAuth scopes, step-by-step setup guide, pricing, premium features.
+   - New API routes: `/api/integrations` (GET/POST/DELETE), `/api/integrations/[id]` (PATCH/DELETE).
+   - Integration cards: platform icon, API name, status badge (connected/pending/error/disconnected), capability chips, pricing, last sync, sync/disconnect actions, docs link.
+   - Connect dialog: API Key + API Secret inputs, security warning, link to official docs.
+   - Setup guide accordion: per-platform requirements, OAuth scopes (as code blocks), numbered step-by-step instructions, rate limits, premium features.
+   - KPIs: connected count, available count, total capabilities, auto-publish status.
+   - Info banner explaining how real API integration works.
+   - Verified: connected Instagram with test credentials → status "connected", apiKey stored, 7 features enabled (posting, analytics, mentions, stories, reels, scheduling, insights). VLM-confirmed cards render.
+
+2. **Reports Section** (`reports-section.tsx` — NEW, 15th section)
+   - New API routes: `/api/reports` (GET/POST), `/api/reports/[id]` (GET/DELETE).
+   - 4 report types: Weekly, Monthly, Campaign, Competitor — each with icon, color, description.
+   - KPI row: total reports, total reach, total likes, engagement rate.
+   - Report cards: type icon, title, type badge, status badge (ready/generating), summary, AI insights chips, creation date, format, period, download + delete actions.
+   - Generate dialog: type selector with descriptions, generates report with real stats + AI insights.
+   - Download function: generates a formatted text report with metrics, insights, and recommendations.
+   - Verified: generated weekly report → "Relatório Semanal - 2026-W6" with insights (3 posts publicados, 45K alcance, 2.7K curtidas), download works.
+
+### Bugs found & fixed
+- **BUG**: Integration upsert failed with 500 error because `@@unique([companyId, platform])` constraint was missing from the Prisma schema (the upsert `where` clause requires a unique constraint). Fixed by adding the `@@unique` annotation and re-pushing the schema.
+
+### Professionalization summary
+- **API verification**: Documented all 8 real APIs needed for actual social media sync with full setup guides, scopes, rate limits, and pricing.
+- **Scalability features**: Integration Hub allows connecting real platform APIs; Reports provide professional performance exports; the system now has 15 sections covering the full lifecycle from content creation → scheduling → publishing → analytics → reporting.
+- **UI professionalization**: Consistent design language, security warnings, documentation links, status badges, capability matrices.
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings (clean).
+- Console: 0 errors across all 15 sections.
+- Integration connect: verified Instagram connected with credentials stored, 7 features enabled.
+- Report generation: verified weekly report generated with AI insights, download works.
+- All 15 nav sections load correctly.
+
+### Unresolved / next-phase recommendations
+- Implement actual OAuth flows for each platform (currently stores API keys manually).
+- Real API calls for posting/analytics (currently simulated by posting worker).
+- PDF report generation (currently text-based download).
+- Email report scheduling.
+- White-label branding.
+- Multi-user workspace with role-based access.
+- API rate limit monitoring dashboard.
+- Webhook configuration UI for real-time notifications.

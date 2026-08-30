@@ -14,6 +14,8 @@ import {
   BarChart3,
   Target,
   Radar,
+  Plug,
+  FileBarChart,
   Search,
   Settings,
   Zap,
@@ -34,6 +36,8 @@ const NAV: { id: Section; label: string; icon: any; description: string }[] = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3, description: 'Métricas & alcance' },
   { id: 'competitors', label: 'Concorrentes', icon: Target, description: 'Análise competitiva IA' },
   { id: 'listening', label: 'Menções', icon: Radar, description: 'Social listening IA' },
+  { id: 'integrations', label: 'Integrações', icon: Plug, description: 'APIs e conexões' },
+  { id: 'reports', label: 'Relatórios', icon: FileBarChart, description: 'Relatórios e export' },
   { id: 'seo', label: 'SEO & IA', icon: Search, description: 'Google + motores de IA' },
   { id: 'settings', label: 'Configurações', icon: Settings, description: 'Voz da marca & IA' },
 ]

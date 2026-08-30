@@ -15,6 +15,8 @@ import { SocialSection } from '@/components/sections/social-section'
 import { AnalyticsSection } from '@/components/sections/analytics-section'
 import { CompetitorsSection } from '@/components/sections/competitors-section'
 import { ListeningSection } from '@/components/sections/listening-section'
+import { IntegrationsSection } from '@/components/sections/integrations-section'
+import { ReportsSection } from '@/components/sections/reports-section'
 import { SeoSection } from '@/components/sections/seo-section'
 import { SettingsSection } from '@/components/sections/settings-section'
 
@@ -40,6 +42,8 @@ export default function Home() {
     analytics: <AnalyticsSection />,
     competitors: <CompetitorsSection />,
     listening: <ListeningSection />,
+    integrations: <IntegrationsSection />,
+    reports: <ReportsSection />,
     seo: <SeoSection />,
     settings: <SettingsSection />,
   }

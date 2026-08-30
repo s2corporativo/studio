@@ -34,6 +34,8 @@ model Company {
   hashtagGroups  HashtagGroup[]
   competitors    Competitor[]
   mentions       Mention[]
+  integrations   Integration[]
+  reports        Report[]
 }
 
 model SocialAccount {
@@ -266,6 +268,48 @@ model Mention {
   isVerified  Boolean  @default(false)
   tags        String   @default("[]") // JSON array of topics/keywords
   replied     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model Integration {
+  id            String   @id @default(cuid())
+  companyId     String
+  platform      String   // instagram, facebook, linkedin, twitter, tiktok, youtube, google_analytics, google_my_business
+  status        String   @default("disconnected") // disconnected, pending, connected, error
+  accountId     String?
+  accountName   String?
+  scopes        String?  // JSON array of granted scopes
+  tokenExpiry   DateTime?
+  lastSync      DateTime?
+  syncFrequency String   @default("hourly") // realtime, hourly, daily
+  autoPublish   Boolean  @default(true)
+  apiKey        String?  // for manual API key integrations
+  apiSecret     String?  // encrypted
+  webhookUrl    String?
+  errorMessage  String?
+  features      String   @default("[]") // JSON: posting, analytics, mentions, stories, reels
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, platform])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  companyId   String
+  type        String   // weekly, monthly, campaign, competitor
+  title       String
+  period      String   // "2024-01" or "2024-W03"
+  summary     String?
+  data        String?  // JSON with full report data
+  insights    String?  // JSON with AI-generated insights
+  format      String   @default("pdf") // pdf, csv, json
+  status      String   @default("generating") // generating, ready, failed
+  url         String?  // download URL
   createdAt   DateTime @default(now())
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)

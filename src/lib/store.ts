@@ -15,6 +15,8 @@ export type Section =
   | 'analytics'
   | 'competitors'
   | 'listening'
+  | 'integrations'
+  | 'reports'
   | 'seo'
   | 'settings'
 
