@@ -19,6 +19,7 @@ const NetworkHub = lazy(() => import("./NetworkHub"));
 const NewsRadar = lazy(() => import("./NewsRadar"));
 const SaasOverview = lazy(() => import("./SaasOverview"));
 const SocialHubPanel = lazy(() => import("./SocialHubPanel"));
+const AdvancedFeatures = lazy(() => import("./AdvancedFeatures"));
 const SocialOsCommandCenter = lazy(() => import("./SocialOsCommandCenter"));
 const BrandPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.BrandPanel })));
 const CalendarPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.CalendarPanel })));
@@ -94,6 +95,8 @@ export default function Home() {
     content = <BrandPanel brand={data.brand} onSave={(value: UpdateBrandInput) => updateBrand.mutate(value)} saving={updateBrand.isPending} />;
   } else if (location === "/socialhub") {
     content = <SocialHubPanel />;
+  } else if (location === "/avancado") {
+    content = <AdvancedFeatures />;
   } else if (location === "/roadmap") {
     content = <MarketingRoadmap />;
   } else if (location === "/planejamento") {

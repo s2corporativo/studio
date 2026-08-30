@@ -37,6 +37,7 @@ function Router() {
       <Route path={"/roadmap"} component={Home} />
       <Route path={"/marca"} component={Home} />
       <Route path={"/socialhub"} component={Home} />
+      <Route path={"/avancado"} component={Home} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

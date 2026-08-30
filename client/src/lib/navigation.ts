@@ -1,7 +1,7 @@
 import {
   BarChart3, BookOpenText, Bot, BrainCircuit, CalendarDays, FilePenLine, FileSearch,
   FolderKanban, Inbox, LayoutDashboard, LibraryBig, Megaphone, Network,
-  Radar, ScrollText, ShieldCheck, Sparkles, Target, Users, Video, Workflow, type LucideIcon,
+  Radar, ScrollText, ShieldCheck, Sparkles, Target, Users, Video, Workflow, Zap, type LucideIcon,
 } from "lucide-react";
 
 export type NavigationItem = { icon: LucideIcon; label: string; path: string };
@@ -41,6 +41,7 @@ export const navigationSections: NavigationSection[] = [
     label: "Criação & Crescimento",
     items: [
       { icon: Sparkles, label: "SocialHub — Integrações", path: "/socialhub" },
+      { icon: Zap, label: "Funcionalidades Avançadas", path: "/avancado" },
       { icon: Video, label: "Video Studio", path: "/video" },
       { icon: FileSearch, label: "SEO & Local", path: "/seo" },
       { icon: Megaphone, label: "Ads Intelligence", path: "/ads" },

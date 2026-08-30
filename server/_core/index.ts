@@ -10,6 +10,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { registerHealthRoutes } from "./health";
 import { registerCalendarExport } from "../calendarExport";
 import { registerSocialHubRoutes } from "../socialhub/routes";
+import { registerAdvancedRoutes } from "../socialhub/advanced-routes";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -46,6 +47,7 @@ async function startServer() {
   registerStorageProxy(app);
   registerCalendarExport(app);
   registerSocialHubRoutes(app);
+  registerAdvancedRoutes(app);
   // Serve uploaded files
   app.use("/uploads", express.static("uploads"));
   registerOAuthRoutes(app);
