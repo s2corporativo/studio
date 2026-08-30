@@ -1,4 +1,4 @@
-# Roteiro de Pull Request para Claude — De Paula Social Studio
+# Roteiro de Pull Request para Claude — S2 Studio
 
 ## Instrução pronta para copiar e enviar
 

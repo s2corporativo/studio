@@ -1,4 +1,4 @@
-# Deploy seguro — De Paula Social OS
+# Deploy seguro — S2 Studio Social OS
 
 Este runbook deve ser usado para atualizar o ambiente Manus existente sem recriar banco, storage, usuários ou segredos.
 

@@ -19,7 +19,7 @@ describe("origem OAuth do Instagram", () => {
   it("fixa a origem publicada no ambiente de produção", () => {
     const previous = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
-    expect(getInstagramOAuthOrigin(request("origem-maliciosa.example"))).toBe("https://depaulasoc-5hpbpodx.manus.space");
+    expect(getInstagramOAuthOrigin(request("origem-maliciosa.example"))).toBe("https://s2-studio.app");
     process.env.NODE_ENV = previous;
   });
 });

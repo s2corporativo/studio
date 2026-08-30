@@ -7,7 +7,7 @@
 - [x] Construir calendário editorial com visualizações mensal e semanal e estados de conteúdo.
 - [x] Implementar fluxo de revisão e aprovação com responsável, observações, bloqueio e rastreabilidade de status.
 - [x] Criar central de preparação para Instagram com prévia de legenda, mídia/link e checklist pré-publicação.
-- [x] Aplicar identidade visual editorial da De Paula Teixeira: verde-carvão, bronze, marfim, tipografia elegante e layout responsivo.
+- [x] Aplicar identidade visual editorial da S2 Studio Teixeira: verde-carvão, bronze, marfim, tipografia elegante e layout responsivo.
 - [x] Implementar persistência em banco de dados e procedimentos protegidos para as rotinas editoriais.
 - [x] Criar testes automatizados para regras de aprovação e transição de status.
 - [x] Validar o fluxo principal, revisar a interface em desktop e mobile e corrigir falhas encontradas.
@@ -47,7 +47,7 @@
 - [x] Organizar as artes importadas por área, tema, formato e sequência de carrossel na biblioteca interna.
 - [x] Exibir a galeria de artes no painel Biblioteca e validar o acesso em desktop e mobile.
 - [x] Garantir o encerramento limpo do importador de artes após a execução idempotente em lote.
-- [x] Sincronizar a versão atual do De Paula Social Studio com o repositório GitHub s2corporativo/studio.
+- [x] Sincronizar a versão atual do S2 Studio com o repositório GitHub s2corporativo/studio.
 - [x] Integrar de forma controlada o main remoto do Studio, preservando a versão atual e o histórico de dados.
 - [x] Adequar as novas telas e o Design AI ao padrão verde-carvão, bronze, marfim e tipografia editorial do escritório.
 - [x] Validar previamente e aplicar com segurança a migration de automação do Social OS.

@@ -301,7 +301,7 @@ function AutoReplyTab() {
     if (!mention.trim()) { toast.error("Digite a menção"); return; }
     setLoading(true); setResult(null);
     try {
-      const res = await fetch("/api/socialhub/mentions/auto-reply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mention, brandName: "De Paula Advocacia" }) });
+      const res = await fetch("/api/socialhub/mentions/auto-reply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mention, brandName: "S2 Studio Advocacia" }) });
       const data = await res.json(); setResult(data); toast.success("Resposta gerada!");
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   }
@@ -345,7 +345,7 @@ function AutoReplyTab() {
 function ROIReportTab() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const [company, setCompany] = useState("De Paula Advocacia");
+  const [company, setCompany] = useState("S2 Studio Advocacia");
 
   async function handleGenerate() {
     setLoading(true); setResult(null);

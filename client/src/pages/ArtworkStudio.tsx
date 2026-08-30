@@ -66,7 +66,7 @@ function renderBrandOverlay(ctx: CanvasRenderingContext2D, post: ArtworkPost, st
   ctx.fillRect(78, 1184, 70, 5);
   ctx.fillStyle = "#f5edde";
   ctx.font = "700 24px Manrope, sans-serif";
-  ctx.fillText("DE PAULA TEIXEIRA", 78, 1240);
+  ctx.fillText("S2 STUDIO", 78, 1240);
   ctx.fillStyle = "rgba(190,202,190,.92)";
   ctx.font = "500 18px Manrope, sans-serif";
   ctx.fillText("ADVOCACIA • CONTEÚDO INFORMATIVO", 78, 1275);

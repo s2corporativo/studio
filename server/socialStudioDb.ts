@@ -43,7 +43,7 @@ async function initializeStudioDefaults(userId: number) {
   if (existingBrand.length === 0) {
     await db.insert(brandProfiles).values({
       userId,
-      brandName: "De Paula Teixeira Advocacia",
+      brandName: "S2 Studio",
       segment: "Advocacia consultiva e contenciosa",
       location: "Betim/MG",
       targetAudience: "Pessoas físicas, empresas, gestores e produtores que demandam orientação jurídica preventiva e técnica.",
@@ -52,7 +52,7 @@ async function initializeStudioDefaults(userId: number) {
       primaryCta: "Conheça nossas áreas e canais oficiais de contato.",
       prohibitedTerms: "Garantido, causa ganha, resultado certo, urgente sem contexto, promoção de serviços jurídicos.",
       operationMode: "manual",
-      websiteUrl: "https://depaulateixeira.adv.br",
+      websiteUrl: "https://s2.studio",
       visualGuidelines: "Verde-carvão, bronze, marfim, tipografia editorial, respiro e logo discreta no rodapé.",
     });
   }
@@ -94,7 +94,7 @@ async function initializeStudioDefaults(userId: number) {
       userId,
       title: "Site institucional do escritório",
       sourceType: "site",
-      url: "https://depaulateixeira.adv.br",
+      url: "https://s2.studio",
       notes: "Fonte institucional de posicionamento, áreas de atuação e canais de contato.",
       verifiedAt: new Date(),
     });
@@ -104,9 +104,9 @@ async function initializeStudioDefaults(userId: number) {
   if (existingKnowledge.length === 0) {
     await db.insert(knowledgeMaterials).values({
       userId,
-      title: "Site institucional da De Paula Teixeira Advocacia",
+      title: "Site institucional da S2 Studio",
       materialType: "site institucional",
-      url: "https://depaulateixeira.adv.br",
+      url: "https://s2.studio",
       notes: "Referência prioritária para áreas de atuação, tom e canais oficiais.",
       isVerified: true,
     });

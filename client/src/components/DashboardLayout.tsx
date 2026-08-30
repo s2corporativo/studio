@@ -21,8 +21,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <div className="min-h-screen bg-[#0c1715] px-5 py-10 text-[#f3ebdd]">
       <div className="mx-auto flex min-h-[80vh] max-w-md items-center justify-center">
         <div className="saas-card w-full p-8 text-center">
-          <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="De Paula Teixeira Advocacia" className="mx-auto h-16 w-56 object-contain" />
-          <h1 className="mt-6 font-serif text-3xl tracking-tight">De Paula Social Studio</h1>
+          <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="S2 Studio" className="mx-auto h-16 w-56 object-contain" />
+          <h1 className="mt-6 font-serif text-3xl tracking-tight">S2 Studio</h1>
           <p className="mt-2 text-sm leading-6 text-[#9aa89f]">Entre para acessar inteligência, criação, agenda, publicação responsável e análise de desempenho.</p>
           <Button onClick={() => startLogin()} className="saas-button-primary mt-7 w-full">Entrar no Social Studio</Button>
         </div>
@@ -36,7 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar collapsible="icon" className="border-r border-[#12382d] bg-[#061813] text-[#e9eee7]">
         <SidebarHeader className="border-b border-[#daba7d]/15 p-3">
           <button onClick={() => setLocation("/")} className="flex min-h-14 w-full items-center rounded-xl px-1 text-left transition hover:bg-white/[.04]">
-            <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="De Paula Teixeira Advocacia" className="h-12 w-[188px] object-contain object-center group-data-[collapsible=icon]:w-11" />
+            <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="S2 Studio" className="h-12 w-[188px] object-contain object-center group-data-[collapsible=icon]:w-11" />
           </button>
         </SidebarHeader>
         <SidebarContent className="px-2 py-3">

@@ -357,7 +357,7 @@ Responda SOMENTE com JSON:
       auditTrail: {
         timestamp: new Date().toISOString(),
         action: decision,
-        reviewer: "De Paula Admin",
+        reviewer: "S2 Studio Admin",
       },
     });
   });
@@ -368,7 +368,7 @@ Responda SOMENTE com JSON:
   app.get("/api/socialhub/whitelabel/config", async (req: Request, res: Response) => {
     res.json({
       branding: {
-        appName: "De Paula Social Studio",
+        appName: "S2 Studio",
         primaryColor: "#c59b5a",
         secondaryColor: "#1a1a2e",
         logoUrl: "/logo.svg",

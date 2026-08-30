@@ -34,7 +34,7 @@ export function buildArtworkPrompt(input: {
   direction?: string | null;
   brand?: ArtworkBrandContext;
 }): string {
-  const brandName = sanitizeFreeText(input.brand?.brandName, 180) ?? "De Paula Teixeira Advocacia";
+  const brandName = sanitizeFreeText(input.brand?.brandName, 180) ?? "S2 Studio";
   const segment = sanitizeFreeText(input.brand?.segment, 180);
   const audience = sanitizeFreeText(input.brand?.targetAudience, 300);
   const guidelines = sanitizeFreeText(input.brand?.visualGuidelines, MAX_BRAND_GUIDELINE_CHARS);

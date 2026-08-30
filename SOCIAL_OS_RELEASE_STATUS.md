@@ -1,4 +1,4 @@
-# Status de Liberação Condicional — De Paula Social Studio
+# Status de Liberação Condicional — S2 Studio
 
 **Data da consolidação:** 29/08/2026  
 **Checkpoint publicado:** `c4f554ee`  
@@ -71,7 +71,7 @@ O checkpoint corretivo `cde69dd2` foi publicado e revalidado no domínio de prod
 
 A raiz foi redesenhada com base na referência operacional fornecida pelo escritório: superfície de trabalho clara, sidebar institucional em verde profundo, indicadores de operação, pipeline editorial, agenda e bloco de inteligência destacado. A composição preserva todos os fluxos existentes e não altera as regras de revisão, aprovação ou publicação.
 
-A logomarca horizontal oficial da **De Paula Teixeira Advocacia** foi adicionada com texto alternativo ao cabeçalho e à faixa institucional da raiz. O comportamento foi verificado em 1280×720 e 390×844, sem corte de conteúdo, sobreposição ou perda de contraste. TypeScript, 86 testes e build foram aprovados antes da publicação; o smoke test de produção voltou a confirmar health, readiness e as rotas principais com HTTP 200.
+A logomarca horizontal oficial da **S2 Studio Teixeira Advocacia** foi adicionada com texto alternativo ao cabeçalho e à faixa institucional da raiz. O comportamento foi verificado em 1280×720 e 390×844, sem corte de conteúdo, sobreposição ou perda de contraste. TypeScript, 86 testes e build foram aprovados antes da publicação; o smoke test de produção voltou a confirmar health, readiness e as rotas principais com HTTP 200.
 
 ## Próximo passo concreto
 

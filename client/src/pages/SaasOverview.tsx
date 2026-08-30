@@ -42,7 +42,7 @@ export default function SaasOverview({ data, counts, onCreate, onOpenCalendar, o
   return <div className="studio-overview space-y-5">
     <section className="studio-overview-heading">
       <div>
-        <p className="studio-overview-kicker">De Paula Teixeira Advocacia</p>
+        <p className="studio-overview-kicker">S2 Studio</p>
         <h1>Visão geral da operação</h1>
         <p>Acompanhe o conteúdo jurídico em produção, as aprovações e a distribuição responsável.</p>
       </div>
@@ -50,7 +50,7 @@ export default function SaasOverview({ data, counts, onCreate, onOpenCalendar, o
     </section>
 
     <section className="studio-brand-strip">
-      <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="Logomarca De Paula Teixeira Advocacia" className="h-16 w-[250px] object-contain object-left sm:h-20 sm:w-[310px]" />
+      <img src="/manus-storage/de-paula-teixeira-logo-horizontal_1699e4a9.webp" alt="Logomarca S2 Studio" className="h-16 w-[250px] object-contain object-left sm:h-20 sm:w-[310px]" />
       <div className="studio-brand-copy"><span>Social Media OS</span><p>Planejamento, criação e divulgação sob governança editorial.</p></div>
     </section>
 

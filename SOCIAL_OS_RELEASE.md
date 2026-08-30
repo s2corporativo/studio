@@ -1,4 +1,4 @@
-# De Paula Social OS — Release 2026-08-27
+# S2 Studio Social OS — Release 2026-08-27
 
 ## Publicado no `main`
 

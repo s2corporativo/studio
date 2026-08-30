@@ -9,7 +9,7 @@ vi.mock("@/lib/trpc", () => ({
   trpc: {
     useUtils: () => ({ socialStudio: { socialProfiles: { invalidate: vi.fn() }, instagramData: { invalidate: vi.fn() }, data: { invalidate: vi.fn() } } }),
     socialStudio: {
-      socialProfiles: { useQuery: () => ({ data: [{ id: 17, network: "instagram", displayName: "De Paula Teixeira Advocacia", handle: "depaulateixeira.adv", profileUrl: "https://www.instagram.com/depaulateixeira.adv/", externalAccountId: null, notes: null, state: "pending_oauth" }] }) },
+      socialProfiles: { useQuery: () => ({ data: [{ id: 17, network: "instagram", displayName: "S2 Studio", handle: "depaulateixeira.adv", profileUrl: "https://www.instagram.com/depaulateixeira.adv/", externalAccountId: null, notes: null, state: "pending_oauth" }] }) },
       instagramData: { useQuery: () => ({ data: { connection: state.connection } }) },
       addSocialProfile: { useMutation: () => mutation },
       updateSocialProfile: { useMutation: () => mutation },

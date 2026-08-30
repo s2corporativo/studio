@@ -51,7 +51,7 @@ describe("socialStudio perfis sociais", () => {
 
     await caller.addSocialProfile({
       network: "instagram",
-      displayName: "De Paula Teixeira Advocacia",
+      displayName: "S2 Studio",
       handle: "@@depaulateixeira.adv",
       profileUrl: "https://www.instagram.com/depaulateixeira.adv/",
       externalAccountId: null,

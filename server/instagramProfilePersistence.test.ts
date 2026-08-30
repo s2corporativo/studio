@@ -35,7 +35,7 @@ import { linkInstagramProfileToConnection, setInstagramProfileConnectionState, u
 
 describe("persistência do vínculo OAuth de Instagram", () => {
   beforeEach(() => {
-    profile = { id: 17, userId: 5, network: "instagram", state: "active", handle: "depaulateixeira.adv", displayName: "De Paula Teixeira Advocacia", profileUrl: "https://www.instagram.com/depaulateixeira.adv/", externalAccountId: null, notes: null };
+    profile = { id: 17, userId: 5, network: "instagram", state: "active", handle: "depaulateixeira.adv", displayName: "S2 Studio", profileUrl: "https://www.instagram.com/depaulateixeira.adv/", externalAccountId: null, notes: null };
     connection = null;
   });
 

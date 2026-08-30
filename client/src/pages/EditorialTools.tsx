@@ -124,7 +124,7 @@ function TemplatePreview({ title, hook, brandName, template }: { title?: string;
     <div className="flex aspect-[4/5] flex-col justify-between border border-[#d5ad6b]/20 p-4">
       <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-[#d8af6c]">{template.replace(/_/g, " ")}</p>
       <div>
-        <p className="text-[9px] uppercase tracking-[0.16em] text-[#e0bf8b]">De Paula Teixeira Advocacia</p>
+        <p className="text-[9px] uppercase tracking-[0.16em] text-[#e0bf8b]">S2 Studio</p>
         <h3 className="mt-3 font-serif text-2xl leading-[1.02] text-[#f1e8db]">{title || "Título da publicação"}</h3>
         <p className="mt-3 line-clamp-3 text-[10px] leading-4 text-[#c2cbc3]">{hook || "Gancho informativo e direto, renderizado como texto pela plataforma."}</p>
       </div>

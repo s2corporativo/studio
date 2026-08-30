@@ -197,7 +197,7 @@ async function fetchSource(source: OfficialSource) {
   try {
     const response = await fetch(source.url, {
       headers: {
-        "user-agent": "DePaula-Social-OS/1.1 (+https://depaulateixeira.adv.br)",
+        "user-agent": "S2-Studio/1.1 (+https://s2.studio)",
         accept: source.kind === "xml"
           ? "application/rss+xml, application/atom+xml, application/xml, text/xml, */*"
           : "text/html,application/xhtml+xml,*/*",

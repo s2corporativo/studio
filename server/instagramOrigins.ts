@@ -1,6 +1,6 @@
 import type { Request } from "express";
 
-const PRODUCTION_ORIGIN = "https://depaulasoc-5hpbpodx.manus.space";
+const PRODUCTION_ORIGIN = "https://s2-studio.app";
 
 export function getInstagramOAuthOrigin(req: Request) {
   if (process.env.NODE_ENV === "production") return PRODUCTION_ORIGIN;

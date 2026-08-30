@@ -23,10 +23,10 @@ export function buildIcs(posts: ContentPost[]): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//De Paula Social Studio//Calendario Editorial//PT-BR",
+    "PRODID:-//S2 Studio//Calendario Editorial//PT-BR",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    "X-WR-CALNAME:De Paula Social Studio - Calendario Editorial",
+    "X-WR-CALNAME:S2 Studio - Calendario Editorial",
     "X-WR-TIMEZONE:America/Sao_Paulo",
   ];
   for (const post of posts) {
@@ -36,7 +36,7 @@ export function buildIcs(posts: ContentPost[]): string {
       .join("\n");
     lines.push(
       "BEGIN:VEVENT",
-      `UID:content-post-${post.id}@depaula-social-studio`,
+      `UID:content-post-${post.id}@s2-studio`,
       `DTSTAMP:${now}`,
       `DTSTART:${formatICalDate(scheduledAt)}`,
       `DTEND:${formatICalDate(scheduledAt, 30)}`,

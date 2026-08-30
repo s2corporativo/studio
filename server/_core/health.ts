@@ -36,7 +36,7 @@ export function registerHealthRoutes(app: Express) {
   app.get("/api/health", async (_req, res) => {
     res.json({
       status: "ok",
-      service: "depaula-social-os",
+      service: "s2-studio",
       environment: ENV.isProduction ? "production" : "development",
       integrations: await integrationState(),
       timestamp: new Date().toISOString(),
@@ -88,7 +88,7 @@ export function registerHealthRoutes(app: Express) {
     const ready = Object.values(checks).every(Boolean);
     res.status(ready ? 200 : 503).json({
       status: ready ? "ready" : "not_ready",
-      service: "depaula-social-os",
+      service: "s2-studio",
       checks,
       integrations: await integrationState(),
       timestamp: new Date().toISOString(),

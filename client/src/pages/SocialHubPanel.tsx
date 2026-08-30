@@ -352,7 +352,7 @@ function ListeningTab() {
       const res = await fetch("/api/socialhub/mentions/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brandName: "De Paula", niche: "Advocacia" }),
+        body: JSON.stringify({ brandName: "S2 Studio", niche: "Advocacia" }),
       });
       const data = await res.json();
       if (data.count) {

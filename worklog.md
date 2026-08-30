@@ -1217,18 +1217,18 @@ Agent: Main (orchestrator) — professionalization round per user request
 
 ---
 
-## Round 13 — Implement SocialHub in depaula-social-studio (user-requested)
+## Round 13 — Implement SocialHub in s2-studio (user-requested)
 
 Task ID: 24
 Agent: Main (orchestrator)
 
 ### User Request
-"implemnte o sistema que vc criou no sistema em anexo" — Implement the SocialHub system into the attached depaula-social-studio project.
+"implemnte o sistema que vc criou no sistema em anexo" — Implement the SocialHub system into the attached s2-studio project.
 
 ### What was done
 
 #### 1. Project Setup & MySQL → SQLite Migration
-- Extracted depaula-social-studio.zip (Vite + React + tRPC + Express + Drizzle + MySQL project)
+- Extracted s2-studio.zip (Vite + React + tRPC + Express + Drizzle + MySQL project)
 - Backed up the existing SocialHub Next.js project
 - Copied depaula files into /home/z/my-project
 - **Adapted Drizzle ORM from MySQL to SQLite**:
@@ -1284,7 +1284,7 @@ Added routing in App.tsx and Home.tsx for `/socialhub` path.
 - Fixed z-ai-web-dev-sdk JSON parsing to strip markdown code fences
 
 ### Architecture Summary
-The depaula-social-studio project is now running with:
+The s2-studio project is now running with:
 - **Frontend**: Vite + React + wouter + Tailwind CSS v4 + shadcn/ui
 - **Backend**: Express + tRPC + Drizzle ORM (SQLite via bun:sqlite)
 - **Database**: SQLite (adapted from MySQL)

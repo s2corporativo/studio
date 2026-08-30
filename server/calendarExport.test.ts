@@ -55,7 +55,7 @@ describe("buildIcs", () => {
     const ics = buildIcs([fixture({ id: 7, title: "Post \"especial\"; teste" })]);
     expect(ics).toContain("BEGIN:VCALENDAR");
     expect(ics).toContain("END:VCALENDAR");
-    expect(ics).toContain("UID:content-post-7@depaula-social-studio");
+    expect(ics).toContain("UID:content-post-7@s2-studio");
     expect(ics).toContain('SUMMARY:Post "especial"\\; teste');
     expect(ics).toContain("DTSTART:20260901T183000Z");
   });

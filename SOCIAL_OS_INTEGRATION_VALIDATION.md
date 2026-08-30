@@ -8,7 +8,7 @@ O `main` remoto foi integrado ao Social Studio com preservação dos controles e
 
 ## Identidade visual
 
-As novas telas Social OS foram readequadas ao padrão De Paula Teixeira: verde-carvão e verde profundo como base, bronze como destaque, marfim para conteúdos de leitura e tipografia editorial Cormorant Garamond combinada a Manrope. A geração de arte por IA também foi atualizada para solicitar fundo institucional em verde e bronze, sem texto gerado.
+As novas telas Social OS foram readequadas ao padrão S2 Studio Teixeira: verde-carvão e verde profundo como base, bronze como destaque, marfim para conteúdos de leitura e tipografia editorial Cormorant Garamond combinada a Manrope. A geração de arte por IA também foi atualizada para solicitar fundo institucional em verde e bronze, sem texto gerado.
 
 ## Controles de operação
 

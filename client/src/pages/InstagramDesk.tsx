@@ -23,7 +23,7 @@ function jobTone(status: string) {
   return ({ pending_confirmation: "border-amber-300/25 bg-amber-300/8 text-amber-100", queued: "border-[#c99550]/25 bg-[#c99550]/8 text-[#f3d49f]", processing: "border-[#b48a55]/25 bg-[#b48a55]/8 text-[#f0d1a0]", published: "border-emerald-300/25 bg-emerald-300/8 text-emerald-100", failed: "border-red-300/25 bg-red-300/8 text-red-100", cancelled: "border-stone-300/20 bg-stone-300/5 text-stone-200" } as Record<string, string>)[status] ?? "border-white/10 bg-white/5 text-white";
 }
 
-const productionCallbackUrl = "https://depaulasoc-5hpbpodx.manus.space/api/instagram/oauth/callback";
+const productionCallbackUrl = "https://s2-studio.app/api/instagram/oauth/callback";
 
 export default function InstagramDesk() {
   const utils = trpc.useUtils();

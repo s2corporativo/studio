@@ -9,7 +9,7 @@ describe("buildArtworkPrompt", () => {
       style: "tech_premium",
       brand: null,
     });
-    expect(prompt).toContain("Brand: De Paula Teixeira Advocacia.");
+    expect(prompt).toContain("Brand: S2 Studio.");
     expect(prompt).toContain("Topic: Novo entendimento do STJ.");
     expect(prompt).toContain("Legal area: Direito do Consumidor.");
   });

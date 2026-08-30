@@ -59,14 +59,14 @@ async function startServer() {
       const openId = process.env.OWNER_OPEN_ID || "dev-user";
       await db.upsertUser({
         openId,
-        name: "De Paula Admin",
-        email: "admin@depaula.studio",
+        name: "S2 Studio Admin",
+        email: "admin@s2.studio",
         loginMethod: "dev",
         lastSignedIn: new Date(),
         role: "admin",
       });
       const sessionToken = await sdk.createSessionToken(openId, {
-        name: "De Paula Admin",
+        name: "S2 Studio Admin",
         expiresInMs: 365 * 24 * 60 * 60 * 1000,
       });
       const cookieOptions = getSessionCookieOptions(req);
