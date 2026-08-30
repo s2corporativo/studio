@@ -40,7 +40,8 @@ export async function learnBrandPerformance(userId: number, brandWorkspaceId: nu
     db.select().from(contentMetrics).where(and(eq(contentMetrics.userId, userId), inArray(contentMetrics.postId, postIds))).orderBy(desc(contentMetrics.capturedAt)),
   ]);
   const postById = new Map(posts.map(post => [post.id, post]));
-  const latestMetrics = latestMetricSnapshots(metrics);
+  const metricSnapshots = metrics.flatMap(metric => metric.postId == null ? [] : [{ ...metric, postId: metric.postId }]);
+  const latestMetrics = latestMetricSnapshots(metricSnapshots);
 
   const enriched = latestMetrics.flatMap(metric => {
     const post = postById.get(metric.postId);
