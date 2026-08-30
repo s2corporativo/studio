@@ -14,6 +14,7 @@ export type Section =
   | 'social'
   | 'analytics'
   | 'competitors'
+  | 'listening'
   | 'seo'
   | 'settings'
 

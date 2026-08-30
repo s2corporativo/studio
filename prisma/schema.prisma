@@ -33,6 +33,7 @@ model Company {
   settings       CompanySettings?
   hashtagGroups  HashtagGroup[]
   competitors    Competitor[]
+  mentions       Mention[]
 }
 
 model SocialAccount {
@@ -243,6 +244,29 @@ model Competitor {
   notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model Mention {
+  id          String   @id @default(cuid())
+  companyId   String
+  platform    String   // instagram, facebook, linkedin, twitter, tiktok, youtube, web
+  author      String
+  authorHandle String?
+  authorAvatar String?
+  content     String
+  url         String?
+  sentiment   String   @default("neutral") // positive, neutral, negative
+  sentimentScore Float @default(0) // -1 to 1
+  reach       Int      @default(0)
+  engagement  Int      @default(0)
+  language    String   @default("pt-BR")
+  isReply     Boolean  @default(false)
+  isVerified  Boolean  @default(false)
+  tags        String   @default("[]") // JSON array of topics/keywords
+  replied     Boolean  @default(false)
+  createdAt   DateTime @default(now())
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

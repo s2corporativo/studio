@@ -1080,3 +1080,66 @@ Agent: Main (orchestrator) — autonomous QA & development round
 - Social listening / mention tracking.
 - Worker auto-start on system boot (currently manually started).
 - Content calendar drag-and-drop rescheduling.
+
+---
+
+## Round 11 — Social Listening / Mention Tracking (cron-triggered)
+
+Task ID: 22
+Agent: Main (orchestrator) — autonomous QA & development round
+
+### Assessment (current project status)
+- Project STABLE with 12 sections, dev server + posting worker both running, lint clean.
+- Prior rounds built: dashboard, companies, posts (calendar+list+approval kanban+detail drawer+bulk actions), creator, media, ideas, hashtags, social, analytics (with hashtag performance), competitors, seo, settings, notifications, media attachment, idea-to-post, settings→AI pipeline, dashboard widgets (onboarding+activity+worker status), command palette, calendar export, automated posting worker.
+- No bugs found in QA — project is mature and stable.
+
+### QA performed via agent-browser
+- All 12 sections load with zero console errors.
+- Verified posting worker running, hashtag performance, command palette all working.
+- No bugs found.
+
+### New features added
+1. **Social Listening / Mention Tracking** (`listening-section.tsx` — NEW, 13th section)
+   - New Prisma model `Mention` (id, companyId, platform, author, authorHandle, content, url, sentiment, sentimentScore, reach, engagement, language, isReply, isVerified, tags JSON, replied, createdAt) + back-relation on Company.
+   - New AI function `generateMentions()` in `lib/ai.ts` — generates 12 realistic brand mentions across platforms with varied sentiments (positive/neutral/negative), different author types (customers, influencers, journalists), sentiment scores (-1 to 1), reach/engagement metrics, and topic tags. Also returns summary with sentiment percentages, average sentiment, and trending topics.
+   - New API routes: `/api/mentions` (GET with filters + summary computation, DELETE), `/api/mentions/[id]` (PATCH for reply status), `/api/mentions/scan` (POST — AI scan + save + activity logging with staggered creation times for realism).
+   - New nav item "Menções" (Radar icon) in sidebar + topbar title.
+   - KPI row: total menções, % positivas, % neutras, % negativas, alcance total.
+   - Mention feed (2-col layout, left col): filterable by sentiment + platform, scrollable list of mention cards with:
+     - Sentiment-colored left stripe + avatar with initial on sentiment-colored background.
+     - Author name + handle + verified badge + sentiment badge.
+     - Platform badge + relative timestamp (timeAgo).
+     - Full mention content.
+     - Topic tags as chips.
+     - Metrics: reach (Eye icon), engagement (Heart icon), sentiment score (TrendingUp icon, +/- formatted).
+     - Actions: "Responder" button (marks as replied, emerald highlight), delete button — hover-revealed.
+     - Replied mentions get emerald border + "Respondido" badge.
+   - Sidebar (right col): 
+     - "Distribuição de sentimento" card: 3 animated progress bars (positive/neutral/negative) with counts + percentages, average sentiment score with color coding.
+     - "Tópicos em alta" card: top 8 trending topics with animated gradient progress bars and mention counts.
+   - Verified: ran AI scan for Café Aurora → 12 mentions generated (6 positive, 3 neutral, 3 negative), avg sentiment 0.31, 117K reach, 1.7K engagement. Trending topics: qualidade, cafeaurora, pergunta, cafe, localizacao. All saved to DB with staggered creation times, VLM-confirmed mention feed + sentiment distribution + trending topics render.
+
+### Styling improvements
+- Mention cards: sentiment-colored stripes, avatar with initial, verified badges, topic chips, hover-reveal actions, replied state highlighting.
+- Sentiment distribution: animated progress bars with semantic colors.
+- Trending topics: gradient progress bars with mention counts.
+- KPI cards: icon-led design with semantic colors (emerald/gray/rose/sky).
+- All use established purple/fuchsia theme + semantic sentiment colors.
+
+### Verification results
+- `bun run lint`: 0 errors, 0 warnings (clean).
+- Console: 0 errors across all 13 sections.
+- AI mention scan: 12 mentions generated with realistic data, all saved to DB, sentiment distribution + trending topics rendered, VLM-confirmed.
+- All 13 nav sections load correctly.
+
+### Unresolved / next-phase recommendations
+- OAuth integration with social platforms (posting worker currently simulates publishing).
+- Real analytics ingestion from platform APIs (mentions currently AI-simulated).
+- Multi-user auth with approval roles (NextAuth available but not wired).
+- Drag-and-drop in approval kanban (currently button-based transitions).
+- Real-time notifications via WebSocket (currently polls every 30s).
+- A/B testing of post variations.
+- Competitor post monitoring (track competitor's recent posts).
+- Worker auto-start on system boot (currently manually started).
+- Content calendar drag-and-drop rescheduling.
+- Auto-reply suggestions for negative mentions via AI.

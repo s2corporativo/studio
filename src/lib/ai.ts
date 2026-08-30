@@ -329,3 +329,87 @@ NÃO use crases nem markdown. Apenas JSON puro.`
     insights: parsed.insights || { marketGaps: [], contentOpportunities: [], differentiationTips: [] },
   }
 }
+
+/** Generate social listening mentions via AI */
+export async function generateMentions(opts: {
+  company: string
+  niche: string
+  platforms: string[]
+}): Promise<{
+  mentions: {
+    author: string
+    authorHandle: string
+    content: string
+    platform: string
+    sentiment: string
+    sentimentScore: number
+    reach: number
+    engagement: number
+    isVerified: boolean
+    tags: string[]
+  }[]
+  summary: {
+    totalMentions: number
+    positivePct: number
+    neutralPct: number
+    negativePct: number
+    avgSentiment: number
+    trendingTopics: string[]
+  }
+}> {
+  const zai = await getAI()
+  const systemPrompt = `You are a social listening analyst for Brazilian companies. You simulate monitoring brand mentions across social media platforms, performing sentiment analysis and identifying trending topics. You respond with STRICT valid JSON only, no markdown, no code fences.`
+
+  const userPrompt = `Gere 12 menções realistas da marca "${opts.company}" (nicho: ${opts.niche}) em redes sociais: ${opts.platforms.join(', ')}.
+
+Crie menções variadas: algumas positivas (elogios, recomendações), neutras (perguntas, menções casuais), e negativas (reclamações, críticas). Inclua diferentes tipos de autores (clientes, influencers, jornalistas, etc.).
+
+Responda SOMENTE com este JSON:
+{
+  "mentions": [
+    {
+      "author": "Nome do Autor",
+      "authorHandle": "@handle",
+      "content": "texto da menção em português (1-3 frases, como um tweet ou comentário real)",
+      "platform": "instagram|facebook|linkedin|twitter|tiktok|youtube",
+      "sentiment": "positive|neutral|negative",
+      "sentimentScore": 0.8,
+      "reach": 5000,
+      "engagement": 120,
+      "isVerified": false,
+      "tags": ["topic1", "topic2"]
+    }
+  ],
+  "summary": {
+    "totalMentions": 12,
+    "positivePct": 50,
+    "neutralPct": 30,
+    "negativePct": 20,
+    "avgSentiment": 0.3,
+    "trendingTopics": ["5", "tópicos", "em", "alta", "relacionados"]
+  }
+}
+sentimentScore varia de -1 (muito negativo) a 1 (muito positivo). reach e engagement devem ser números realistas. NÃO use crases nem markdown. Apenas JSON puro.`
+
+  const completion = await zai.chat.completions.create({
+    messages: [
+      { role: 'assistant', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    thinking: { type: 'disabled' },
+  })
+
+  const raw = completion.choices[0]?.message?.content || ''
+  const parsed = parseAIJSON(raw)
+  return {
+    mentions: parsed.mentions || [],
+    summary: parsed.summary || {
+      totalMentions: 0,
+      positivePct: 0,
+      neutralPct: 0,
+      negativePct: 0,
+      avgSentiment: 0,
+      trendingTopics: [],
+    },
+  }
+}

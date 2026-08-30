@@ -13,6 +13,7 @@ import {
   Share2,
   BarChart3,
   Target,
+  Radar,
   Search,
   Settings,
   Zap,
@@ -32,6 +33,7 @@ const NAV: { id: Section; label: string; icon: any; description: string }[] = [
   { id: 'social', label: 'Redes Sociais', icon: Share2, description: 'Contas conectadas' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, description: 'Métricas & alcance' },
   { id: 'competitors', label: 'Concorrentes', icon: Target, description: 'Análise competitiva IA' },
+  { id: 'listening', label: 'Menções', icon: Radar, description: 'Social listening IA' },
   { id: 'seo', label: 'SEO & IA', icon: Search, description: 'Google + motores de IA' },
   { id: 'settings', label: 'Configurações', icon: Settings, description: 'Voz da marca & IA' },
 ]
