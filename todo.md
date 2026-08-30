@@ -1,0 +1,176 @@
+# Project TODO
+
+- [x] Definir modelos de dados para temas, conteúdos, revisões, aprovações e agenda editorial.
+- [x] Criar biblioteca de temas organizada por nove áreas jurídicas com pesquisa, prioridade e público-alvo.
+- [x] Implementar criação e edição de rascunhos com campos de gancho, legenda, CTA, hashtags, fonte jurídica e data de revisão.
+- [x] Criar o painel inicial com contadores por status, agenda próxima e temas mais utilizados.
+- [x] Construir calendário editorial com visualizações mensal e semanal e estados de conteúdo.
+- [x] Implementar fluxo de revisão e aprovação com responsável, observações, bloqueio e rastreabilidade de status.
+- [x] Criar central de preparação para Instagram com prévia de legenda, mídia/link e checklist pré-publicação.
+- [x] Aplicar identidade visual editorial da De Paula Teixeira: verde-carvão, bronze, marfim, tipografia elegante e layout responsivo.
+- [x] Implementar persistência em banco de dados e procedimentos protegidos para as rotinas editoriais.
+- [x] Criar testes automatizados para regras de aprovação e transição de status.
+- [x] Validar o fluxo principal, revisar a interface em desktop e mobile e corrigir falhas encontradas.
+- [x] Salvar checkpoint da versão inicial e entregar o acesso ao projeto.
+- [x] Criar o DNA da Marca com identidade visual, público, tom, CTA, palavras proibidas, site e dados de contato.
+- [x] Criar central de fontes com URL, título, tipo, data de verificação e vínculo ao conteúdo jurídico.
+- [x] Exibir ficha de rastreabilidade por conteúdo: afirmação, fonte, revisão e responsável.
+- [x] Adicionar planejamento editorial com pilares, objetivo, formatos e geração de plano de 7 ou 30 dias.
+- [x] Criar modelos estruturados de post, carrossel, checklist, FAQ, notícia e institucional para preenchimento seguro.
+- [x] Preparar arquitetura para mídia gerada a partir de templates com texto renderizado pelo sistema, sem texto gerado dentro da imagem.
+- [x] Criar estados de operação manual e semiautomática; manter publicação autônoma como expansão futura.
+- [x] Registrar no produto as expansões futuras de Reels, integração oficial, agendamento automático, métricas e aprendizagem de desempenho.
+- [x] Adicionar um motor de estratégia com objetivo, pilar editorial, campanha e estágio do funil antes da geração de conteúdo.
+- [x] Ampliar a biblioteca de conhecimento para aceitar documentos, URLs e materiais institucionais vinculados à marca.
+- [x] Criar score pré-publicação para clareza, CTA, marca, legibilidade e risco regulatório.
+- [x] Adicionar detector de repetição de temas, títulos e legendas recentes.
+- [x] Registrar no roadmap a reutilização de conteúdo, evergreen, testes A/B, campanhas, métricas por objetivo, modo agência, CRM e monitor de falhas.
+- [x] Registrar no produto o roadmap do Sistema Operacional de Marketing por IA: objetivos, grafo de conteúdo, lacunas, personas, jornadas, métricas e governança avançada.
+- [x] Ler a documentação oficial da Meta e definir as permissões, limites e pré-requisitos da integração do Instagram.
+- [ ] Configurar credenciais e variáveis de ambiente da Meta sem expor segredos no código.
+- [x] Criar modelo de dados e procedimentos para conexão, mídia, confirmação, publicação e registro de resultado no Instagram.
+- [x] Implementar a central de publicação do Instagram com mídia, legenda, prévia e confirmação explícita.
+- [x] Implementar o processamento controlado de conteúdos agendados em infraestrutura compatível.
+- [x] Criar testes para bloqueios de aprovação, confirmação e envio de publicação.
+- [ ] Validar a integração em modo seguro e salvar checkpoint com instruções de conexão da conta profissional.
+- [ ] Recuperar a sessão de autenticação da Meta no navegador e concluir a configuração de acesso ao Instagram.
+- [ ] Obter ou receber de administrador o acesso a uma aplicação de tecnologias sociais da Meta vinculável à empresa.
+- [x] Verificar o papel administrativo da conta Meta autenticada e tentar criar ou vincular a aplicação social elegível quando o painel permitiu.
+- [ ] Registrar a URL de retorno de produção do Social Studio e validar a configuração de OAuth antes da conexão da conta.
+- [x] Fixar a URL de retorno OAuth do domínio de produção para evitar dependência de cabeçalhos de origem na autorização Meta.
+- [x] Exibir na central do Instagram o roteiro de configuração Meta com a URL pública de retorno e os controles de ativação.
+- [x] Implementar teste não público de ponta a ponta, com container temporário da Meta, auditoria e bloqueio de agendamento até aprovação.
+- [x] Criar testes automatizados para o teste não público, incluindo sucesso, falha Meta e bloqueio de agendamento sem teste aprovado.
+- [x] Adicionar prévia visual real da mídia e legenda na central do Instagram antes da confirmação.
+- [x] Criar testes de serviço para confirmação explícita, idempotência e erro da Meta registrado em auditoria.
+- [x] Inventariar e importar as artes de Instagram já criadas nesta conversa para o armazenamento seguro do Social Studio.
+- [x] Organizar as artes importadas por área, tema, formato e sequência de carrossel na biblioteca interna.
+- [x] Exibir a galeria de artes no painel Biblioteca e validar o acesso em desktop e mobile.
+- [x] Garantir o encerramento limpo do importador de artes após a execução idempotente em lote.
+- [x] Sincronizar a versão atual do De Paula Social Studio com o repositório GitHub s2corporativo/studio.
+- [x] Integrar de forma controlada o main remoto do Studio, preservando a versão atual e o histórico de dados.
+- [x] Adequar as novas telas e o Design AI ao padrão verde-carvão, bronze, marfim e tipografia editorial do escritório.
+- [x] Validar previamente e aplicar com segurança a migration de automação do Social OS.
+- [x] Testar os fluxos do Social OS e revisar as telas integradas em desktop e mobile.
+- [x] Revisar e ajustar visualmente todas as telas novas do Social OS ainda não verificadas para assegurar aderência ao padrão verde-carvão, bronze e marfim.
+- [x] Executar validação funcional dos fluxos integrados de Radar, Automação, navegação, geração de arte e redes sociais antes da publicação.
+- [x] Autenticar no Social Studio e revisar visualmente as telas internas reais em desktop e mobile, com evidências por rota protegida.
+- [x] Executar validação funcional autenticada de Radar, Automação, geração de arte e Redes/Instagram, registrando estados de sucesso ou bloqueio seguro.
+- [x] Corrigir a geração de rascunho a partir do Radar quando o serviço de IA retornar erro interno, preservando fonte e controles de revisão.
+- [x] Impedir espera indefinida no Design AI, com limite seguro, retorno claro de falha e nova tentativa possível.
+- [x] Auditar as alterações remotas recentes do repositório Studio antes de qualquer sincronização local.
+- [x] Criar cadastro seguro de perfis externos de Instagram, Facebook, LinkedIn, TikTok e YouTube com URL pública, identificação e status operacional.
+- [x] Permitir adicionar, editar, ativar, desativar e remover perfis sociais externos na Central de Redes, sem armazenar senhas ou tokens em texto aberto.
+- [x] Vincular o perfil de Instagram cadastrado ao fluxo OAuth oficial já existente, preservando os bloqueios de Meta, teste não público e confirmação humana.
+- [x] Validar a interface de gestão de perfis sociais em desktop e mobile e criar testes de isolamento por usuário.
+- [x] Associar funcionalmente o perfil de Instagram cadastrado à conexão OAuth oficial, com vínculo persistente por perfil.
+- [x] Exibir na Central de Redes o estado real da conexão OAuth do perfil de Instagram cadastrado.
+- [x] Cobrir em teste o vínculo entre perfil de Instagram, abertura do OAuth e estado de conexão oficial.
+- [x] Testar as transições OAuth pendente, conectado e erro entre a conexão oficial e o perfil de Instagram vinculado.
+- [x] Testar a apresentação do estado real da conexão OAuth no card do perfil de Instagram da Central de Redes.
+- [x] Testar o callback OAuth com vínculo persistido de perfil e transições pendente, conectado e erro na conexão oficial.
+- [x] Testar que o card da Central de Redes renderiza o estado real proveniente da conexão OAuth vinculada.
+- [x] Testar o estado persistente inicial `pending` e a transição completa para `connected` ou `error` no vínculo OAuth do perfil.
+- [x] Incluir a cobertura de apresentação da Central de Redes em um arquivo executado pela suíte e validar todos os rótulos do OAuth vinculado.
+- [x] Testar a persistência de `pending` e `pending_oauth` ao vincular o perfil Instagram à conexão oficial.
+- [x] Testar a sequência persistida `pending → connected` e `pending → error` entre o vínculo de perfil e o callback OAuth.
+- [x] Verificar o aplicativo Meta acessível e configurar Instagram Login, permissões e retorno OAuth de produção.
+- [ ] Cadastrar o App ID e App Secret da Meta exclusivamente no cofre seguro do Social Studio e validar a conexão profissional.
+- [x] Diagnosticar e recuperar a navegação da Meta quando o painel de desenvolvedor abrir em tela em branco.
+- [x] Diagnosticar e recuperar a abertura da sessão de navegador compartilhado para a configuração Meta.
+- [x] Localizar o aplicativo Meta DPT recém-criado e configurar o produto Instagram Login com retorno OAuth e permissões mínimas.
+- [ ] Validar no servidor as credenciais Meta cadastradas por meio de consulta mínima ao aplicativo, sem registrar segredos.
+- [x] Ajustar a validação técnica para consultar o ID do aplicativo DPT em endpoint Meta compatível, sem OAuth ou publicação pública.
+- [x] Pesquisar a documentação oficial da Meta para confirmar a localização das credenciais DPT e as causas de recusa do token de aplicativo.
+- [x] Registrar commits de referência, analisar o PR #5 e validar a branch feat/social-os-full-platform sem merge antecipado.
+- [x] Executar instalação reproduzível, TypeScript, testes, build e auditoria de migrations da branch autorizada.
+- [x] Validar schema, banco, constraints e proteções de conteúdo, aprovação, mídia, agenda e idempotência.
+- [x] Revisar segurança de segredos, SSRF, IDOR, endpoints, upload, erros e chamadas externas.
+- [ ] Testar de forma controlada os módulos internos do Social Media OS e as integrações externas somente quando houver credenciais oficiais.
+- [x] Corrigir falhas objetivas, registrar evidências e consolidar a branch somente após todos os critérios de liberação aprovados.
+- [x] Publicar a versão consolidada, executar health, readiness e smoke tests no domínio de produção e registrar rollback aplicável.
+- [x] Corrigir a dependência inexistente input-otp@^4.0.3 e reconciliar o lockfile sem remover recursos de interface.
+- [x] Reduzir o bundle inicial acima de 500 kB com carregamento sob demanda das rotas do Social Media OS.
+- [x] Separar dependências de terceiros em chunks de fornecedor para reduzir o bundle inicial residual acima de 500 kB.
+- [x] Gerar, revisar e aplicar migration consolidada e não destrutiva para as estruturas pendentes do Social Media OS.
+- [x] Restringir links extraídos pelo Radar Jurídico ao domínio de cada fonte oficial e cobrir a regra em testes.
+- [x] Separar a validação externa de credenciais Meta da suíte unitária e mantê-la como gate manual de OAuth sem publicação.
+- [x] Verificar as estruturas Social Media OS efetivamente criadas após a interrupção de triggers incompatíveis no TiDB.
+- [x] Substituir os triggers indisponíveis por guards transacionais de aplicação e testes equivalentes de aprovação, mídia e publicação.
+- [x] Aplicar a reconciliação de índice de campanha compatível com TiDB e documentar a limitação de triggers.
+- [x] Identificar e remediar as dependências de produção com severidade crítica ou alta antes da publicação do Social Media OS.
+- [x] Adaptar os componentes de gráfico ao contrato de tipos do Recharts 3 sem remover visualizações existentes.
+- [x] Distinguir nos endpoints operacionais a presença de configuração Meta da validação efetiva das credenciais externas.
+- [x] Medir e registrar o payload inicial real da rota principal após code splitting e corrigir qualquer carregamento acima da meta estabelecida.
+- [x] Formalizar no histórico uma migration incremental compatível com o baseline TiDB para as estruturas Social Media OS já aplicadas.
+- [x] Corrigir a divisão manual de bundles que criou ciclo entre React e fornecedor genérico, impedindo a montagem do cliente em produção.
+- [x] Republicar o frontend com a divisão de bundles corrigida e confirmar no domínio publicado que `#root` monta a interface real.
+- [x] Reexecutar o smoke test no domínio publicado e registrar a evidência de health, readiness e rotas após o redeploy.
+- [x] Registrar no histórico técnico a decisão de rollback aplicável após a validação de produção.
+- [x] Expor no teste externo apenas o código e a categoria sanitizados de erro Meta para orientar a correção das credenciais sem revelar segredos.
+- [ ] Reconciliar o App ID seguro com o aplicativo DPT confirmado no painel Meta e repetir apenas a validação técnica mínima.
+- [x] Exibir na Central de Instagram a diferença entre credenciais presentes e validação técnica aprovada, bloqueando OAuth enquanto a validação estiver pendente.
+- [x] Auditar o estado atual do GitHub Actions e registrar se o `startup_failure` é bloqueio de infraestrutura ou de workflow.
+- [x] Consolidar o relatório técnico de liberação com classificação funcional dos módulos e bloqueios externos comprovados.
+- [x] Reler o relatório de liberação consolidado e confirmar que ele registra a classificação funcional e os bloqueios externos antes de encerrá-lo.
+- [ ] Adicionar acionamento manual ao workflow CI ativo e executá-lo para comprovar a validação do YAML atual no GitHub Actions.
+- [ ] Regularizar o pagamento recente ou limite de gastos do GitHub Actions e reexecutar o CI ativo até a conclusão de seus jobs.
+- [x] Remover a tipagem `any` residual do fluxo de idempotência de campanhas e manter a interpretação de resultados de mutation segura.
+- [x] Substituir tipagens `any` residuais na composição principal por contratos explícitos de componentes, sem reduzir a segurança TypeScript.
+- [x] Tipar explicitamente as props de SourcesPanel, BrandPanel, KnowledgePanel, CalendarPanel e demais componentes usados por Home.tsx, removendo `any` residual dos contratos públicos.
+- [x] Revalidar TypeScript e a suíte após eliminar `any` dos componentes compostos pela página principal.
+- [x] Conectar a mutação de geração de campanhas ao serviço transacional idempotente e impedir criações parciais ou duplicadas no endpoint real.
+- [x] Executar auditoria abrangente de rotas, fluxos críticos, backend, banco, segurança, logs e interface publicada.
+- [x] Corrigir e revalidar toda falha reproduzível identificada na auditoria de estabilidade.
+- [x] Corrigir os testes de vínculo OAuth para simular a validação Meta aprovada sem desabilitar o bloqueio real de credenciais inválidas.
+- [x] Registrar e publicar o resultado técnico da auditoria de estabilidade, separando bloqueios internos de pendências externas.
+- [x] Sanitizar a resposta de erro do endpoint cron de Instagram para não retornar detalhes internos, preservando-os somente na trilha de auditoria.
+- [x] Substituir todos os acentos azul, ciano e violeta residuais pela paleta institucional bronze, verde profundo e marfim nas telas do Social Media OS.
+- [x] Corrigir a inconsistência entre a rota interna `/compliance` e o item visível de navegação “Compliance”, que aponta para `/governanca`.
+- [x] Executar nova varredura por acentos azul, ciano, violeta e rosa em `client/src` e corrigir qualquer ocorrência residual, incluindo a rota `/conteudos`.
+- [x] Verificar visualmente as rotas `/`, `/conteudos`, `/instagram`, `/governanca` e `/404` após a limpeza final de paleta.
+- [x] Corrigir os estilos residuais `sky` do bloco de agenda interna em `EditorialTools.tsx` pela paleta institucional.
+- [x] Inventariar de forma não destrutiva a VPS compartilhada e confirmar o acesso ao Woodpecker existente.
+- [x] Validar a saúde do Woodpecker, seus agentes e a integração GitHub sem alterar serviços de produção.
+- [x] Revisar e habilitar de modo seguro o pipeline `.woodpecker.yml` da branch `ci/woodpecker-studio`, sem secrets de produção.
+- [x] Executar a primeira validação manual do pipeline do Studio e registrar cada etapa sem efetuar deploy ou migrations.
+- [x] Documentar o estado de Woodpecker, GitHub, recursos da VPS e a prontidão do PR #10 para merge.
+- [x] Corrigir os testes unitários de integração Instagram para fornecer configuração fictícia segura na CI, sem usar secrets de produção.
+- [x] Reexecutar o pipeline Woodpecker do PR #10 após a correção e registrar o resultado de cada etapa.
+- [x] Confirmar o commit remoto da main e revisar a migration 0020 de allowSelfApproval antes de qualquer aplicação.
+- [x] Sincronizar a main no projeto e aplicar a migration 0020 de forma não destrutiva antes da publicação.
+- [x] Revalidar tipos, testes, build, segurança, banco e smoke test de produção após a sincronização da main.
+- [x] Registrar e publicar a evidência de sincronização, migration e versão de produção resultante.
+- [x] Inventariar os commits e o diff recente da main, identificando as alterações feitas pelo Claude.
+- [x] Confirmar novamente a presença da migration 0020 na main e o estado da coluna allowSelfApproval no TiDB.
+- [x] Sincronizar a main recente somente após a confirmação do schema e revalidar a publicação resultante.
+- [x] Reavaliar a capacidade atual da VPS compartilhada e o estado da fila Woodpecker sem alterar serviços ou concorrência.
+- [x] Confirmar se o pipeline pendente do Studio iniciou, concluiu ou permanece aguardando e registrar sua situação atual.
+- [x] Preparar a versão horizontal oficial da logomarca para uso estático seguro no Social Studio.
+- [x] Inserir a logomarca oficial no cabeçalho e na raiz do sistema, com texto alternativo e proporção responsiva.
+- [x] Validar a logomarca em desktop e mobile e publicar a atualização visual.
+- [x] Mapear o design de referência EJC e os componentes existentes para preservar fluxos e dados do Social Studio.
+- [x] Redesenhar a raiz e a navegação com hierarquia operacional inspirada no EJC, sem substituir os módulos do Social Studio.
+- [x] Inserir a logomarca horizontal oficial no cabeçalho redesenhado com texto alternativo e comportamento responsivo.
+- [x] Validar visualmente o novo layout em desktop e mobile, além de TypeScript, testes e build, antes da publicação.
+- [x] Mapear os módulos de calendário, agendamento e tema para preservar seus fluxos durante o redesenho.
+- [x] Aplicar a identidade visual institucional ao calendário e ao agendamento, com logomarca e hierarquia operacional coerentes.
+- [x] Adicionar animações de carregamento e feedbacks de hover acessíveis aos controles do Studio.
+- [x] Implementar alternância persistente de modo escuro compatível com a identidade visual institucional.
+- [x] Validar em desktop e mobile as melhorias visuais, o modo escuro, tipos, testes, build e produção antes da publicação.
+- [x] Inventariar os módulos e componentes restantes para identificar desvios do padrão visual institucional unificado.
+- [x] Consolidar tokens compartilhados de superfícies, cores contextuais, interação e modo escuro para todos os módulos.
+- [x] Aplicar o padrão visual às áreas de criação, inteligência, crescimento, distribuição e governança sem alterar comportamento.
+- [x] Validar todas as rotas em desktop/mobile e nos dois temas, executar testes/build e publicar a identidade visual unificada.
+- [x] Mapear os módulos de redes, Instagram e distribuição para aplicar cores oficiais sem afetar os fluxos protegidos.
+- [x] Inserir ícones e acentos cromáticos oficiais de Instagram, Facebook, LinkedIn, TikTok e YouTube nos pontos apropriados do sistema.
+- [x] Adicionar destaques de cor complementares aos painéis operacionais, preservando contraste, modo escuro e identidade institucional.
+- [x] Validar visualmente em desktop e mobile, rodar tipos, testes e build e publicar a evolução cromática.
+- [x] Corrigir o contraste do título e metadados do Command Center sobre a área de conteúdo clara, preservando os cartões operacionais escuros.
+- [x] Corrigir a importação do componente de ícones de redes para manter a renderização SSR usada pela suíte de testes.
+- [x] Corrigir o contraste de textos nos painéis legados em modo escuro, preservando a legibilidade dos módulos de redes e Instagram.
+- [ ] Verificar de forma sanitizada se App ID e App Secret Meta foram atualizados no cofre antes da validação mínima.
+- [ ] Executar uma única validação técnica das credenciais Meta atualizadas, sem OAuth de usuário, mídia ou publicação.
+- [ ] Registrar o resultado sanitizado da validação Meta e manter os bloqueios externos coerentes com a evidência.
+- [x] Confirmar no TiDB a aplicação e o estado da última migration registrada antes de orientar novas alterações do Claude.
+- [x] Preparar e entregar um roteiro operacional de branch, PR, CI, migrations e limites de acesso para o Claude.

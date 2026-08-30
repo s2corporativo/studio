@@ -1,0 +1,52 @@
+import { Button } from "@/components/ui/button";
+import { CalendarClock, CheckCircle2, ExternalLink, Link2, Loader2, Plus, ShieldCheck } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { BrandProfile, ContentPost, contentSources } from "../../../drizzle/schema";
+
+type ContentSource = typeof contentSources.$inferSelect;
+type SourceInput = Pick<ContentSource, "title" | "sourceType" | "url" | "notes" | "verifiedAt">;
+type BrandInput = Pick<BrandProfile, "brandName" | "segment" | "location" | "targetAudience" | "commercialGoal" | "toneOfVoice" | "primaryCta" | "prohibitedTerms" | "websiteUrl" | "whatsapp" | "visualGuidelines" | "operationMode">;
+
+function dateTime(value?: Date | string | null) {
+  if (!value) return "Sem data";
+  return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+export function CalendarPanel({ posts }: { posts: ContentPost[] }) {
+  const items = useMemo(() => posts.filter(post => post.scheduledAt).sort((a, b) => new Date(a.scheduledAt ?? 0).getTime() - new Date(b.scheduledAt ?? 0).getTime()), [posts]);
+  const currentMonth = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" }).format(new Date());
+  return <div className="studio-scheduler space-y-5">
+    <section className="studio-scheduler-hero"><div className="studio-scheduler-mark"><CalendarClock className="h-5 w-5" /></div><div><p>Planejamento editorial</p><h1>Calendário e agenda de conteúdo</h1><span>Publicações externas somente seguem após aprovação, conexão oficial e confirmação exigida.</span></div><div className="studio-scheduler-month"><small>Mês de referência</small><strong>{currentMonth}</strong></div></section>
+    <section className="grid gap-4 sm:grid-cols-3"><CalendarMetric label="Itens programados" value={items.length} icon={CalendarClock} /><CalendarMetric label="Aguardando revisão" value={posts.filter(post => post.status === "review").length} icon={ShieldCheck} /><CalendarMetric label="Prontos para agenda" value={posts.filter(post => post.status === "approved").length} icon={CheckCircle2} /></section>
+    <section className="studio-light-card overflow-hidden"><div className="studio-calendar-heading"><div><p className="studio-card-kicker">Linha do tempo</p><h2>Agenda editorial</h2></div><span>{items.length} itens com data</span></div><div className="mt-3 divide-y divide-[#e8ece6]">{items.length === 0 ? <div className="studio-empty-state"><CalendarClock className="h-5 w-5" /><p>Nenhum conteúdo com data definida.</p></div> : items.map(post => <article key={post.id} className="studio-calendar-row"><time>{dateTime(post.scheduledAt)}</time><div className="studio-calendar-dot" /><div className="min-w-0 flex-1"><h3>{post.title}</h3><p>{post.format} · {post.campaign ?? "sem campanha"}</p></div><span className="studio-area-chip">{post.area}</span><span className="studio-status-chip">{post.status}</span></article>)}</div></section>
+  </div>;
+}
+
+function CalendarMetric({ label, value, icon: Icon }: { label: string; value: number; icon: typeof CalendarClock }) { return <div className="studio-calendar-metric"><span><Icon className="h-4 w-4" /></span><div><small>{label}</small><strong>{value}</strong></div></div>; }
+
+export function SourcesPanel({ sources, onAdd, adding }: { sources: ContentSource[]; onAdd: (value: SourceInput) => void; adding: boolean }) {
+  const [form, setForm] = useState({ title: "", sourceType: "fonte oficial", url: "", notes: "", verifiedAt: "" });
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    onAdd({ title: form.title, sourceType: form.sourceType, url: form.url || null, notes: form.notes || null, verifiedAt: form.verifiedAt ? new Date(form.verifiedAt) : null });
+    setForm({ title: "", sourceType: "fonte oficial", url: "", notes: "", verifiedAt: "" });
+  }
+  return <div className="grid gap-6 xl:grid-cols-[.75fr_1.25fr]">
+    <form onSubmit={submit} className="saas-card p-5 sm:p-6"><div className="saas-eyebrow"><Plus className="h-3.5 w-3.5" /> Nova fonte</div><h2 className="mt-3 text-xl font-semibold text-white">Cadastrar referência</h2><div className="mt-5 space-y-3"><input required className="editorial-input" placeholder="Título" value={form.title} onChange={event => setForm({ ...form, title: event.target.value })} /><select className="editorial-input" value={form.sourceType} onChange={event => setForm({ ...form, sourceType: event.target.value })}><option>fonte oficial</option><option>legislação</option><option>jurisprudência</option><option>site institucional</option><option>doutrina</option></select><input type="url" className="editorial-input" placeholder="https://..." value={form.url} onChange={event => setForm({ ...form, url: event.target.value })} /><textarea className="editorial-input min-h-24 resize-y" placeholder="Observação" value={form.notes} onChange={event => setForm({ ...form, notes: event.target.value })} /><input type="datetime-local" className="editorial-input" value={form.verifiedAt} onChange={event => setForm({ ...form, verifiedAt: event.target.value })} /><Button type="submit" disabled={adding} className="saas-button-primary w-full">{adding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}Cadastrar fonte</Button></div></form>
+    <section className="saas-card p-5 sm:p-6"><p className="saas-section-label">Rastreabilidade</p><h2 className="mt-2 text-2xl font-semibold text-white">Fontes cadastradas</h2><div className="mt-5 space-y-3">{sources.map(source => <article key={source.id} className="rounded-2xl border border-white/[.06] bg-white/[.02] p-4"><div className="flex items-start justify-between gap-4"><div><p className="text-sm font-medium text-slate-200">{source.title}</p><p className="mt-1 text-[10px] uppercase tracking-[.12em] text-[#e2ba7c]">{source.sourceType} · {source.verifiedAt ? "verificada" : "sem revisão registrada"}</p></div>{source.url && <a href={source.url} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-white"><ExternalLink className="h-4 w-4" /></a>}</div>{source.notes && <p className="mt-3 text-xs leading-5 text-slate-500">{source.notes}</p>}</article>)}</div></section>
+  </div>;
+}
+
+export function BrandPanel({ brand, onSave, saving }: { brand: BrandProfile | null; onSave: (value: BrandInput) => void; saving: boolean }) {
+  const [form, setForm] = useState<BrandInput | null>(brand);
+  useEffect(() => { if (brand) setForm(brand); }, [brand?.id]);
+  if (!brand || !form) return null;
+  return <form onSubmit={event => { event.preventDefault(); onSave({ brandName: form.brandName, segment: form.segment, location: form.location || null, targetAudience: form.targetAudience || null, commercialGoal: form.commercialGoal || null, toneOfVoice: form.toneOfVoice || null, primaryCta: form.primaryCta || null, prohibitedTerms: form.prohibitedTerms || null, websiteUrl: form.websiteUrl || null, whatsapp: form.whatsapp || null, visualGuidelines: form.visualGuidelines || null, operationMode: form.operationMode }); }} className="space-y-6">
+    <section className="saas-hero rounded-3xl p-6 sm:p-8"><div className="saas-eyebrow"><ShieldCheck className="h-3.5 w-3.5" /> Brand OS</div><h2 className="mt-4 text-3xl font-semibold tracking-tight text-white">Identidade, tom e limites da marca.</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Estas diretrizes entram na geração de conteúdo e nos controles de compliance.</p></section>
+    <section className="saas-card p-5 sm:p-6"><div className="grid gap-4 md:grid-cols-2"><Field label="Marca"><input className="editorial-input" value={form.brandName ?? ""} onChange={e => setForm({ ...form, brandName: e.target.value })} /></Field><Field label="Segmento"><input className="editorial-input" value={form.segment ?? ""} onChange={e => setForm({ ...form, segment: e.target.value })} /></Field><Field label="Localização"><input className="editorial-input" value={form.location ?? ""} onChange={e => setForm({ ...form, location: e.target.value })} /></Field><Field label="Website"><input type="url" className="editorial-input" value={form.websiteUrl ?? ""} onChange={e => setForm({ ...form, websiteUrl: e.target.value })} /></Field><Field label="Público-alvo"><textarea className="editorial-input min-h-24 resize-y" value={form.targetAudience ?? ""} onChange={e => setForm({ ...form, targetAudience: e.target.value })} /></Field><Field label="Objetivo comercial"><textarea className="editorial-input min-h-24 resize-y" value={form.commercialGoal ?? ""} onChange={e => setForm({ ...form, commercialGoal: e.target.value })} /></Field><Field label="Tom de voz"><textarea className="editorial-input min-h-28 resize-y" value={form.toneOfVoice ?? ""} onChange={e => setForm({ ...form, toneOfVoice: e.target.value })} /></Field><Field label="Diretrizes visuais"><textarea className="editorial-input min-h-28 resize-y" value={form.visualGuidelines ?? ""} onChange={e => setForm({ ...form, visualGuidelines: e.target.value })} /></Field><Field label="CTA institucional"><textarea className="editorial-input min-h-24 resize-y" value={form.primaryCta ?? ""} onChange={e => setForm({ ...form, primaryCta: e.target.value })} /></Field><Field label="Termos proibidos"><textarea className="editorial-input min-h-24 resize-y" value={form.prohibitedTerms ?? ""} onChange={e => setForm({ ...form, prohibitedTerms: e.target.value })} /></Field><Field label="WhatsApp"><input className="editorial-input" value={form.whatsapp ?? ""} onChange={e => setForm({ ...form, whatsapp: e.target.value })} /></Field><Field label="Modo operacional"><select className="editorial-input" value={form.operationMode ?? "manual"} onChange={e => setForm({ ...form, operationMode: e.target.value as BrandInput["operationMode"] })}><option value="manual">Manual</option><option value="semi_automatic">Semiautomático</option></select></Field></div><Button type="submit" disabled={saving} className="saas-button-primary mt-6">{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Salvar Brand OS</Button></section>
+  </form>;
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="block"><span className="mb-2 block text-[10px] font-bold uppercase tracking-[.12em] text-slate-500">{label}</span>{children}</label>;
+}
