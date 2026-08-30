@@ -57,7 +57,7 @@ export default function Home() {
     onError: mutationError,
   });
   const updatePost = trpc.socialGovernance.updatePost.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success(post.status === "draft" ? "Conteúdo salvo; aprovação anterior foi invalidada quando necessário." : "Conteúdo salvo."); }, onError: mutationError });
-  const sendReview = trpc.socialStudio.sendToReview.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Enviado para revisão."); }, onError: mutationError });
+  const sendReview = trpc.brandWorkspaces.sendToReview.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Enviado para revisão com as regras da marca vinculada."); }, onError: mutationError });
   const decide = trpc.socialGovernance.decide.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Decisão vinculada à versão atual do conteúdo."); }, onError: mutationError });
   const schedule = trpc.socialGovernance.schedule.useMutation({ onSuccess: async post => { setSelectedPostId(post.id); await refresh(); toast.success("Agendamento registrado com aprovação válida."); }, onError: mutationError });
   const addSource = trpc.socialStudio.addSource.useMutation({ onSuccess: async () => { await refresh(); toast.success("Fonte cadastrada."); }, onError: mutationError });
