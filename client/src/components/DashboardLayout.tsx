@@ -4,64 +4,12 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { startLogin } from "@/const";
-import {
-  BarChart3, BookOpenText, Bot, BrainCircuit, CalendarDays, FilePenLine, FileSearch,
-  FolderKanban, Inbox, LayoutDashboard, LibraryBig, LogOut, Megaphone, Network,
-  Moon, Radar, ScrollText, ShieldCheck, Sparkles, Sun, Target, Users, Video, Workflow,
-} from "lucide-react";
+import { LogOut, Moon, Sun } from "lucide-react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from "./DashboardLayoutSkeleton";
 import { useTheme } from "@/contexts/ThemeContext";
-
-const commandCenterPaths = new Set(["/command-center", "/inteligencia", "/inbox", "/leads", "/concorrencia", "/analytics"]);
-
-const sections = [
-  {
-    label: "Workspace",
-    items: [
-      { icon: LayoutDashboard, label: "Visão geral", path: "/" },
-      { icon: BrainCircuit, label: "Command Center", path: "/command-center" },
-      { icon: Radar, label: "Radar jurídico", path: "/radar" },
-      { icon: FilePenLine, label: "Conteúdos", path: "/conteudos" },
-      { icon: CalendarDays, label: "Calendário", path: "/calendario" },
-      { icon: Bot, label: "Automação", path: "/automacao" },
-      { icon: FolderKanban, label: "Planejamento", path: "/planejamento" },
-    ],
-  },
-  {
-    label: "Inteligência",
-    items: [
-      { icon: Target, label: "Oportunidades", path: "/inteligencia" },
-      { icon: Inbox, label: "Inbox inteligente", path: "/inbox" },
-      { icon: Users, label: "Leads", path: "/leads" },
-      { icon: Network, label: "Concorrência", path: "/concorrencia" },
-      { icon: BarChart3, label: "Analytics", path: "/analytics" },
-      { icon: BrainCircuit, label: "Memória da marca", path: "/memoria" },
-      { icon: Bot, label: "Agentes IA", path: "/agentes" },
-      { icon: LibraryBig, label: "Biblioteca", path: "/biblioteca" },
-      { icon: BookOpenText, label: "Fontes", path: "/fontes" },
-      { icon: BookOpenText, label: "Conhecimento", path: "/conhecimento" },
-    ],
-  },
-  {
-    label: "Criação & Crescimento",
-    items: [
-      { icon: Video, label: "Video Studio", path: "/video" },
-      { icon: FileSearch, label: "SEO & Local", path: "/seo" },
-      { icon: Megaphone, label: "Ads Intelligence", path: "/ads" },
-      { icon: ScrollText, label: "Relatórios IA", path: "/relatorios" },
-    ],
-  },
-  {
-    label: "Distribuição & Governança",
-    items: [
-      { icon: Network, label: "Redes sociais", path: "/redes" },
-      { icon: ShieldCheck, label: "Compliance", path: "/governanca" },
-      { icon: ShieldCheck, label: "DNA da marca", path: "/marca" },
-      { icon: Workflow, label: "Arquitetura", path: "/roadmap" },
-    ],
-  },
-];
+import { commandCenterPaths, navigationSections as sections } from "@/lib/navigation";
+import { CommandPalette } from "./CommandPalette";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { loading, user, logout } = useAuth();
@@ -83,6 +31,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return <SidebarProvider defaultOpen>
+    <CommandPalette />
     <div className="flex min-h-screen w-full bg-[#f4f6f1] text-[#172520]">
       <Sidebar collapsible="icon" className="border-r border-[#12382d] bg-[#061813] text-[#e9eee7]">
         <SidebarHeader className="border-b border-[#daba7d]/15 p-3">
