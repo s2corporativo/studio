@@ -45,7 +45,7 @@ export function LiveNotifications() {
         setEvents(prev => [{
           type: "mention",
           message: "Nova atividade detectada",
-          severity: "info",
+          severity: "info" as const,
           timestamp: new Date().toISOString(),
         }, ...prev].slice(0, 20));
       }, 30000);
