@@ -3,10 +3,17 @@ import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
-import { createServer as createViteServer } from "vite";
-import viteConfig from "../../vite.config";
 
 export async function setupVite(app: Express, server: Server) {
+  // Dynamic imports: "vite" and vite.config.ts are devDependencies-only.
+  // A static import here would make esbuild's `--packages=external` bundle
+  // require "vite" at module-load time even in production, where it is not
+  // installed. setupVite only ever runs when NODE_ENV === "development".
+  const [{ createServer: createViteServer }, { default: viteConfig }] = await Promise.all([
+    import("vite"),
+    import("../../vite.config"),
+  ]);
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
