@@ -1,0 +1,68 @@
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-s2_studio}
+      MARIADB_USER: ${DB_USER:-s2_studio}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?defina DB_ROOT_PASSWORD no .env}
+    volumes:
+      - studio_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - studio_internal
+
+  app:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DATABASE_URL: mysql://${DB_USER:-s2_studio}:${DB_PASSWORD:?defina DB_PASSWORD no .env}@db:3306/${DB_NAME:-s2_studio}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - studio_internal
+
+  # Uso pontual: docker compose run --rm migrate
+  # Aplica as migrations Drizzle contra o serviço "db" acima.
+  migrate:
+    build:
+      context: .
+      target: build
+    profiles: ["tools"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: mysql://${DB_USER:-s2_studio}:${DB_PASSWORD:?defina DB_PASSWORD no .env}@db:3306/${DB_NAME:-s2_studio}
+    command: ["pnpm", "db:migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - studio_internal
+
+volumes:
+  studio_db_data:
+
+networks:
+  studio_internal:
