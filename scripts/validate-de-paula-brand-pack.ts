@@ -1,7 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 
-const packRoot = path.resolve(process.cwd(), "brand-packs/de-paula-teixeira");
+const packRoot = path.resolve(process.cwd(), "brand-packs/s2-studio");
 const expected = (await readFile(path.join(packRoot, "assets.expected.txt"), "utf8"))
   .split(/\r?\n/)
   .map(line => line.trim())

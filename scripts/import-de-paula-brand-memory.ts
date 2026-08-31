@@ -24,7 +24,7 @@ type BrandMemory = {
 };
 
 const APPLY = process.argv.includes("--apply");
-const packRoot = path.resolve(process.cwd(), "brand-packs/de-paula-teixeira");
+const packRoot = path.resolve(process.cwd(), "brand-packs/s2-studio");
 const memory = JSON.parse(await readFile(path.join(packRoot, "brand-memory.json"), "utf8")) as BrandMemory;
 if (memory.schemaVersion !== 1) throw new Error("Versão da Brand Memory não suportada.");
 
