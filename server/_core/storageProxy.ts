@@ -1,13 +1,22 @@
 import type { Express } from "express";
 import { ENV } from "./env";
 import { sdk } from "./sdk";
+import { normalizeStorageKey } from "../storage";
 
 export function registerStorageProxy(app: Express) {
   app.get("/manus-storage/*key", async (req, res) => {
     const rawKey = (req.params as Record<string, string | string[] | undefined>).key;
-    const key = Array.isArray(rawKey) ? rawKey.join("/") : rawKey;
-    if (!key) {
+    const raw = Array.isArray(rawKey) ? rawKey.join("/") : rawKey;
+    if (!raw) {
       res.status(400).send("Missing storage key");
+      return;
+    }
+
+    let key: string;
+    try {
+      key = normalizeStorageKey(raw);
+    } catch {
+      res.status(400).send("Invalid storage key");
       return;
     }
 
@@ -15,9 +24,15 @@ export function registerStorageProxy(app: Express) {
     if (isPrivateKnowledge) {
       try {
         const user = await sdk.authenticateRequest(req);
-        if (!user) { res.status(401).send("Authentication required"); return; }
+        if (!user) {
+          res.status(401).send("Authentication required");
+          return;
+        }
         const expectedPrefix = `social-studio/${user.id}/conhecimento/`;
-        if (!key.startsWith(expectedPrefix)) { res.status(403).send("Forbidden"); return; }
+        if (!key.startsWith(expectedPrefix)) {
+          res.status(403).send("Forbidden");
+          return;
+        }
       } catch {
         res.status(401).send("Authentication required");
         return;
@@ -30,10 +45,7 @@ export function registerStorageProxy(app: Express) {
     }
 
     try {
-      const forgeUrl = new URL(
-        "v1/storage/presign/get",
-        ENV.forgeApiUrl.replace(/\/+$/, "") + "/",
-      );
+      const forgeUrl = new URL("v1/storage/presign/get", ENV.forgeApiUrl.replace(/\/+$/, "") + "/");
       forgeUrl.searchParams.set("path", key);
 
       const forgeResp = await fetch(forgeUrl, {

@@ -40,16 +40,8 @@ export function LiveNotifications() {
         } catch {}
       };
     } catch {
-      // Fallback: poll every 30s
-      const interval = setInterval(() => {
-        setEvents(prev => [{
-          type: "mention",
-          message: "Nova atividade detectada",
-          severity: "info",
-          timestamp: new Date().toISOString(),
-        }, ...prev].slice(0, 20));
-      }, 30000);
-      return () => clearInterval(interval);
+      // Never synthesize activity that did not come from the authenticated stream.
+      setConnected(false);
     }
 
     return () => { eventSourceRef.current?.close(); };

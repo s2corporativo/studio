@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectKnowledgeFile } from "./routers/knowledgeSecurity";
+import { decodeValidatedBase64, detectKnowledgeFile } from "./routers/knowledgeSecurity";
 
 function fakeZipWithEntries(entries: string[]) {
   const local = Buffer.alloc(30);
@@ -30,5 +30,10 @@ describe("knowledge file validation", () => {
   it("recognizes the required DOCX package structure", () => {
     const bytes = fakeZipWithEntries(["[Content_Types].xml", "_rels/.rels", "word/document.xml", "word/_rels/document.xml.rels"]);
     expect(detectKnowledgeFile(bytes)?.extension).toBe(".docx");
+  });
+
+  it("rejects malformed Base64 before decoding the upload", () => {
+    expect(() => decodeValidatedBase64("not-a-valid-upload%%%")).toThrow(/Base64 válido/);
+    expect(decodeValidatedBase64(Buffer.from("arquivo").toString("base64")).toString()).toBe("arquivo");
   });
 });

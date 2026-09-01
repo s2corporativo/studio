@@ -54,6 +54,11 @@ export function detectKnowledgeFile(bytes: Buffer) {
   return null;
 }
 
+export function decodeValidatedBase64(value: string) {
+  if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) throw new Error("O conteúdo do arquivo não está em Base64 válido.");
+  return Buffer.from(value, "base64");
+}
+
 export const knowledgeSecurityRouter = router({
   upload: protectedProcedure.input(z.object({
     title: z.string().min(3).max(255),
@@ -63,7 +68,7 @@ export const knowledgeSecurityRouter = router({
     notes: z.string().nullable(),
     isVerified: z.boolean(),
   })).mutation(async ({ ctx, input }) => {
-    const bytes = Buffer.from(input.base64, "base64");
+    const bytes = decodeValidatedBase64(input.base64);
     if (bytes.byteLength === 0 || bytes.byteLength > 5 * 1024 * 1024) throw new Error("O arquivo deve ter até 5 MB.");
     const detected = detectKnowledgeFile(bytes);
     if (!detected) throw new Error("Formato inválido ou conteúdo incompatível. Um ZIP genérico não é aceito como DOCX.");

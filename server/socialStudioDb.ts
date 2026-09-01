@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import {
   approvalLogs,
   assetLibraryItems,
@@ -10,6 +10,7 @@ import {
   contentSources,
   editorialTopics,
   instagramConnections,
+  hashtagGroups,
   knowledgeMaterials,
   publicationAttempts,
   publicationJobs,
@@ -245,6 +246,51 @@ export async function createKnowledgeMaterial(userId: number, values: Omit<typeo
   const result = await db.insert(knowledgeMaterials).values({ ...values, userId });
   const [material] = await db.select().from(knowledgeMaterials).where(and(eq(knowledgeMaterials.id, Number(result[0].insertId)), eq(knowledgeMaterials.userId, userId))).limit(1);
   return material;
+}
+
+export async function getHashtagGroups(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  return db.select().from(hashtagGroups).where(eq(hashtagGroups.userId, userId)).orderBy(desc(hashtagGroups.usageCount), asc(hashtagGroups.name));
+}
+
+async function getHashtagGroup(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const [group] = await db.select().from(hashtagGroups).where(and(eq(hashtagGroups.userId, userId), eq(hashtagGroups.id, id))).limit(1);
+  if (!group) throw new Error("Grupo de hashtags não encontrado.");
+  return group;
+}
+
+export async function createHashtagGroup(userId: number, values: Pick<typeof hashtagGroups.$inferInsert, "name" | "area" | "tags" | "description">) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  const result = await db.insert(hashtagGroups).values({ ...values, userId });
+  return getHashtagGroup(userId, Number(result[0].insertId));
+}
+
+export async function updateHashtagGroup(userId: number, id: number, values: Pick<typeof hashtagGroups.$inferInsert, "name" | "area" | "tags" | "description">) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await getHashtagGroup(userId, id);
+  await db.update(hashtagGroups).set({ ...values, updatedAt: new Date() }).where(and(eq(hashtagGroups.userId, userId), eq(hashtagGroups.id, id)));
+  return getHashtagGroup(userId, id);
+}
+
+export async function removeHashtagGroup(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await getHashtagGroup(userId, id);
+  await db.delete(hashtagGroups).where(and(eq(hashtagGroups.userId, userId), eq(hashtagGroups.id, id)));
+  return { id };
+}
+
+export async function recordHashtagGroupUsage(userId: number, id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível.");
+  await getHashtagGroup(userId, id);
+  await db.update(hashtagGroups).set({ usageCount: sql`${hashtagGroups.usageCount} + 1`, lastUsedAt: new Date(), updatedAt: new Date() }).where(and(eq(hashtagGroups.userId, userId), eq(hashtagGroups.id, id)));
+  return getHashtagGroup(userId, id);
 }
 
 export async function recordDecision(userId: number, postId: number, reviewerName: string, decision: "approved" | "rejected" | "changes_requested", notes?: string) {
