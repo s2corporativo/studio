@@ -1,0 +1,3 @@
+-- TiDB does not support CREATE TRIGGER.
+-- Approval invalidation and publication guards run through safeUpdatePost,
+-- assertPostMediaMutable and assertApprovalStillValid in the application layer.

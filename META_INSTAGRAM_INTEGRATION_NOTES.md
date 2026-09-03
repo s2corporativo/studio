@@ -22,7 +22,7 @@ O Social Studio usará a Instagram API para contas profissionais com login do In
 
 ## Pré-requisitos pendentes do usuário
 
-1. Concluir o login e a verificação em duas etapas da conta `@depaulateixeira.adv` no navegador.
+1. Concluir o login e a verificação em duas etapas da conta `@s2studio.adv` no navegador.
 2. Criar ou selecionar a aplicação no Meta for Developers e habilitar o produto Instagram API.
 3. Informar em canal seguro o App ID e o App Secret para serem armazenados como variáveis de ambiente do projeto.
 4. Após o próximo checkpoint, publicar o Social Studio e cadastrar a URL de retorno oficial no painel da Meta.
@@ -69,7 +69,7 @@ O endpoint de agendamento em produção foi verificado em 27/08/2026. Uma chamad
 
 ## Situação de permissões
 
-Nas configurações de pessoas da Meta Business Suite, a conta autenticada de Clovis Soares foi exibida com **Acesso total** ao portfólio empresarial e à conta `@depaulateixeira.adv`. A criação do aplicativo, contudo, exige o registro separado de uma conta pessoal de Facebook como desenvolvedor no portal Meta for Developers. O redirecionamento para esse registro já foi identificado; esta etapa permanece para o usuário concluir em momento oportuno.
+Nas configurações de pessoas da Meta Business Suite, a conta autenticada de Clovis Soares foi exibida com **Acesso total** ao portfólio empresarial e à conta `@s2studio.adv`. A criação do aplicativo, contudo, exige o registro separado de uma conta pessoal de Facebook como desenvolvedor no portal Meta for Developers. O redirecionamento para esse registro já foi identificado; esta etapa permanece para o usuário concluir em momento oportuno.
 
 ## Validação de credenciais do aplicativo
 

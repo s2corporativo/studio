@@ -20,9 +20,9 @@ describe("persistência do callback OAuth de Instagram", () => {
     mocks.upsertInstagramConnection.mockResolvedValue({ id: 2, socialProfileId: 17, state: "connected" });
     mocks.setInstagramProfileConnectionState.mockResolvedValue({ id: 17, state: "connected" });
 
-    await completeInstagramOAuthConnection(5, { instagramUserId: "ig-123", accessToken: "token-de-teste", expiresInSeconds: 3600, permissions: "instagram_business_basic" }, { id: "ig-123", username: "depaulateixeira.adv" });
+    await completeInstagramOAuthConnection(5, { instagramUserId: "ig-123", accessToken: "token-de-teste", expiresInSeconds: 3600, permissions: "instagram_business_basic" }, { id: "ig-123", username: "s2studio.adv" });
 
-    expect(mocks.upsertInstagramConnection).toHaveBeenCalledWith(5, expect.objectContaining({ instagramUserId: "ig-123", username: "depaulateixeira.adv", state: "connected" }));
+    expect(mocks.upsertInstagramConnection).toHaveBeenCalledWith(5, expect.objectContaining({ instagramUserId: "ig-123", username: "s2studio.adv", state: "connected" }));
     expect(mocks.setInstagramProfileConnectionState).toHaveBeenCalledWith(5, 17, "connected");
   });
 

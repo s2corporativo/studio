@@ -1,4 +1,4 @@
-# Status de Liberação Condicional — S2 Studio
+# Status de Liberação Condicional — S2 Studio Social Studio
 
 **Data da consolidação:** 29/08/2026  
 **Checkpoint publicado:** `c4f554ee`  
@@ -67,12 +67,6 @@ Como observação de desempenho, o fornecedor compartilhado ainda gera um aviso 
 
 O checkpoint corretivo `cde69dd2` foi publicado e revalidado no domínio de produção. O smoke test confirmou health, readiness e as rotas principais; uma varredura adicional confirmou HTTP 200 em todas as 28 rotas registradas, inclusive `/compliance`, que redireciona corretamente para governança. A resposta externa não autenticada ao endpoint de cron é HTTP 403, preservando o bloqueio de publicação fora da infraestrutura agendada.
 
-## Raiz operacional e identidade visual — 30/08/2026
-
-A raiz foi redesenhada com base na referência operacional fornecida pelo escritório: superfície de trabalho clara, sidebar institucional em verde profundo, indicadores de operação, pipeline editorial, agenda e bloco de inteligência destacado. A composição preserva todos os fluxos existentes e não altera as regras de revisão, aprovação ou publicação.
-
-A logomarca horizontal oficial da **S2 Studio Teixeira Advocacia** foi adicionada com texto alternativo ao cabeçalho e à faixa institucional da raiz. O comportamento foi verificado em 1280×720 e 390×844, sem corte de conteúdo, sobreposição ou perda de contraste. TypeScript, 86 testes e build foram aprovados antes da publicação; o smoke test de produção voltou a confirmar health, readiness e as rotas principais com HTTP 200.
-
 ## Próximo passo concreto
 
 Atualize o **App ID** correspondente ao DPT no formulário seguro já disponibilizado e, se o App Secret tiver sido regenerado, atualize também o Secret pareado. Após responder **“credenciais atualizadas”**, será executada uma única validação técnica sem OAuth, mídia ou publicação pública.
@@ -81,23 +75,3 @@ Atualize o **App ID** correspondente ao DPT no formulário seguro já disponibil
 
 [1] [Meta for Developers — Access Tokens](https://developers.facebook.com/docs/facebook-login/guides/access-tokens/)  
 [2] [Meta for Developers — Instagram API with Instagram Login](https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login/business-login/)
-
-## Calendário, automação e modo escuro — 30/08/2026
-
-O calendário e o módulo de automação receberam a mesma linguagem operacional da raiz: superfícies claras, hierarquia editorial, indicadores de status, fluxo protegido e ações visíveis. O modo escuro é acionado no cabeçalho, persiste no navegador e preserva contraste nos formulários, etapas, cards e Autopilot.
-
-Estados de carregamento usam shimmer discreto e indicador rotativo; botões possuem hover, foco visível e resposta de pressão. Os efeitos respeitam a preferência de redução de movimento do sistema. A versão publicada foi verificada em desktop e mobile e o smoke test do domínio confirmou `health`, `readiness` e as 14 rotas principais com HTTP 200.
-
-## Identidade contextual das redes sociais — 30/08/2026
-
-A Central de Redes passou a representar Instagram, Facebook, LinkedIn, TikTok e YouTube com ícones reconhecíveis e acentos cromáticos próprios, mantendo o verde profundo, bronze e marfim como a camada institucional predominante. Os estados continuam explícitos: somente o Instagram possui fluxo oficial preparado, e OAuth, teste não público e publicação permanecem bloqueados enquanto a validação de credenciais Meta não for aprovada.
-
-O contraste de textos nos painéis legados foi reforçado para o modo escuro. Títulos, textos auxiliares, campos, cards de perfis e controles de publicação foram conferidos nas rotas `/redes` e `/instagram`, em desktop e mobile. TypeScript, 86 testes e build passaram após a inclusão local da biblioteca de ícones de marcas; nenhuma regra de governança, publicação ou agendamento foi alterada.
-
-## Padronização visual global — 30/08/2026
-
-Os módulos de criação, inteligência, conteúdo, calendário, automação, distribuição, Instagram e biblioteca visual passaram a compartilhar superfícies institucionais, hierarquia editorial, interações discretas e suporte consistente aos temas claro e escuro. A aplicação preserva a leitura operacional: fundo marfim para contexto e decisão, verde profundo para superfícies de trabalho e bronze para autoridade, seleção e ações primárias.
-
-As cores de redes sociais foram reservadas a ícones e sinais contextuais, evitando que substituam a identidade do escritório. A validação visual percorreu início, Command Center, conteúdos, calendário, automação, redes, Instagram e biblioteca em 375×812, além das áreas de criação, inteligência, crescimento e governança em desktop. TypeScript, 86 testes, build e auditoria de dependências de produção foram aprovados; o pacote de ícones não introduziu vulnerabilidades críticas ou altas conhecidas.
-
-O checkpoint `ce373b3b` foi publicado com a identidade visual unificada. O smoke test de produção confirmou `health`, `readiness` e as 14 rotas principais com HTTP 200. A evolução alterou somente a experiência visual e os ativos de interface; nenhum fluxo de conteúdo, aprovação, OAuth, agenda ou publicação foi flexibilizado.

@@ -6,7 +6,6 @@ import { trpc } from "@/lib/trpc";
 import { instagramOAuthCardState } from "@shared/instagramProfileConnection";
 import { CheckCircle2, ExternalLink, Link2, Loader2, Pencil, Plus, Power, Save, Trash2, X } from "lucide-react";
 import React, { FormEvent, useMemo, useState } from "react";
-import { SocialNetworkIcon, socialNetworkLabel, type SocialNetworkPlatform } from "@/components/SocialNetworkIcon";
 
 type Network = "instagram" | "facebook" | "linkedin" | "tiktok" | "youtube";
 type State = "active" | "inactive";
@@ -189,8 +188,8 @@ export default function SocialProfileManager() {
         const isActive = profile.state === "active" || profile.state === "connected";
         const instagramConnection = instagramDataQuery.data?.connection;
         const oauthState = profile.network === "instagram" ? instagramOAuthCardState(profile.id, instagramConnection) : null;
-        return <article key={profile.id} className="studio-profile-card">
-          <div className="flex items-start justify-between gap-3"><div className="flex min-w-0 items-start gap-3"><SocialNetworkIcon platform={profile.network as SocialNetworkPlatform} className="mt-0.5" /><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#e3bd7f]">{socialNetworkLabel(profile.network as SocialNetworkPlatform)}</p><h4 className="mt-2 text-base font-semibold text-[#f5edde]">{profile.displayName}</h4>{profile.handle && <p className="mt-1 text-xs text-[#d8dfd7]/65">@{profile.handle}</p>}</div></div><Badge variant="outline" className={isActive ? "border-[#c99550]/35 bg-[#c99550]/10 text-[#f2d39a]" : "border-white/10 bg-white/[.03] text-slate-400"}>{isActive ? "Ativo" : "Pausado"}</Badge></div>
+        return <article key={profile.id} className="border border-[#c99550]/20 bg-[#07150f]/45 p-5">
+          <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#e3bd7f]">{networkLabel(profile.network)}</p><h4 className="mt-2 text-base font-semibold text-[#f5edde]">{profile.displayName}</h4>{profile.handle && <p className="mt-1 text-xs text-[#d8dfd7]/65">@{profile.handle}</p>}</div><Badge variant="outline" className={isActive ? "border-[#c99550]/35 bg-[#c99550]/10 text-[#f2d39a]" : "border-white/10 bg-white/[.03] text-slate-400"}>{isActive ? "Ativo" : "Pausado"}</Badge></div>
           {profile.network === "instagram" && <p className={`mt-3 text-[11px] ${oauthState?.linked ? "text-[#e3bd7f]" : "text-[#d8dfd7]/50"}`}>{oauthState?.label}</p>}
           <a href={profile.profileUrl} target="_blank" rel="noreferrer" className="mt-5 flex items-center gap-2 break-all text-xs text-[#d8dfd7]/70 hover:text-[#f2d39a]"><ExternalLink className="h-3.5 w-3.5 shrink-0 text-[#e3bd7f]" />{profile.profileUrl}</a>
           {profile.notes && <p className="mt-4 border-t border-white/[.07] pt-4 text-xs leading-5 text-[#d8dfd7]/55">{profile.notes}</p>}

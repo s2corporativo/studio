@@ -35,26 +35,26 @@ import { linkInstagramProfileToConnection, setInstagramProfileConnectionState, u
 
 describe("persistência do vínculo OAuth de Instagram", () => {
   beforeEach(() => {
-    profile = { id: 17, userId: 5, network: "instagram", state: "active", handle: "depaulateixeira.adv", displayName: "S2 Studio", profileUrl: "https://www.instagram.com/depaulateixeira.adv/", externalAccountId: null, notes: null };
+    profile = { id: 17, userId: 5, network: "instagram", state: "active", handle: "s2studio.adv", displayName: "S2 Studio", profileUrl: "https://www.instagram.com/s2studio.adv/", externalAccountId: null, notes: null };
     connection = null;
   });
 
   it("persiste perfil e conexão no estado inicial pendente", async () => {
     await linkInstagramProfileToConnection(5, 17);
 
-    expect(connection).toMatchObject({ userId: 5, socialProfileId: 17, state: "pending", username: "depaulateixeira.adv" });
+    expect(connection).toMatchObject({ userId: 5, socialProfileId: 17, state: "pending", username: "s2studio.adv" });
     expect(profile.state).toBe("pending_oauth");
   });
 
   it("mantém o vínculo persistido ao avançar de pendente para conectado ou erro", async () => {
     await linkInstagramProfileToConnection(5, 17);
-    await upsertInstagramConnection(5, { socialProfileId: 17, instagramUserId: "ig-1", username: "depaulateixeira.adv", accessTokenCiphertext: "cipher", tokenExpiresAt: null, permissions: null, state: "connected", lastError: null, connectedAt: new Date() });
+    await upsertInstagramConnection(5, { socialProfileId: 17, instagramUserId: "ig-1", username: "s2studio.adv", accessTokenCiphertext: "cipher", tokenExpiresAt: null, permissions: null, state: "connected", lastError: null, connectedAt: new Date() });
     await setInstagramProfileConnectionState(5, 17, "connected");
 
     expect(connection).toMatchObject({ socialProfileId: 17, state: "connected" });
     expect(profile.state).toBe("connected");
 
-    await upsertInstagramConnection(5, { socialProfileId: 17, instagramUserId: "ig-1", username: "depaulateixeira.adv", accessTokenCiphertext: "cipher", tokenExpiresAt: null, permissions: null, state: "error", lastError: "Permissão recusada", connectedAt: new Date() });
+    await upsertInstagramConnection(5, { socialProfileId: 17, instagramUserId: "ig-1", username: "s2studio.adv", accessTokenCiphertext: "cipher", tokenExpiresAt: null, permissions: null, state: "error", lastError: "Permissão recusada", connectedAt: new Date() });
     await setInstagramProfileConnectionState(5, 17, "error");
 
     expect(connection).toMatchObject({ socialProfileId: 17, state: "error" });

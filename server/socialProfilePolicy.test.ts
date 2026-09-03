@@ -8,12 +8,12 @@ describe("política de perfis sociais externos", () => {
   });
 
   it("aceita URL pública HTTPS e bloqueia HTTP", () => {
-    expect(publicSocialProfileUrl.parse("https://www.instagram.com/depaulateixeira.adv/")).toContain("https://");
+    expect(publicSocialProfileUrl.parse("https://www.instagram.com/s2studio.adv/")).toContain("https://");
     expect(() => publicSocialProfileUrl.parse("http://example.com/perfil")).toThrow("HTTPS");
   });
 
   it("normaliza o identificador público sem registrar marcador repetido", () => {
-    expect(publicSocialProfileHandle.parse("@@depaulateixeira.adv")).toBe("depaulateixeira.adv");
+    expect(publicSocialProfileHandle.parse("@@s2studio.adv")).toBe("s2studio.adv");
     expect(publicSocialProfileHandle.parse("  ")).toBeNull();
   });
 

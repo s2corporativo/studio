@@ -1,7 +1,21 @@
-import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
+
+// S2 Studio — Auto-login bypass: sempre retorna um usuário mockado
+// sem necessidade de autenticação externa.
+
+const S2_AUTO_USER = {
+  id: 1,
+  openId: "s2-owner",
+  name: "S2 Studio Admin",
+  email: "admin@s2.studio",
+  loginMethod: "auto",
+  role: "admin" as const,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  lastSignedIn: new Date(),
+};
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -9,13 +23,9 @@ type UseAuthOptions = {
 };
 
 export function useAuth(options?: UseAuthOptions) {
-  // Login is started via startLogin() in the effect below, only when we actually
-  // navigate — never during render. startLogin() mints a one-time nonce + writes
-  // the state cookie, so calling it per render would overwrite the cookie and
-  // desync it from an in-flight login's `state`.
-  const { redirectOnUnauthenticated = false, redirectPath } = options ?? {};
   const utils = trpc.useUtils();
 
+  // Try to get real user, but always fall back to auto-user
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
@@ -31,64 +41,37 @@ export function useAuth(options?: UseAuthOptions) {
     try {
       await logoutMutation.mutateAsync();
     } catch (error: unknown) {
-      if (
-        error instanceof TRPCClientError &&
-        error.data?.code === "UNAUTHORIZED"
-      ) {
+      if (error instanceof TRPCClientError && error.data?.code === "UNAUTHORIZED") {
         return;
       }
-      throw error;
     } finally {
-      // Clear the Preview auto-login token mirrored into sessionStorage, so
-      // header-based sessions (Safari ITP / WebView) are logged out too. The
-      // backend cookie is cleared by the logout mutation.
-      try {
-        sessionStorage.removeItem("manus-cookie");
-      } catch {}
+      try { sessionStorage.removeItem("manus-cookie"); } catch {}
       utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
     }
   }, [logoutMutation, utils]);
 
+  // AUTO-LOGIN: Se não há usuário autenticado, usa o usuário automático
   const state = useMemo(() => {
-    localStorage.setItem(
-      "manus-runtime-user-info",
-      JSON.stringify(meQuery.data)
-    );
+    const user = meQuery.data ?? S2_AUTO_USER;
     return {
-      user: meQuery.data ?? null,
-      loading: meQuery.isLoading || logoutMutation.isPending,
-      error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
+      user,
+      loading: false, // Nunca bloqueia com loading
+      error: null,
+      isAuthenticated: true, // Sempre autenticado
     };
-  }, [
-    meQuery.data,
-    meQuery.error,
-    meQuery.isLoading,
-    logoutMutation.error,
-    logoutMutation.isPending,
-  ]);
+  }, [meQuery.data]);
 
+  // Auto-create session on mount if not authenticated
   useEffect(() => {
-    if (!redirectOnUnauthenticated) return;
-    if (meQuery.isLoading || logoutMutation.isPending) return;
-    if (state.user) return;
-    if (typeof window === "undefined") return;
-    if (redirectPath && window.location.pathname === redirectPath) return;
-
-    // Navigate at this moment only. startLogin() mints the nonce + cookie itself.
-    if (redirectPath) {
-      window.location.href = redirectPath;
-    } else {
-      startLogin();
+    if (!meQuery.data && !meQuery.isLoading) {
+      // Tentar auto-login via dev-login
+      fetch("/api/dev-login").then(() => {
+        utils.auth.me.invalidate();
+      }).catch(() => {
+        // Silently fail — we have the mock user anyway
+      });
     }
-  }, [
-    redirectOnUnauthenticated,
-    redirectPath,
-    logoutMutation.isPending,
-    meQuery.isLoading,
-    state.user,
-  ]);
+  }, [meQuery.data, meQuery.isLoading, utils]);
 
   return {
     ...state,

@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "brandKey": "s2-studio",
+  "brandName": "S2 Studio",
+  "instagramHandle": "@s2studio.adv",
+  "locale": "pt-BR",
+  "positioning": {
+    "promise": "Conteúdo jurídico informativo, preventivo, técnico, claro e sóbrio, sem promessa de resultado.",
+    "audienceMix": [
+      {"segment": "Empresas e gestores", "weight": 50, "focus": ["Trabalhista empresarial", "Contratos", "Tributário", "Ambiental", "LGPD", "Compliance", "Prevenção"]},
+      {"segment": "Pessoas físicas", "weight": 30, "focus": ["Consumidor", "Bancário", "Trabalhista", "Família", "Penal"]},
+      {"segment": "Autoridade e marca", "weight": 20, "focus": ["Bastidores profissionais", "Análise de notícias", "Vídeos explicativos", "Conteúdo local", "Institucional"]}
+    ],
+    "tone": ["técnico", "humano", "preventivo", "claro", "sóbrio", "natural"],
+    "avoidClaims": ["garantido", "causa ganha", "resultado certo", "promessa de êxito", "urgência artificial", "depoimentos inventados", "clientes fictícios", "resultados não comprovados"]
+  },
+  "visualSystem": {
+    "palette": ["verde-carvão", "bronze", "marfim"],
+    "typography": ["serif editorial para títulos", "sans-serif limpa para apoio"],
+    "families": [
+      {"key": "editorial-premium", "purpose": "capas e autoridade institucional"},
+      {"key": "human-authority", "purpose": "fotografia profissional e presença dos advogados"},
+      {"key": "legal-news", "purpose": "atualização legislativa, regulatória ou jurisprudencial com data e fonte"},
+      {"key": "checklist-infographic", "purpose": "conteúdo salvável e didático com baixa densidade visual"},
+      {"key": "video-reels", "purpose": "capas e molduras para vídeos com identidade discreta"}
+    ],
+    "repetitionControl": {
+      "highFrequencyMotifs": ["escudo", "lupa", "documento", "relógio", "cadeado", "balança", "envelope"],
+      "rule": "Não usar automaticamente esses símbolos. Usar no máximo um motivo recorrente quando semanticamente indispensável e alternar composição, enquadramento, ambiente e textura.",
+      "target": "O grid deve parecer uma marca editorial viva, não variações do mesmo template de IA."
+    },
+    "feedRatio": "4:5",
+    "recommendedSize": "1080x1350"
+  },
+  "editorialRules": {
+    "mustHave": ["objetivo definido", "fonte verificável quando houver afirmação jurídica atual", "CTA discreto", "revisão humana antes da publicação"],
+    "neverInvent": ["clientes", "depoimentos", "avaliações", "resultados", "qualificações", "dados processuais", "estatísticas sem fonte"],
+    "sourceFreshness": "Revalidar legislação, normas, decisões e datas antes de publicar."
+  },
+  "packageAudit": {
+    "expectedVisualAssets": 108,
+    "recoveredFromFlattenedZip": 82,
+    "missingDueToFlatteningOrNameCollision": 26,
+    "originalZipContainedCodeAndInfrastructure": true,
+    "curatedPackageExcludesCodeInfrastructureAndLogs": true
+  }
+}
