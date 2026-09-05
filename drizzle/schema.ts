@@ -107,6 +107,22 @@ export const knowledgeMaterials = mysqlTable("knowledge_materials", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const hashtagGroups = mysqlTable("hashtag_groups", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 180 }).notNull(),
+  area: varchar("area", { length: 120 }),
+  tags: text("tags").notNull(),
+  description: text("description"),
+  usageCount: int("usageCount").default(0).notNull(),
+  lastUsedAt: timestamp("lastUsedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [
+  uniqueIndex("hashtag_groups_user_name_unique").on(table.userId, table.name),
+  index("hashtag_groups_user_usage_idx").on(table.userId, table.usageCount),
+]);
+
 export const editorialTopics = mysqlTable("editorial_topics", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
@@ -270,7 +286,7 @@ export const publicationJobs = mysqlTable("publication_jobs", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [
-  uniqueIndex("publication_jobs_idempotency_unique").on(table.idempotencyKey),
+  uniqueIndex("publication_jobs_user_idempotency_unique").on(table.userId, table.idempotencyKey),
   index("publication_jobs_user_status_idx").on(table.userId, table.status),
   index("publication_jobs_post_idx").on(table.postId),
   index("publication_jobs_cron_task_idx").on(table.scheduleCronTaskUid),

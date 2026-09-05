@@ -2,7 +2,7 @@ import { z } from "zod";
 import { contentStatuses, editorialFormats } from "../../drizzle/schema";
 import { canSubmitForReview } from "../studioRules";
 import { generateLegalDraft } from "../socialStudioGenerator";
-import { createContentSource, createKnowledgeMaterial, createSocialProfile, createStudioPost, getInstagramStudioData, getOrCreateContentSource, getPostMedia, getPublicationJob, getSocialProfiles, getStudioData, getStudioPost, linkInstagramProfileToConnection, recordPublicationAttempt, removeSocialProfile, updateAutomationSettings, updateBrandProfile, updatePublicationJob, updateSocialProfile, updateStudioPost, addPostMedia, removePostMedia } from "../socialStudioDb";
+import { createContentSource, createHashtagGroup, createKnowledgeMaterial, createSocialProfile, createStudioPost, getHashtagGroups, getInstagramStudioData, getOrCreateContentSource, getPostMedia, getPublicationJob, getSocialProfiles, getStudioData, getStudioPost, linkInstagramProfileToConnection, recordHashtagGroupUsage, recordPublicationAttempt, removeHashtagGroup, removeSocialProfile, updateAutomationSettings, updateBrandProfile, updateHashtagGroup, updatePublicationJob, updateSocialProfile, updateStudioPost, addPostMedia, removePostMedia } from "../socialStudioDb";
 import { protectedProcedure, router } from "../_core/trpc";
 import { storagePut } from "../storage";
 import { buildInstagramBusinessLoginUrl, isInstagramMetaConfigured, validateInstagramMetaCredentials } from "../instagramApi";
@@ -19,12 +19,22 @@ import { publicSocialProfileHandle, publicSocialProfileUrl, socialNetworkInput }
 import { assertApprovalStillValid, assertPostMediaCanChange } from "../socialOsGovernance";
 import { generateCampaignSafely } from "../socialOsCampaign";
 import { AI_IMAGE_LIMIT, AI_TEXT_LIMIT, consumeRateLimit } from "../_core/rateLimit";
+import { decodeValidatedBase64, detectKnowledgeFile as detectSecureKnowledgeFile } from "./knowledgeSecurity";
 
 const statusSchema = z.enum(contentStatuses);
 const formatSchema = z.enum(editorialFormats);
+const hashtagGroupPayload = z.object({ name: z.string().trim().min(2).max(180), area: z.string().trim().min(2).max(120).nullable(), tags: z.string().trim().min(2).max(3_000), description: z.string().trim().max(2_000).nullable() });
 
 export const socialStudioRouter = router({
   data: protectedProcedure.query(({ ctx }) => getStudioData(ctx.user.id)),
+  hashtagGroups: protectedProcedure.query(({ ctx }) => getHashtagGroups(ctx.user.id)),
+  addHashtagGroup: protectedProcedure.input(hashtagGroupPayload).mutation(({ ctx, input }) => createHashtagGroup(ctx.user.id, input)),
+  updateHashtagGroup: protectedProcedure.input(hashtagGroupPayload.extend({ id: z.number().int().positive() })).mutation(({ ctx, input }) => {
+    const { id, ...values } = input;
+    return updateHashtagGroup(ctx.user.id, id, values);
+  }),
+  removeHashtagGroup: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => removeHashtagGroup(ctx.user.id, input.id)),
+  useHashtagGroup: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(({ ctx, input }) => recordHashtagGroupUsage(ctx.user.id, input.id)),
   socialProfiles: protectedProcedure.query(({ ctx }) => getSocialProfiles(ctx.user.id)),
   addSocialProfile: protectedProcedure.input(z.object({
     network: socialNetworkInput,
@@ -221,14 +231,14 @@ export const socialStudioRouter = router({
     notes: z.string().nullable(),
     isVerified: z.boolean(),
   })).mutation(async ({ ctx, input }) => {
-    const bytes = Buffer.from(input.base64, "base64");
+    const bytes = decodeValidatedBase64(input.base64);
     if (bytes.byteLength === 0 || bytes.byteLength > 5 * 1024 * 1024) throw new Error("O arquivo deve ter até 5 MB.");
-    const detected = detectKnowledgeFile(bytes);
+    const detected = detectSecureKnowledgeFile(bytes);
     if (!detected) throw new Error("Formato não reconhecido. Envie PDF, DOC, DOCX, JPEG, PNG ou WEBP válidos.");
     const normalizedClaim = input.mimeType.toLocaleLowerCase("pt-BR");
     const acceptedClaims = detected.claims;
     if (!acceptedClaims.some(claim => normalizedClaim.includes(claim))) throw new Error("O tipo informado pelo navegador não corresponde ao conteúdo real do arquivo.");
-    const safeName = input.title.toLocaleLowerCase("pt-BR").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "material";
+    const safeName = input.title.toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "material";
     const stored = await storagePut(`social-studio/${ctx.user.id}/conhecimento/${safeName}${detected.extension}`, bytes, detected.mimeType);
     return createKnowledgeMaterial(ctx.user.id, { title: input.title, materialType: input.materialType, url: stored.url, storageKey: stored.key, mimeType: detected.mimeType, notes: input.notes, isVerified: input.isVerified });
   }),
@@ -240,7 +250,7 @@ export const socialStudioRouter = router({
     base64: z.string().min(8).max(11_500_000),
   })).mutation(async ({ ctx, input }) => {
     await assertPostMediaCanChange(ctx.user.id, input.postId);
-    const bytes = Buffer.from(input.base64, "base64");
+    const bytes = decodeValidatedBase64(input.base64);
     if (bytes.byteLength === 0 || bytes.byteLength > 8 * 1024 * 1024) throw new Error("A imagem precisa ser JPEG e ter até 8 MB.");
     const dimensions = jpegDimensions(bytes);
     if (!dimensions) throw new Error("Não foi possível confirmar as dimensões do JPEG. Exporte a imagem novamente em JPEG sRGB.");
@@ -278,17 +288,6 @@ export const socialStudioRouter = router({
   }),
   publishInstagramNow: protectedProcedure.input(z.object({ jobId: z.number() })).mutation(({ ctx, input }) => executeConfirmedInstagramPublication(ctx.user.id, input.jobId)),
 });
-
-function detectKnowledgeFile(bytes: Buffer) {
-  const starts = (...values: number[]) => values.every((value, index) => bytes[index] === value);
-  if (bytes.subarray(0, 5).toString("ascii") === "%PDF-") return { mimeType: "application/pdf", extension: ".pdf", claims: ["pdf"] };
-  if (starts(0xff, 0xd8, 0xff)) return { mimeType: "image/jpeg", extension: ".jpg", claims: ["jpeg", "jpg"] };
-  if (starts(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return { mimeType: "image/png", extension: ".png", claims: ["png"] };
-  if (bytes.length >= 12 && bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP") return { mimeType: "image/webp", extension: ".webp", claims: ["webp"] };
-  if (starts(0x50, 0x4b, 0x03, 0x04)) return { mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", extension: ".docx", claims: ["wordprocessingml", "docx", "zip"] };
-  if (starts(0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1)) return { mimeType: "application/msword", extension: ".doc", claims: ["msword", "doc"] };
-  return null;
-}
 
 function jpegDimensions(bytes: Buffer) {
   if (bytes.length < 10 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;

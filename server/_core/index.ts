@@ -11,6 +11,8 @@ import { registerHealthRoutes } from "./health";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { assertRuntimeConfiguration, ENV } from "./env";
+import { registerHttpErrorHandler, registerHttpSecurity } from "./httpSecurity";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -32,10 +34,12 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  assertRuntimeConfiguration();
   const app = express();
   const server = createServer(app);
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  registerHttpSecurity(app);
+  app.use(express.json({ limit: "12mb" }));
+  app.use(express.urlencoded({ limit: "12mb", extended: true }));
   registerHealthRoutes(app);
   registerStorageProxy(app);
   registerOAuthRoutes(app);
@@ -48,16 +52,20 @@ async function startServer() {
       createContext,
     })
   );
+  registerHttpErrorHandler(app);
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+  const preferredPort = Number.parseInt(process.env.PORT || "3000", 10);
+  if (!Number.isInteger(preferredPort) || preferredPort < 1 || preferredPort > 65_535) {
+    throw new Error("PORT precisa ser um número entre 1 e 65535.");
+  }
+  const port = ENV.isProduction ? preferredPort : await findAvailablePort(preferredPort);
 
-  if (port !== preferredPort) {
+  if (!ENV.isProduction && port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
@@ -66,4 +74,7 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+startServer().catch(error => {
+  console.error("[Startup] Server failed to start", error);
+  process.exitCode = 1;
+});

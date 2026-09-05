@@ -1,16 +1,16 @@
-import { FaFacebookF, FaInstagram, FaLinkedinIn, FaTiktok, FaYoutube } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
+import { Facebook, Instagram, Linkedin, Music2, Youtube, type LucideIcon } from "lucide-react";
 import React from "react";
 
 export type SocialNetworkPlatform = "instagram" | "facebook" | "linkedin" | "tiktok" | "youtube";
 
 const platformConfig = {
-  instagram: { label: "Instagram", Icon: FaInstagram, className: "studio-brand-instagram" },
-  facebook: { label: "Facebook", Icon: FaFacebookF, className: "studio-brand-facebook" },
-  linkedin: { label: "LinkedIn", Icon: FaLinkedinIn, className: "studio-brand-linkedin" },
-  tiktok: { label: "TikTok", Icon: FaTiktok, className: "studio-brand-tiktok" },
-  youtube: { label: "YouTube", Icon: FaYoutube, className: "studio-brand-youtube" },
-} satisfies Record<SocialNetworkPlatform, { label: string; Icon: typeof FaInstagram; className: string }>;
+  instagram: { label: "Instagram", Icon: Instagram, className: "studio-brand-instagram" },
+  facebook: { label: "Facebook", Icon: Facebook, className: "studio-brand-facebook" },
+  linkedin: { label: "LinkedIn", Icon: Linkedin, className: "studio-brand-linkedin" },
+  tiktok: { label: "TikTok", Icon: Music2, className: "studio-brand-tiktok" },
+  youtube: { label: "YouTube", Icon: Youtube, className: "studio-brand-youtube" },
+} satisfies Record<SocialNetworkPlatform, { label: string; Icon: LucideIcon; className: string }>;
 
 export function SocialNetworkIcon({ platform, className }: { platform: SocialNetworkPlatform; className?: string }) {
   const { Icon, className: platformClass } = platformConfig[platform];

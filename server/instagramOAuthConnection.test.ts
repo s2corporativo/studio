@@ -11,6 +11,8 @@ vi.mock("./socialStudioDb", async importOriginal => {
   return { ...actual, ...mocks };
 });
 
+vi.mock("./instagramCrypto", () => ({ encryptInstagramToken: vi.fn(() => "v1.test-iv.test-tag.test-ciphertext") }));
+
 import { completeInstagramOAuthConnection, failInstagramOAuthConnection } from "./instagramOAuth";
 
 describe("persistência do callback OAuth de Instagram", () => {

@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("./env", () => ({ ENV: { forgeApiKey: "test-api-key", forgeApiUrl: "https://forge.example.test" } }));
+
 import { invokeLLM } from "./llm";
 
 describe("invokeLLM", () => {
