@@ -112,4 +112,10 @@ temp/
 # Manus version file (auto-generated, not part of source)
 client/public/__manus__/version.json
 .project-config.json
+<<<<<<< HEAD
 postcss.config.mjs
+=======
+
+# Config de máquina local do Claude Code (proxy) — nunca versionar
+.claude/settings.local.json
+>>>>>>> e657d62d3d334a26b5b7947c62111fef89f42263
