@@ -1,0 +1,1 @@
+{"status":"ready","service":"depaula-social-os","checks":{"runtimeEnv":true,"database":true,"automationSettings":true,"socialProfiles":true,"governance":true,"socialOsCore":true,"growthModules":true},"integrations":{"databaseConfigured":true,"forgeConfigured":true,"instagramCredentialsConfigured":true,"instagramConnectionValidated":false},"timestamp":"2026-08-29T00:36:41.426Z"}

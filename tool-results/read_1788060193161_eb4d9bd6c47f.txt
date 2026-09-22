@@ -1,0 +1,1228 @@
+     1→'use client'
+     2→
+     3→import { useMemo, useState } from 'react'
+     4→import { useFetch, apiPost, apiPut, apiDelete } from '@/lib/hooks'
+     5→import { useAppStore } from '@/lib/store'
+     6→import { cn, formatDateTime, toLocalInputValue } from '@/lib/utils'
+     7→import { PlatformIcon } from '@/lib/platform-icons'
+     8→import {
+     9→  PLATFORMS,
+    10→  PLATFORM_META,
+    11→  POST_CATEGORIES,
+    12→  TONES,
+    13→  type Platform,
+    14→} from '@/lib/types'
+    15→import {
+    16→  StatCard,
+    17→  SectionHeader,
+    18→  EmptyState,
+    19→  PlatformBadge,
+    20→  StatusBadge,
+    21→} from '@/components/shared/ui'
+    22→import { Card } from '@/components/ui/card'
+    23→import { Button } from '@/components/ui/button'
+    24→import { Input } from '@/components/ui/input'
+    25→import { Textarea } from '@/components/ui/textarea'
+    26→import { Label } from '@/components/ui/label'
+    27→import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+    28→import {
+    29→  Select,
+    30→  SelectContent,
+    31→  SelectItem,
+    32→  SelectTrigger,
+    33→  SelectValue,
+    34→} from '@/components/ui/select'
+    35→import { Checkbox } from '@/components/ui/checkbox'
+    36→import { Badge } from '@/components/ui/badge'
+    37→import { Skeleton } from '@/components/ui/skeleton'
+    38→import {
+    39→  Dialog,
+    40→  DialogContent,
+    41→  DialogHeader,
+    42→  DialogTitle,
+    43→  DialogDescription,
+    44→  DialogFooter,
+    45→  DialogClose,
+    46→} from '@/components/ui/dialog'
+    47→import {
+    48→  DropdownMenu,
+    49→  DropdownMenuContent,
+    50→  DropdownMenuItem,
+    51→  DropdownMenuTrigger,
+    52→} from '@/components/ui/dropdown-menu'
+    53→import {
+    54→  AlertDialog,
+    55→  AlertDialogAction,
+    56→  AlertDialogCancel,
+    57→  AlertDialogContent,
+    58→  AlertDialogDescription,
+    59→  AlertDialogFooter,
+    60→  AlertDialogHeader,
+    61→  AlertDialogTitle,
+    62→} from '@/components/ui/alert-dialog'
+    63→import { toast } from 'sonner'
+    64→import { motion, AnimatePresence } from 'framer-motion'
+    65→import {
+    66→  CalendarDays,
+    67→  List as ListIcon,
+    68→  Plus,
+    69→  Search,
+    70→  ChevronLeft,
+    71→  ChevronRight,
+    72→  FileText,
+    73→  Clock,
+    74→  CheckCircle2,
+    75→  Pencil,
+    76→  Trash2,
+    77→  Sparkles,
+    78→  Hash,
+    79→  MoreHorizontal,
+    80→  Copy,
+    81→  CheckSquare,
+    82→  X,
+    83→  Loader2,
+    84→  Image as ImageIcon,
+    85→} from 'lucide-react'
+    86→
+    87→const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+    88→const MONTHS = [
+    89→  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    90→  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+    91→]
+    92→
+    93→function safeParse<T>(s: string | null | undefined, fallback: T): T {
+    94→  if (!s) return fallback
+    95→  try {
+    96→    return JSON.parse(s) as T
+    97→  } catch {
+    98→    return fallback
+    99→  }
+   100→}
+   101→
+   102→function isSameDay(a: Date, b: Date) {
+   103→  return (
+   104→    a.getFullYear() === b.getFullYear() &&
+   105→    a.getMonth() === b.getMonth() &&
+   106→    a.getDate() === b.getDate()
+   107→  )
+   108→}
+   109→
+   110→export function PostsSection() {
+   111→  const selectedCompanyId = useAppStore((s) => s.selectedCompanyId)
+   112→  const setSection = useAppStore((s) => s.setSection)
+   113→
+   114→  const [view, setView] = useState<'calendar' | 'list'>('calendar')
+   115→  const [search, setSearch] = useState('')
+   116→  const [statusFilter, setStatusFilter] = useState<string>('all')
+   117→  const [companyOverride, setCompanyOverride] = useState<string | null>(null)
+   118→  const companyFilter = companyOverride ?? selectedCompanyId ?? 'all'
+   119→  const [calendarMonth, setCalendarMonth] = useState(() => {
+   120→    const d = new Date()
+   121→    return new Date(d.getFullYear(), d.getMonth(), 1)
+   122→  })
+   123→  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+   124→  const [editing, setEditing] = useState<any | null>(null)
+   125→
+   126→  // Bulk selection state
+   127→  const [selectionMode, setSelectionMode] = useState(false)
+   128→  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+   129→  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+   130→  const [singleDeletePost, setSingleDeletePost] = useState<any | null>(null)
+   131→  const [bulkActionLoading, setBulkActionLoading] = useState<
+   132→    'duplicate' | 'delete' | null
+   133→  >(null)
+   134→  const [rowActionLoading, setRowActionLoading] = useState<{
+   135→    id: string
+   136→    action: 'duplicate' | 'delete'
+   137→  } | null>(null)
+   138→
+   139→  const postsUrl = useMemo(() => {
+   140→    const params = new URLSearchParams()
+   141→    if (companyFilter !== 'all') params.set('companyId', companyFilter)
+   142→    if (statusFilter !== 'all') params.set('status', statusFilter)
+   143→    return `/api/posts?${params.toString()}`
+   144→  }, [companyFilter, statusFilter])
+   145→
+   146→  const { data, loading, refresh } = useFetch<{ posts: any[] }>(postsUrl, [
+   147→    companyFilter,
+   148→    statusFilter,
+   149→  ])
+   150→  const { data: companiesData } = useFetch<{ companies: any[] }>('/api/companies', [])
+   151→
+   152→  const posts = data?.posts || []
+   153→  const companies = companiesData?.companies || []
+   154→
+   155→  const filteredPosts = useMemo(() => {
+   156→    if (!search.trim()) return posts
+   157→    const q = search.toLowerCase()
+   158→    return posts.filter(
+   159→      (p) =>
+   160→        p.title?.toLowerCase().includes(q) ||
+   161→        p.content?.toLowerCase().includes(q)
+   162→    )
+   163→  }, [posts, search])
+   164→
+   165→  const counts = useMemo(() => {
+   166→    const c = { draft: 0, scheduled: 0, published: 0 }
+   167→    for (const p of posts) {
+   168→      if (p.status === 'draft') c.draft++
+   169→      else if (p.status === 'scheduled') c.scheduled++
+   170→      else if (p.status === 'published') c.published++
+   171→    }
+   172→    return c
+   173→  }, [posts])
+   174→
+   175→  const postsByDay = useMemo(() => {
+   176→    const map: Record<string, any[]> = {}
+   177→    for (const p of posts) {
+   178→      if (!p.scheduledAt) continue
+   179→      const d = new Date(p.scheduledAt)
+   180→      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+   181→      if (!map[key]) map[key] = []
+   182→      map[key].push(p)
+   183→    }
+   184→    return map
+   185→  }, [posts])
+   186→
+   187→  const calendarCells = useMemo(() => {
+   188→    const year = calendarMonth.getFullYear()
+   189→    const month = calendarMonth.getMonth()
+   190→    const startWeekday = new Date(year, month, 1).getDay()
+   191→    const daysInMonth = new Date(year, month + 1, 0).getDate()
+   192→    const cells: { date: Date | null; key: string }[] = []
+   193→    for (let i = 0; i < startWeekday; i++)
+   194→      cells.push({ date: null, key: `blank-${i}` })
+   195→    for (let d = 1; d <= daysInMonth; d++) {
+   196→      const date = new Date(year, month, d)
+   197→      cells.push({ date, key: `${year}-${month}-${d}` })
+   198→    }
+   199→    return cells
+   200→  }, [calendarMonth])
+   201→
+   202→  const today = new Date()
+   203→  const selectedDayPosts = useMemo(() => {
+   204→    if (!selectedDay) return []
+   205→    const key = `${selectedDay.getFullYear()}-${selectedDay.getMonth()}-${selectedDay.getDate()}`
+   206→    return postsByDay[key] || []
+   207→  }, [selectedDay, postsByDay])
+   208→
+   209→  const prevMonth = () =>
+   210→    setCalendarMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
+   211→  const nextMonth = () =>
+   212→    setCalendarMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
+   213→  const goToday = () => {
+   214→    const d = new Date()
+   215→    setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1))
+   216→  }
+   217→
+   218→  // ---------- Selection handlers ----------
+   219→  const toggleSelect = (id: string) => {
+   220→    setSelectedIds((prev) => {
+   221→      const next = new Set(prev)
+   222→      if (next.has(id)) next.delete(id)
+   223→      else next.add(id)
+   224→      return next
+   225→    })
+   226→  }
+   227→
+   228→  const toggleSelectAll = () => {
+   229→    setSelectedIds((prev) => {
+   230→      if (prev.size === filteredPosts.length) return new Set()
+   231→      return new Set(filteredPosts.map((p) => p.id))
+   232→    })
+   233→  }
+   234→
+   235→  const exitSelectionMode = () => {
+   236→    setSelectionMode(false)
+   237→    setSelectedIds(new Set())
+   238→  }
+   239→
+   240→  const handleSingleDuplicate = async (post: any) => {
+   241→    setRowActionLoading({ id: post.id, action: 'duplicate' })
+   242→    try {
+   243→      await apiPost(`/api/posts/${post.id}`, { action: 'duplicate' })
+   244→      toast.success('Post duplicado com sucesso!')
+   245→      refresh()
+   246→    } catch (e: any) {
+   247→      toast.error(e?.message || 'Erro ao duplicar post')
+   248→    } finally {
+   249→      setRowActionLoading(null)
+   250→    }
+   251→  }
+   252→
+   253→  const handleSingleDelete = async (post: any) => {
+   254→    setRowActionLoading({ id: post.id, action: 'delete' })
+   255→    try {
+   256→      await apiDelete(`/api/posts/${post.id}`)
+   257→      toast.success('Post excluído')
+   258→      refresh()
+   259→    } catch (e: any) {
+   260→      toast.error(e?.message || 'Erro ao excluir post')
+   261→    } finally {
+   262→      setRowActionLoading(null)
+   263→      setSingleDeletePost(null)
+   264→    }
+   265→  }
+   266→
+   267→  const handleBulkDuplicate = async () => {
+   268→    if (selectedIds.size === 0) return
+   269→    setBulkActionLoading('duplicate')
+   270→    let success = 0
+   271→    let failed = 0
+   272→    try {
+   273→      for (const id of selectedIds) {
+   274→        try {
+   275→          await apiPost(`/api/posts/${id}`, { action: 'duplicate' })
+   276→          success++
+   277→        } catch {
+   278→          failed++
+   279→        }
+   280→      }
+   281→      if (failed === 0) {
+   282→        toast.success(`${success} posts duplicados com sucesso!`)
+   283→      } else {
+   284→        toast.warning(`${success} duplicados, ${failed} falharam`)
+   285→      }
+   286→      exitSelectionMode()
+   287→      refresh()
+   288→    } finally {
+   289→      setBulkActionLoading(null)
+   290→    }
+   291→  }
+   292→
+   293→  const handleBulkDelete = async () => {
+   294→    if (selectedIds.size === 0) return
+   295→    setBulkActionLoading('delete')
+   296→    let success = 0
+   297→    let failed = 0
+   298→    try {
+   299→      for (const id of selectedIds) {
+   300→        try {
+   301→          await apiDelete(`/api/posts/${id}`)
+   302→          success++
+   303→        } catch {
+   304→          failed++
+   305→        }
+   306→      }
+   307→      if (failed === 0) {
+   308→        toast.success(`${success} posts excluídos`)
+   309→      } else {
+   310→        toast.warning(`${success} excluídos, ${failed} falharam`)
+   311→      }
+   312→      setConfirmBulkDelete(false)
+   313→      exitSelectionMode()
+   314→      refresh()
+   315→    } finally {
+   316→      setBulkActionLoading(null)
+   317→    }
+   318→  }
+   319→
+   320→  return (
+   321→    <div className="space-y-6">
+   322→      <SectionHeader
+   323→        icon={CalendarDays}
+   324→        title="Posts & Agenda"
+   325→        description="Gerencie posts agendados e publicados em todas as redes sociais"
+   326→        action={
+   327→          <Button className="gap-2" onClick={() => setSection('creator')}>
+   328→            <Plus className="w-4 h-4" />
+   329→            Novo Post
+   330→          </Button>
+   331→        }
+   332→      />
+   333→
+   334→      {/* Stat summary */}
+   335→      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   336→        <StatCard
+   337→          label="Rascunhos"
+   338→          value={counts.draft}
+   339→          icon={FileText}
+   340→          accent="#6B7280"
+   341→          delay={0}
+   342→        />
+   343→        <StatCard
+   344→          label="Agendados"
+   345→          value={counts.scheduled}
+   346→          icon={Clock}
+   347→          accent="#F59E0B"
+   348→          delay={0.05}
+   349→        />
+   350→        <StatCard
+   351→          label="Publicados"
+   352→          value={counts.published}
+   353→          icon={CheckCircle2}
+   354→          accent="#10B981"
+   355→          delay={0.1}
+   356→        />
+   357→      </div>
+   358→
+   359→      {/* Filter bar */}
+   360→      <Card className="p-4">
+   361→        <div className="flex flex-col md:flex-row gap-3">
+   362→          <div className="relative flex-1">
+   363→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+   364→            <Input
+   365→              placeholder="Buscar por título ou conteúdo..."
+   366→              value={search}
+   367→              onChange={(e) => setSearch(e.target.value)}
+   368→              className="pl-9"
+   369→            />
+   370→          </div>
+   371→          <Select value={statusFilter} onValueChange={setStatusFilter}>
+   372→            <SelectTrigger className="w-full md:w-44">
+   373→              <SelectValue placeholder="Status" />
+   374→            </SelectTrigger>
+   375→            <SelectContent>
+   376→              <SelectItem value="all">Todos os status</SelectItem>
+   377→              <SelectItem value="draft">Rascunho</SelectItem>
+   378→              <SelectItem value="scheduled">Agendado</SelectItem>
+   379→              <SelectItem value="published">Publicado</SelectItem>
+   380→            </SelectContent>
+   381→          </Select>
+   382→          <Select value={companyFilter} onValueChange={setCompanyOverride}>
+   383→            <SelectTrigger className="w-full md:w-52">
+   384→              <SelectValue placeholder="Empresa" />
+   385→            </SelectTrigger>
+   386→            <SelectContent>
+   387→              <SelectItem value="all">Todas as empresas</SelectItem>
+   388→              {companies.map((c) => (
+   389→                <SelectItem key={c.id} value={c.id}>
+   390→                  <span className="flex items-center gap-2">
+   391→                    <span
+   392→                      className="w-2 h-2 rounded-full"
+   393→                      style={{ backgroundColor: c.brandColor || '#7C3AED' }}
+   394→                    />
+   395→                    {c.name}
+   396→                  </span>
+   397→                </SelectItem>
+   398→              ))}
+   399→            </SelectContent>
+   400→          </Select>
+   401→          {view === 'list' && !selectionMode ? (
+   402→            <Button
+   403→              variant="outline"
+   404→              onClick={() => setSelectionMode(true)}
+   405→              className="gap-2 shrink-0"
+   406→            >
+   407→              <CheckSquare className="w-4 h-4" />
+   408→              Selecionar
+   409→            </Button>
+   410→          ) : view === 'list' && selectionMode ? (
+   411→            <div className="flex items-center gap-2 shrink-0">
+   412→              <Button
+   413→                variant="outline"
+   414→                size="sm"
+   415→                onClick={toggleSelectAll}
+   416→                className="gap-1.5"
+   417→                disabled={filteredPosts.length === 0}
+   418→              >
+   419→                <CheckSquare className="w-4 h-4" />
+   420→                {selectedIds.size === filteredPosts.length &&
+   421→                filteredPosts.length > 0
+   422→                  ? 'Desmarcar tudo'
+   423→                  : 'Marcar tudo'}
+   424→              </Button>
+   425→              <Button
+   426→                variant="ghost"
+   427→                size="sm"
+   428→                onClick={exitSelectionMode}
+   429→                className="gap-1.5"
+   430→              >
+   431→                <X className="w-4 h-4" />
+   432→                Sair
+   433→              </Button>
+   434→            </div>
+   435→          ) : null}
+   436→        </div>
+   437→      </Card>
+   438→
+   439→      <Tabs
+   440→        value={view}
+   441→        onValueChange={(v) => {
+   442→          const next = v as 'calendar' | 'list'
+   443→          setView(next)
+   444→          if (next !== 'list' && selectionMode) exitSelectionMode()
+   445→        }}
+   446→      >
+   447→        <TabsList>
+   448→          <TabsTrigger value="calendar" className="gap-1.5">
+   449→            <CalendarDays className="w-4 h-4" /> Calendário
+   450→          </TabsTrigger>
+   451→          <TabsTrigger value="list" className="gap-1.5">
+   452→            <ListIcon className="w-4 h-4" /> Lista
+   453→          </TabsTrigger>
+   454→        </TabsList>
+   455→
+   456→        {/* Calendar view */}
+   457→        <TabsContent value="calendar" className="mt-4">
+   458→          <Card className="p-4 sm:p-6">
+   459→            <div className="flex items-center justify-between mb-4">
+   460→              <h3 className="font-semibold text-lg">
+   461→                {MONTHS[calendarMonth.getMonth()]}{' '}
+   462→                {calendarMonth.getFullYear()}
+   463→              </h3>
+   464→              <div className="flex items-center gap-2">
+   465→                <Button
+   466→                  variant="outline"
+   467→                  size="icon"
+   468→                  onClick={prevMonth}
+   469→                  aria-label="Mês anterior"
+   470→                >
+   471→                  <ChevronLeft className="w-4 h-4" />
+   472→                </Button>
+   473→                <Button variant="outline" size="sm" onClick={goToday}>
+   474→                  Hoje
+   475→                </Button>
+   476→                <Button
+   477→                  variant="outline"
+   478→                  size="icon"
+   479→                  onClick={nextMonth}
+   480→                  aria-label="Próximo mês"
+   481→                >
+   482→                  <ChevronRight className="w-4 h-4" />
+   483→                </Button>
+   484→              </div>
+   485→            </div>
+   486→
+   487→            <div className="grid grid-cols-7 gap-1 mb-2">
+   488→              {WEEKDAYS.map((d) => (
+   489→                <div
+   490→                  key={d}
+   491→                  className="text-center text-[11px] sm:text-xs font-semibold text-muted-foreground py-2"
+   492→                >
+   493→                  {d}
+   494→                </div>
+   495→              ))}
+   496→            </div>
+   497→
+   498→            <div className="grid grid-cols-7 gap-1">
+   499→              {calendarCells.map((cell) => {
+   500→                if (!cell.date) {
+   501→                  return <div key={cell.key} className="aspect-square" />
+   502→                }
+   503→                const key = `${cell.date.getFullYear()}-${cell.date.getMonth()}-${cell.date.getDate()}`
+   504→                const dayPosts = postsByDay[key] || []
+   505→                const isToday = isSameDay(cell.date, today)
+   506→                return (
+   507→                  <button
+   508→                    key={cell.key}
+   509→                    onClick={() => dayPosts.length > 0 && setSelectedDay(cell.date)}
+   510→                    className={cn(
+   511→                      'aspect-square rounded-lg border border-border p-1 sm:p-1.5 flex flex-col items-start gap-0.5 transition-colors text-left',
+   512→                      dayPosts.length > 0
+   513→                        ? 'cursor-pointer hover:border-primary/40 hover:bg-accent/40'
+   514→                        : 'cursor-default'
+   515→                    )}
+   516→                  >
+   517→                    <span
+   518→                      className={cn(
+   519→                        'text-[11px] sm:text-xs font-medium',
+   520→                        isToday ? 'text-primary' : 'text-foreground'
+   521→                      )}
+   522→                    >
+   523→                      {cell.date.getDate()}
+   524→                    </span>
+   525→                    {dayPosts.length > 0 && (
+   526→                      <div className="flex flex-wrap gap-0.5 mt-auto">
+   527→                        {dayPosts.slice(0, 4).map((p) => (
+   528→                          <span
+   529→                            key={p.id}
+   530→                            className="w-1.5 h-1.5 rounded-full"
+   531→                            style={{
+   532→                              backgroundColor:
+   533→                                p.company?.brandColor || '#7C3AED',
+   534→                            }}
+   535→                          />
+   536→                        ))}
+   537→                        {dayPosts.length > 4 && (
+   538→                          <span className="text-[9px] text-muted-foreground leading-none">
+   539→                            +{dayPosts.length - 4}
+   540→                          </span>
+   541→                        )}
+   542→                      </div>
+   543→                    )}
+   544→                    {isToday && (
+   545→                      <span className="sr-only">Hoje</span>
+   546→                    )}
+   547→                  </button>
+   548→                )
+   549→              })}
+   550→            </div>
+   551→
+   552→            <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+   553→              <div className="flex items-center gap-1.5">
+   554→                <span className="w-2 h-2 rounded-full bg-primary" />
+   555→                <span>Clique em um dia para ver os posts agendados</span>
+   556→              </div>
+   557→              <div className="flex items-center gap-1.5">
+   558→                <CalendarDays className="w-3 h-3" />
+   559→                <span>{posts.length} posts no total</span>
+   560→              </div>
+   561→            </div>
+   562→          </Card>
+   563→        </TabsContent>
+   564→
+   565→        {/* List view */}
+   566→        <TabsContent value="list" className="mt-4">
+   567→          <Card className="overflow-hidden">
+   568→            {loading ? (
+   569→              <div className="p-6 space-y-3">
+   570→                {[1, 2, 3, 4, 5].map((i) => (
+   571→                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+   572→                ))}
+   573→              </div>
+   574→            ) : filteredPosts.length === 0 ? (
+   575→              <EmptyState
+   576→                icon={CalendarDays}
+   577→                title="Nenhum post encontrado"
+   578→                description="Ajuste os filtros ou crie um novo post com a ajuda da IA."
+   579→                action={
+   580→                  <Button className="gap-2" onClick={() => setSection('creator')}>
+   581→                    <Sparkles className="w-4 h-4" /> Criar com IA
+   582→                  </Button>
+   583→                }
+   584→              />
+   585→            ) : (
+   586→              <div className="max-h-[640px] overflow-y-auto scroll-fancy divide-y">
+   587→                <AnimatePresence initial={false}>
+   588→                  {filteredPosts.map((post, i) => {
+   589→                    const hashtags = safeParse<string[]>(post.hashtags, [])
+   590→                    const mediaUrls = safeParse<string[]>(post.mediaUrls, [])
+   591→                    const platforms = (post.targets || []).map(
+   592→                      (t: any) => t.platform
+   593→                    )
+   594→                    const category = POST_CATEGORIES.find(
+   595→                      (c) => c.value === post.category
+   596→                    )
+   597→                    const isSelected = selectedIds.has(post.id)
+   598→                    const rowLoading =
+   599→                      rowActionLoading?.id === post.id
+   600→                        ? rowActionLoading.action
+   601→                        : null
+   602→                    return (
+   603→                      <motion.div
+   604→                        key={post.id}
+   605→                        initial={{ opacity: 0, y: 8 }}
+   606→                        animate={{ opacity: 1, y: 0 }}
+   607→                        exit={{ opacity: 0, y: -8 }}
+   608→                        transition={{ delay: Math.min(i * 0.02, 0.2) }}
+   609→                        role="button"
+   610→                        tabIndex={0}
+   611→                        onClick={() => {
+   612→                          if (selectionMode) toggleSelect(post.id)
+   613→                          else setEditing(post)
+   614→                        }}
+   615→                        onKeyDown={(e) => {
+   616→                          if (e.key === 'Enter' || e.key === ' ') {
+   617→                            e.preventDefault()
+   618→                            if (selectionMode) toggleSelect(post.id)
+   619→                            else setEditing(post)
+   620→                          }
+   621→                        }}
+   622→                        className={cn(
+   623→                          'group w-full flex items-start gap-3 p-4 hover:bg-accent/40 transition-colors text-left cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
+   624→                          selectionMode && isSelected && 'bg-primary/5'
+   625→                        )}
+   626→                      >
+   627→                        <span
+   628→                          className="w-1 self-stretch rounded-full shrink-0 min-h-[48px]"
+   629→                          style={{
+   630→                            backgroundColor: post.company?.brandColor || '#7C3AED',
+   631→                          }}
+   632→                        />
+   633→                        {selectionMode && (
+   634→                          <div onClick={(e) => e.stopPropagation()} className="mt-1.5 shrink-0">
+   635→                            <Checkbox
+   636→                              checked={isSelected}
+   637→                              onCheckedChange={() => toggleSelect(post.id)}
+   638→                              aria-label={`Selecionar ${post.title}`}
+   639→                            />
+   640→                          </div>
+   641→                        )}
+   642→                        {mediaUrls.length > 0 ? (
+   643→                          <div className="relative shrink-0 mt-0.5">
+   644→                            <img
+   645→                              src={mediaUrls[0]}
+   646→                              alt=""
+   647→                              className="w-12 h-12 rounded-lg object-cover border border-border"
+   648→                              loading="lazy"
+   649→                            />
+   650→                            {mediaUrls.length > 1 && (
+   651→                              <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none flex items-center justify-center">
+   652→                                +{mediaUrls.length - 1}
+   653→                              </span>
+   654→                            )}
+   655→                          </div>
+   656→                        ) : (
+   657→                          <div className="w-12 h-12 rounded-lg border border-dashed border-border flex items-center justify-center shrink-0 mt-0.5 text-muted-foreground/50">
+   658→                            <ImageIcon className="w-4 h-4" />
+   659→                          </div>
+   660→                        )}
+   661→                        <div className="flex-1 min-w-0">
+   662→                          <div className="flex items-center gap-2 flex-wrap mb-1">
+   663→                            <span className="font-semibold text-sm truncate">
+   664→                              {post.title}
+   665→                            </span>
+   666→                            <StatusBadge status={post.status} />
+   667→                            {category && (
+   668→                              <Badge variant="secondary" className="text-[10px]">
+   669→                                {category.label}
+   670→                              </Badge>
+   671→                            )}
+   672→                          </div>
+   673→                          <p className="text-xs text-muted-foreground line-clamp-1 mb-1.5">
+   674→                            {post.content}
+   675→                          </p>
+   676→                          <div className="flex items-center gap-3 flex-wrap text-[11px] text-muted-foreground">
+   677→                            <span className="flex items-center gap-1">
+   678→                              <span
+   679→                                className="w-2 h-2 rounded-full"
+   680→                                style={{
+   681→                                  backgroundColor:
+   682→                                    post.company?.brandColor || '#7C3AED',
+   683→                                }}
+   684→                              />
+   685→                              {post.company?.name || '—'}
+   686→                            </span>
+   687→                            <span className="flex items-center gap-1">
+   688→                              <Clock className="w-3 h-3" />
+   689→                              {formatDateTime(post.scheduledAt)}
+   690→                            </span>
+   691→                            <div className="flex items-center gap-1">
+   692→                              {platforms.map((p: string) => (
+   693→                                <PlatformBadge key={p} platform={p} />
+   694→                              ))}
+   695→                            </div>
+   696→                            {hashtags.length > 0 && (
+   697→                              <span className="flex items-center gap-1">
+   698→                                <Hash className="w-3 h-3" />
+   699→                                {hashtags.length}
+   700→                              </span>
+   701→                            )}
+   702→                          </div>
+   703→                        </div>
+   704→                        {!selectionMode && (
+   705→                          <div
+   706→                            className="shrink-0 mt-0.5"
+   707→                            onClick={(e) => e.stopPropagation()}
+   708→                          >
+   709→                            <DropdownMenu>
+   710→                              <DropdownMenuTrigger asChild>
+   711→                                <Button
+   712→                                  variant="ghost"
+   713→                                  size="icon"
+   714→                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity data-[state=open]:opacity-100"
+   715→                                  aria-label="Ações do post"
+   716→                                  disabled={!!rowLoading}
+   717→                                >
+   718→                                  {rowLoading ? (
+   719→                                    <Loader2 className="w-4 h-4 animate-spin" />
+   720→                                  ) : (
+   721→                                    <MoreHorizontal className="w-4 h-4" />
+   722→                                  )}
+   723→                                </Button>
+   724→                              </DropdownMenuTrigger>
+   725→                              <DropdownMenuContent align="end" className="w-44">
+   726→                                <DropdownMenuItem
+   727→                                  onClick={() => setEditing(post)}
+   728→                                  className="gap-2 cursor-pointer"
+   729→                                >
+   730→                                  <Pencil className="w-4 h-4" />
+   731→                                  Editar
+   732→                                </DropdownMenuItem>
+   733→                                <DropdownMenuItem
+   734→                                  onClick={() => handleSingleDuplicate(post)}
+   735→                                  className="gap-2 cursor-pointer"
+   736→                                  disabled={rowLoading === 'duplicate'}
+   737→                                >
+   738→                                  <Copy className="w-4 h-4" />
+   739→                                  Duplicar
+   740→                                </DropdownMenuItem>
+   741→                                <DropdownMenuItem
+   742→                                  onClick={() => setSingleDeletePost(post)}
+   743→                                  className="gap-2 cursor-pointer text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/40"
+   744→                                  disabled={rowLoading === 'delete'}
+   745→                                >
+   746→                                  <Trash2 className="w-4 h-4" />
+   747→                                  Excluir
+   748→                                </DropdownMenuItem>
+   749→                              </DropdownMenuContent>
+   750→                            </DropdownMenu>
+   751→                          </div>
+   752→                        )}
+   753→                      </motion.div>
+   754→                    )
+   755→                  })}
+   756→                </AnimatePresence>
+   757→              </div>
+   758→            )}
+   759→          </Card>
+   760→        </TabsContent>
+   761→      </Tabs>
+   762→
+   763→      {/* Day detail dialog */}
+   764→      <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
+   765→        <DialogContent className="max-w-lg">
+   766→          <DialogHeader>
+   767→            <DialogTitle className="flex items-center gap-2">
+   768→              <CalendarDays className="w-5 h-5 text-primary" />
+   769→              {selectedDay?.toLocaleDateString('pt-BR', {
+   770→                weekday: 'long',
+   771→                day: '2-digit',
+   772→                month: 'long',
+   773→              })}
+   774→            </DialogTitle>
+   775→            <DialogDescription>
+   776→              {selectedDayPosts.length}{' '}
+   777→              {selectedDayPosts.length === 1
+   778→                ? 'post agendado'
+   779→                : 'posts agendados'}{' '}
+   780→              neste dia
+   781→            </DialogDescription>
+   782→          </DialogHeader>
+   783→          <div className="max-h-96 overflow-y-auto scroll-fancy -mx-1 px-1">
+   784→            <div className="space-y-2">
+   785→              {selectedDayPosts.map((p) => {
+   786→                const platforms = (p.targets || []).map((t: any) => t.platform)
+   787→                return (
+   788→                  <button
+   789→                    key={p.id}
+   790→                    onClick={() => {
+   791→                      setEditing(p)
+   792→                      setSelectedDay(null)
+   793→                    }}
+   794→                    className="w-full flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-accent/40 transition-colors text-left"
+   795→                  >
+   796→                    <span
+   797→                      className="w-1 self-stretch rounded-full shrink-0"
+   798→                      style={{
+   799→                        backgroundColor: p.company?.brandColor || '#7C3AED',
+   800→                      }}
+   801→                    />
+   802→                    <div className="flex-1 min-w-0">
+   803→                      <div className="flex items-center gap-2 flex-wrap mb-1">
+   804→                        <span className="font-semibold text-sm truncate">
+   805→                          {p.title}
+   806→                        </span>
+   807→                        <StatusBadge status={p.status} />
+   808→                      </div>
+   809→                      <p className="text-xs text-muted-foreground line-clamp-2 mb-1.5">
+   810→                        {p.content}
+   811→                      </p>
+   812→                      <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+   813→                        <span className="flex items-center gap-1">
+   814→                          <Clock className="w-3 h-3" />
+   815→                          {formatDateTime(p.scheduledAt)}
+   816→                        </span>
+   817→                        <div className="flex items-center gap-1">
+   818→                          {platforms.map((pl: string) => (
+   819→                            <PlatformBadge key={pl} platform={pl} />
+   820→                          ))}
+   821→                        </div>
+   822→                      </div>
+   823→                    </div>
+   824→                  </button>
+   825→                )
+   826→              })}
+   827→            </div>
+   828→          </div>
+   829→        </DialogContent>
+   830→      </Dialog>
+   831→
+   832→      {/* Edit dialog */}
+   833→      {editing && (
+   834→        <EditPostDialog
+   835→          post={editing}
+   836→          onClose={() => setEditing(null)}
+   837→          onSaved={() => {
+   838→            refresh()
+   839→            setEditing(null)
+   840→          }}
+   841→          onDeleted={() => {
+   842→            refresh()
+   843→            setEditing(null)
+   844→          }}
+   845→        />
+   846→      )}
+   847→
+   848→      {/* Single post delete confirmation */}
+   849→      <AlertDialog
+   850→        open={!!singleDeletePost}
+   851→        onOpenChange={(o) => !o && setSingleDeletePost(null)}
+   852→      >
+   853→        <AlertDialogContent>
+   854→          <AlertDialogHeader>
+   855→            <AlertDialogTitle className="flex items-center gap-2">
+   856→              <Trash2 className="w-5 h-5 text-rose-500" />
+   857→              Excluir post
+   858→            </AlertDialogTitle>
+   859→            <AlertDialogDescription>
+   860→              Tem certeza que deseja excluir{' '}
+   861→              <strong className="text-foreground">
+   862→                {singleDeletePost?.title}
+   863→              </strong>
+   864→              ? Esta ação não pode ser desfeita.
+   865→            </AlertDialogDescription>
+   866→          </AlertDialogHeader>
+   867→          <AlertDialogFooter>
+   868→            <AlertDialogCancel disabled={!!rowActionLoading}>
+   869→              Cancelar
+   870→            </AlertDialogCancel>
+   871→            <AlertDialogAction
+   872→              onClick={() => singleDeletePost && handleSingleDelete(singleDeletePost)}
+   873→              disabled={!!rowActionLoading}
+   874→              className="bg-rose-600 hover:bg-rose-700 text-white gap-2"
+   875→            >
+   876→              {rowActionLoading?.action === 'delete' ? (
+   877→                <>
+   878→                  <Loader2 className="w-4 h-4 animate-spin" />
+   879→                  Excluindo...
+   880→                </>
+   881→              ) : (
+   882→                <>
+   883→                  <Trash2 className="w-4 h-4" />
+   884→                  Excluir
+   885→                </>
+   886→              )}
+   887→            </AlertDialogAction>
+   888→          </AlertDialogFooter>
+   889→        </AlertDialogContent>
+   890→      </AlertDialog>
+   891→
+   892→      {/* Bulk delete confirmation */}
+   893→      <AlertDialog
+   894→        open={confirmBulkDelete}
+   895→        onOpenChange={(o) => !o && setConfirmBulkDelete(false)}
+   896→      >
+   897→        <AlertDialogContent>
+   898→          <AlertDialogHeader>
+   899→            <AlertDialogTitle className="flex items-center gap-2">
+   900→              <Trash2 className="w-5 h-5 text-rose-500" />
+   901→              Excluir {selectedIds.size} posts?
+   902→            </AlertDialogTitle>
+   903→            <AlertDialogDescription>
+   904→              Você está prestes a excluir{' '}
+   905→              <strong className="text-foreground">{selectedIds.size}</strong>{' '}
+   906→              {selectedIds.size === 1 ? 'post' : 'posts'} permanentemente. Esta
+   907→              ação não pode ser desfeita.
+   908→            </AlertDialogDescription>
+   909→          </AlertDialogHeader>
+   910→          <AlertDialogFooter>
+   911→            <AlertDialogCancel disabled={!!bulkActionLoading}>
+   912→              Cancelar
+   913→            </AlertDialogCancel>
+   914→            <AlertDialogAction
+   915→              onClick={handleBulkDelete}
+   916→              disabled={!!bulkActionLoading}
+   917→              className="bg-rose-600 hover:bg-rose-700 text-white gap-2"
+   918→            >
+   919→              {bulkActionLoading === 'delete' ? (
+   920→                <>
+   921→                  <Loader2 className="w-4 h-4 animate-spin" />
+   922→                  Excluindo...
+   923→                </>
+   924→              ) : (
+   925→                <>
+   926→                  <Trash2 className="w-4 h-4" />
+   927→                  Excluir todos
+   928→                </>
+   929→              )}
+   930→            </AlertDialogAction>
+   931→          </AlertDialogFooter>
+   932→        </AlertDialogContent>
+   933→      </AlertDialog>
+   934→
+   935→      {/* Floating bulk action bar */}
+   936→      <AnimatePresence>
+   937→        {selectionMode && selectedIds.size > 0 && (
+   938→          <motion.div
+   939→            initial={{ y: 60, opacity: 0 }}
+   940→            animate={{ y: 0, opacity: 1 }}
+   941→            exit={{ y: 60, opacity: 0 }}
+   942→            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+   943→            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40"
+   944→          >
+   945→            <div className="flex items-center gap-3 bg-card border border-border shadow-xl rounded-2xl px-4 py-3 backdrop-blur-md bg-card/95">
+   946→              <Badge
+   947→                variant="secondary"
+   948→                className="gap-1.5 px-3 py-1 text-sm font-semibold"
+   949→              >
+   950→                <CheckSquare className="w-3.5 h-3.5 text-primary" />
+   951→                {selectedIds.size}{' '}
+   952→                {selectedIds.size === 1 ? 'selecionado' : 'selecionados'}
+   953→              </Badge>
+   954→              <div className="h-6 w-px bg-border" />
+   955→              <Button
+   956→                variant="outline"
+   957→                size="sm"
+   958→                onClick={handleBulkDuplicate}
+   959→                disabled={!!bulkActionLoading}
+   960→                className="gap-1.5"
+   961→              >
+   962→                {bulkActionLoading === 'duplicate' ? (
+   963→                  <Loader2 className="w-4 h-4 animate-spin" />
+   964→                ) : (
+   965→                  <Copy className="w-4 h-4" />
+   966→                )}
+   967→                Duplicar
+   968→              </Button>
+   969→              <Button
+   970→                variant="destructive"
+   971→                size="sm"
+   972→                onClick={() => setConfirmBulkDelete(true)}
+   973→                disabled={!!bulkActionLoading}
+   974→                className="gap-1.5"
+   975→              >
+   976→                {bulkActionLoading === 'delete' ? (
+   977→                  <Loader2 className="w-4 h-4 animate-spin" />
+   978→                ) : (
+   979→                  <Trash2 className="w-4 h-4" />
+   980→                )}
+   981→                Excluir
+   982→              </Button>
+   983→              <div className="h-6 w-px bg-border" />
+   984→              <Button
+   985→                variant="ghost"
+   986→                size="sm"
+   987→                onClick={exitSelectionMode}
+   988→                disabled={!!bulkActionLoading}
+   989→                className="gap-1.5"
+   990→              >
+   991→                <X className="w-4 h-4" />
+   992→                Cancelar
+   993→              </Button>
+   994→            </div>
+   995→          </motion.div>
+   996→        )}
+   997→      </AnimatePresence>
+   998→    </div>
+   999→  )
+  1000→}
+  1001→
+  1002→function EditPostDialog({
+  1003→  post,
+  1004→  onClose,
+  1005→  onSaved,
+  1006→  onDeleted,
+  1007→}: {
+  1008→  post: any
+  1009→  onClose: () => void
+  1010→  onSaved: () => void
+  1011→  onDeleted: () => void
+  1012→}) {
+  1013→  const [title, setTitle] = useState(post.title || '')
+  1014→  const [content, setContent] = useState(post.content || '')
+  1015→  const [scheduledAt, setScheduledAt] = useState(
+  1016→    toLocalInputValue(post.scheduledAt)
+  1017→  )
+  1018→  const [status, setStatus] = useState(post.status || 'draft')
+  1019→  const [category, setCategory] = useState(post.category || 'promocional')
+  1020→  const [tone, setTone] = useState(post.tone || 'profissional')
+  1021→  const [platforms, setPlatforms] = useState<string[]>(
+  1022→    (post.targets || []).map((t: any) => t.platform)
+  1023→  )
+  1024→  const [saving, setSaving] = useState(false)
+  1025→  const [deleting, setDeleting] = useState(false)
+  1026→
+  1027→  const hashtags = safeParse<string[]>(post.hashtags, [])
+  1028→
+  1029→  const togglePlatform = (p: string) => {
+  1030→    setPlatforms((prev) =>
+  1031→      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
+  1032→    )
+  1033→  }
+  1034→
+  1035→  const handleSave = async () => {
+  1036→    if (!title.trim()) {
+  1037→      toast.error('Título é obrigatório')
+  1038→      return
+  1039→    }
+  1040→    setSaving(true)
+  1041→    try {
+  1042→      await apiPut(`/api/posts/${post.id}`, {
+  1043→        title,
+  1044→        content,
+  1045→        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+  1046→        status,
+  1047→        category,
+  1048→        tone,
+  1049→        platforms,
+  1050→        hashtags,
+  1051→        variations: {},
+  1052→      })
+  1053→      toast.success('Post atualizado com sucesso!')
+  1054→      onSaved()
+  1055→    } catch (e: any) {
+  1056→      toast.error(e?.message || 'Erro ao salvar post')
+  1057→    } finally {
+  1058→      setSaving(false)
+  1059→    }
+  1060→  }
+  1061→
+  1062→  const handleDelete = async () => {
+  1063→    setDeleting(true)
+  1064→    try {
+  1065→      await apiDelete(`/api/posts/${post.id}`)
+  1066→      toast.success('Post excluído')
+  1067→      onDeleted()
+  1068→    } catch (e: any) {
+  1069→      toast.error(e?.message || 'Erro ao excluir')
+  1070→    } finally {
+  1071→      setDeleting(false)
+  1072→    }
+  1073→  }
+  1074→
+  1075→  return (
+  1076→    <Dialog open onOpenChange={(o) => !o && onClose()}>
+  1077→      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+  1078→        <DialogHeader>
+  1079→          <DialogTitle className="flex items-center gap-2">
+  1080→            <Pencil className="w-5 h-5 text-primary" /> Editar Post
+  1081→          </DialogTitle>
+  1082→          <DialogDescription>
+  1083→            Altere os campos abaixo e salve as alterações.
+  1084→          </DialogDescription>
+  1085→        </DialogHeader>
+  1086→
+  1087→        <div className="space-y-4 py-2">
+  1088→          <div>
+  1089→            <Label>Título</Label>
+  1090→            <Input
+  1091→              value={title}
+  1092→              onChange={(e) => setTitle(e.target.value)}
+  1093→              className="mt-1.5"
+  1094→            />
+  1095→          </div>
+  1096→          <div>
+  1097→            <Label>Conteúdo</Label>
+  1098→            <Textarea
+  1099→              value={content}
+  1100→              onChange={(e) => setContent(e.target.value)}
+  1101→              rows={5}
+  1102→              className="mt-1.5 resize-none"
+  1103→            />
+  1104→            <p className="text-xs text-muted-foreground mt-1">
+  1105→              {content.length} caracteres
+  1106→            </p>
+  1107→          </div>
+  1108→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  1109→            <div>
+  1110→              <Label>Agendar para</Label>
+  1111→              <Input
+  1112→                type="datetime-local"
+  1113→                value={scheduledAt}
+  1114→                onChange={(e) => setScheduledAt(e.target.value)}
+  1115→                className="mt-1.5"
+  1116→              />
+  1117→            </div>
+  1118→            <div>
+  1119→              <Label>Status</Label>
+  1120→              <Select value={status} onValueChange={setStatus}>
+  1121→                <SelectTrigger className="mt-1.5 w-full">
+  1122→                  <SelectValue />
+  1123→                </SelectTrigger>
+  1124→                <SelectContent>
+  1125→                  <SelectItem value="draft">Rascunho</SelectItem>
+  1126→                  <SelectItem value="scheduled">Agendado</SelectItem>
+  1127→                  <SelectItem value="published">Publicado</SelectItem>
+  1128→                </SelectContent>
+  1129→              </Select>
+  1130→            </div>
+  1131→          </div>
+  1132→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  1133→            <div>
+  1134→              <Label>Categoria</Label>
+  1135→              <Select value={category} onValueChange={setCategory}>
+  1136→                <SelectTrigger className="mt-1.5 w-full">
+  1137→                  <SelectValue />
+  1138→                </SelectTrigger>
+  1139→                <SelectContent>
+  1140→                  {POST_CATEGORIES.map((c) => (
+  1141→                    <SelectItem key={c.value} value={c.value}>
+  1142→                      {c.label}
+  1143→                    </SelectItem>
+  1144→                  ))}
+  1145→                </SelectContent>
+  1146→              </Select>
+  1147→            </div>
+  1148→            <div>
+  1149→              <Label>Tom de voz</Label>
+  1150→              <Select value={tone} onValueChange={setTone}>
+  1151→                <SelectTrigger className="mt-1.5 w-full">
+  1152→                  <SelectValue />
+  1153→                </SelectTrigger>
+  1154→                <SelectContent>
+  1155→                  {TONES.map((t) => (
+  1156→                    <SelectItem key={t} value={t} className="capitalize">
+  1157→                      {t}
+  1158→                    </SelectItem>
+  1159→                  ))}
+  1160→                </SelectContent>
+  1161→              </Select>
+  1162→            </div>
+  1163→          </div>
+  1164→          <div>
+  1165→            <Label>Plataformas</Label>
+  1166→            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1.5">
+  1167→              {PLATFORMS.map((p) => {
+  1168→                const checked = platforms.includes(p)
+  1169→                const meta = PLATFORM_META[p as Platform]
+  1170→                return (
+  1171→                  <label
+  1172→                    key={p}
+  1173→                    className={cn(
+  1174→                      'flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors',
+  1175→                      checked
+  1176→                        ? 'border-primary bg-primary/5'
+  1177→                        : 'border-border hover:bg-accent/40'
+  1178→                    )}
+  1179→                  >
+  1180→                    <Checkbox
+  1181→                      checked={checked}
+  1182→                      onCheckedChange={() => togglePlatform(p)}
+  1183→                    />
+  1184→                    <PlatformIcon platform={p} className="w-4 h-4 shrink-0" />
+  1185→                    <span className="text-sm truncate">{meta.label}</span>
+  1186→                  </label>
+  1187→                )
+  1188→              })}
+  1189→            </div>
+  1190→          </div>
+  1191→          {hashtags.length > 0 && (
+  1192→            <div>
+  1193→              <Label>Hashtags</Label>
+  1194→              <div className="flex flex-wrap gap-1.5 mt-1.5">
+  1195→                {hashtags.map((h, i) => (
+  1196→                  <Badge key={i} variant="secondary" className="text-xs">
+  1197→                    #{h}
+  1198→                  </Badge>
+  1199→                ))}
+  1200→              </div>
+  1201→            </div>
+  1202→          )}
+  1203→        </div>
+  1204→
+  1205→        <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between">
+  1206→          <Button
+  1207→            variant="destructive"
+  1208→            onClick={handleDelete}
+  1209→            disabled={deleting}
+  1210→            className="gap-2"
+  1211→          >
+  1212→            <Trash2 className="w-4 h-4" />
+  1213→            {deleting ? 'Excluindo...' : 'Excluir'}
+  1214→          </Button>
+  1215→          <div className="flex gap-2">
+  1216→            <DialogClose asChild>
+  1217→              <Button variant="outline">Cancelar</Button>
+  1218→            </DialogClose>
+  1219→            <Button onClick={handleSave} disabled={saving} className="gap-2">
+  1220→              {saving ? 'Salvando...' : 'Salvar'}
+  1221→            </Button>
+  1222→          </div>
+  1223→        </DialogFooter>
+  1224→      </DialogContent>
+  1225→    </Dialog>
+  1226→  )
+  1227→}
+  1228→

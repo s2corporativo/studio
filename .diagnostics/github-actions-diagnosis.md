@@ -1,0 +1,7 @@
+# Diagnóstico do GitHub Actions — 29/08/2026
+
+O PR #5 está em estado `MERGED` na `main`; o commit publicado no GitHub corresponde ao checkpoint `0aa2072b` consultado nesta verificação. As execuções recentes terminam como `startup_failure`, com zero jobs e sem tempo de início efetivo. O workflow associado a essas execuções é um workflow removido, com caminho lógico `BuildFailed`, e não o CI ativo em `.github/workflows/ci.yml`.
+
+O repositório privado está ativo, GitHub Actions está habilitado e permite todas as ações. O inventário atual contém apenas o workflow `CI`, ativo, no caminho `.github/workflows/ci.yml`. O CI ativo não podia ser disparado manualmente porque ainda não possuía o gatilho `workflow_dispatch`; esse gatilho foi adicionado localmente para permitir uma validação independente após o próximo checkpoint. A ausência de jobs no `startup_failure` é evidência de bloqueio anterior à execução do YAML ativo, não reprovação de TypeScript, testes, build ou migrations, que foram revalidados localmente.
+
+Após a publicação do gatilho manual, a execução `CI #1` foi disparada em 29/08/2026 e confirmou a causa externa: “The job was not started because recent account payments have failed or your spending limit needs to be increased.” Portanto, não há correção de YAML, runner ou código a aplicar no repositório neste momento. A validação remota será reexecutada quando o pagamento ou limite de gastos da conta GitHub for regularizado.

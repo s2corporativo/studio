@@ -1,0 +1,801 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import { useMemo, useState } from 'react'
+     4→     4→import { useFetch, apiPut, apiDelete } from '@/lib/hooks'
+     5→     5→import { useAppStore } from '@/lib/store'
+     6→     6→import { cn, formatDateTime, toLocalInputValue } from '@/lib/utils'
+     7→     7→import { PlatformIcon } from '@/lib/platform-icons'
+     8→     8→import {
+     9→     9→  PLATFORMS,
+    10→    10→  PLATFORM_META,
+    11→    11→  POST_CATEGORIES,
+    12→    12→  TONES,
+    13→    13→  type Platform,
+    14→    14→} from '@/lib/types'
+    15→    15→import {
+    16→    16→  StatCard,
+    17→    17→  SectionHeader,
+    18→    18→  EmptyState,
+    19→    19→  PlatformBadge,
+    20→    20→  StatusBadge,
+    21→    21→} from '@/components/shared/ui'
+    22→    22→import { Card } from '@/components/ui/card'
+    23→    23→import { Button } from '@/components/ui/button'
+    24→    24→import { Input } from '@/components/ui/input'
+    25→    25→import { Textarea } from '@/components/ui/textarea'
+    26→    26→import { Label } from '@/components/ui/label'
+    27→    27→import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+    28→    28→import {
+    29→    29→  Select,
+    30→    30→  SelectContent,
+    31→    31→  SelectItem,
+    32→    32→  SelectTrigger,
+    33→    33→  SelectValue,
+    34→    34→} from '@/components/ui/select'
+    35→    35→import { Checkbox } from '@/components/ui/checkbox'
+    36→    36→import { Badge } from '@/components/ui/badge'
+    37→    37→import { Skeleton } from '@/components/ui/skeleton'
+    38→    38→import {
+    39→    39→  Dialog,
+    40→    40→  DialogContent,
+    41→    41→  DialogHeader,
+    42→    42→  DialogTitle,
+    43→    43→  DialogDescription,
+    44→    44→  DialogFooter,
+    45→    45→  DialogClose,
+    46→    46→} from '@/components/ui/dialog'
+    47→    47→import { toast } from 'sonner'
+    48→    48→import { motion, AnimatePresence } from 'framer-motion'
+    49→    49→import {
+    50→    50→  CalendarDays,
+    51→    51→  List as ListIcon,
+    52→    52→  Plus,
+    53→    53→  Search,
+    54→    54→  ChevronLeft,
+    55→    55→  ChevronRight,
+    56→    56→  FileText,
+    57→    57→  Clock,
+    58→    58→  CheckCircle2,
+    59→    59→  Pencil,
+    60→    60→  Trash2,
+    61→    61→  Sparkles,
+    62→    62→  Hash,
+    63→    63→} from 'lucide-react'
+    64→    64→
+    65→    65→const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+    66→    66→const MONTHS = [
+    67→    67→  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    68→    68→  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+    69→    69→]
+    70→    70→
+    71→    71→function safeParse<T>(s: string | null | undefined, fallback: T): T {
+    72→    72→  if (!s) return fallback
+    73→    73→  try {
+    74→    74→    return JSON.parse(s) as T
+    75→    75→  } catch {
+    76→    76→    return fallback
+    77→    77→  }
+    78→    78→}
+    79→    79→
+    80→    80→function isSameDay(a: Date, b: Date) {
+    81→    81→  return (
+    82→    82→    a.getFullYear() === b.getFullYear() &&
+    83→    83→    a.getMonth() === b.getMonth() &&
+    84→    84→    a.getDate() === b.getDate()
+    85→    85→  )
+    86→    86→}
+    87→    87→
+    88→    88→export function PostsSection() {
+    89→    89→  const selectedCompanyId = useAppStore((s) => s.selectedCompanyId)
+    90→    90→  const setSection = useAppStore((s) => s.setSection)
+    91→    91→
+    92→    92→  const [view, setView] = useState<'calendar' | 'list'>('calendar')
+    93→    93→  const [search, setSearch] = useState('')
+    94→    94→  const [statusFilter, setStatusFilter] = useState<string>('all')
+    95→    95→  const [companyOverride, setCompanyOverride] = useState<string | null>(null)
+    96→    96→  const companyFilter = companyOverride ?? selectedCompanyId ?? 'all'
+    97→    97→  const [calendarMonth, setCalendarMonth] = useState(() => {
+    98→    98→    const d = new Date()
+    99→    99→    return new Date(d.getFullYear(), d.getMonth(), 1)
+   100→   100→  })
+   101→   101→  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+   102→   102→  const [editing, setEditing] = useState<any | null>(null)
+   103→   103→
+   104→   104→  const postsUrl = useMemo(() => {
+   105→   105→    const params = new URLSearchParams()
+   106→   106→    if (companyFilter !== 'all') params.set('companyId', companyFilter)
+   107→   107→    if (statusFilter !== 'all') params.set('status', statusFilter)
+   108→   108→    return `/api/posts?${params.toString()}`
+   109→   109→  }, [companyFilter, statusFilter])
+   110→   110→
+   111→   111→  const { data, loading, refresh } = useFetch<{ posts: any[] }>(postsUrl, [
+   112→   112→    companyFilter,
+   113→   113→    statusFilter,
+   114→   114→  ])
+   115→   115→  const { data: companiesData } = useFetch<{ companies: any[] }>('/api/companies', [])
+   116→   116→
+   117→   117→  const posts = data?.posts || []
+   118→   118→  const companies = companiesData?.companies || []
+   119→   119→
+   120→   120→  const filteredPosts = useMemo(() => {
+   121→   121→    if (!search.trim()) return posts
+   122→   122→    const q = search.toLowerCase()
+   123→   123→    return posts.filter(
+   124→   124→      (p) =>
+   125→   125→        p.title?.toLowerCase().includes(q) ||
+   126→   126→        p.content?.toLowerCase().includes(q)
+   127→   127→    )
+   128→   128→  }, [posts, search])
+   129→   129→
+   130→   130→  const counts = useMemo(() => {
+   131→   131→    const c = { draft: 0, scheduled: 0, published: 0 }
+   132→   132→    for (const p of posts) {
+   133→   133→      if (p.status === 'draft') c.draft++
+   134→   134→      else if (p.status === 'scheduled') c.scheduled++
+   135→   135→      else if (p.status === 'published') c.published++
+   136→   136→    }
+   137→   137→    return c
+   138→   138→  }, [posts])
+   139→   139→
+   140→   140→  const postsByDay = useMemo(() => {
+   141→   141→    const map: Record<string, any[]> = {}
+   142→   142→    for (const p of posts) {
+   143→   143→      if (!p.scheduledAt) continue
+   144→   144→      const d = new Date(p.scheduledAt)
+   145→   145→      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+   146→   146→      if (!map[key]) map[key] = []
+   147→   147→      map[key].push(p)
+   148→   148→    }
+   149→   149→    return map
+   150→   150→  }, [posts])
+   151→   151→
+   152→   152→  const calendarCells = useMemo(() => {
+   153→   153→    const year = calendarMonth.getFullYear()
+   154→   154→    const month = calendarMonth.getMonth()
+   155→   155→    const startWeekday = new Date(year, month, 1).getDay()
+   156→   156→    const daysInMonth = new Date(year, month + 1, 0).getDate()
+   157→   157→    const cells: { date: Date | null; key: string }[] = []
+   158→   158→    for (let i = 0; i < startWeekday; i++)
+   159→   159→      cells.push({ date: null, key: `blank-${i}` })
+   160→   160→    for (let d = 1; d <= daysInMonth; d++) {
+   161→   161→      const date = new Date(year, month, d)
+   162→   162→      cells.push({ date, key: `${year}-${month}-${d}` })
+   163→   163→    }
+   164→   164→    return cells
+   165→   165→  }, [calendarMonth])
+   166→   166→
+   167→   167→  const today = new Date()
+   168→   168→  const selectedDayPosts = useMemo(() => {
+   169→   169→    if (!selectedDay) return []
+   170→   170→    const key = `${selectedDay.getFullYear()}-${selectedDay.getMonth()}-${selectedDay.getDate()}`
+   171→   171→    return postsByDay[key] || []
+   172→   172→  }, [selectedDay, postsByDay])
+   173→   173→
+   174→   174→  const prevMonth = () =>
+   175→   175→    setCalendarMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))
+   176→   176→  const nextMonth = () =>
+   177→   177→    setCalendarMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))
+   178→   178→  const goToday = () => {
+   179→   179→    const d = new Date()
+   180→   180→    setCalendarMonth(new Date(d.getFullYear(), d.getMonth(), 1))
+   181→   181→  }
+   182→   182→
+   183→   183→  return (
+   184→   184→    <div className="space-y-6">
+   185→   185→      <SectionHeader
+   186→   186→        icon={CalendarDays}
+   187→   187→        title="Posts & Agenda"
+   188→   188→        description="Gerencie posts agendados e publicados em todas as redes sociais"
+   189→   189→        action={
+   190→   190→          <Button className="gap-2" onClick={() => setSection('creator')}>
+   191→   191→            <Plus className="w-4 h-4" />
+   192→   192→            Novo Post
+   193→   193→          </Button>
+   194→   194→        }
+   195→   195→      />
+   196→   196→
+   197→   197→      {/* Stat summary */}
+   198→   198→      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+   199→   199→        <StatCard
+   200→   200→          label="Rascunhos"
+   201→   201→          value={counts.draft}
+   202→   202→          icon={FileText}
+   203→   203→          accent="#6B7280"
+   204→   204→          delay={0}
+   205→   205→        />
+   206→   206→        <StatCard
+   207→   207→          label="Agendados"
+   208→   208→          value={counts.scheduled}
+   209→   209→          icon={Clock}
+   210→   210→          accent="#F59E0B"
+   211→   211→          delay={0.05}
+   212→   212→        />
+   213→   213→        <StatCard
+   214→   214→          label="Publicados"
+   215→   215→          value={counts.published}
+   216→   216→          icon={CheckCircle2}
+   217→   217→          accent="#10B981"
+   218→   218→          delay={0.1}
+   219→   219→        />
+   220→   220→      </div>
+   221→   221→
+   222→   222→      {/* Filter bar */}
+   223→   223→      <Card className="p-4">
+   224→   224→        <div className="flex flex-col md:flex-row gap-3">
+   225→   225→          <div className="relative flex-1">
+   226→   226→            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+   227→   227→            <Input
+   228→   228→              placeholder="Buscar por título ou conteúdo..."
+   229→   229→              value={search}
+   230→   230→              onChange={(e) => setSearch(e.target.value)}
+   231→   231→              className="pl-9"
+   232→   232→            />
+   233→   233→          </div>
+   234→   234→          <Select value={statusFilter} onValueChange={setStatusFilter}>
+   235→   235→            <SelectTrigger className="w-full md:w-44">
+   236→   236→              <SelectValue placeholder="Status" />
+   237→   237→            </SelectTrigger>
+   238→   238→            <SelectContent>
+   239→   239→              <SelectItem value="all">Todos os status</SelectItem>
+   240→   240→              <SelectItem value="draft">Rascunho</SelectItem>
+   241→   241→              <SelectItem value="scheduled">Agendado</SelectItem>
+   242→   242→              <SelectItem value="published">Publicado</SelectItem>
+   243→   243→            </SelectContent>
+   244→   244→          </Select>
+   245→   245→          <Select value={companyFilter} onValueChange={setCompanyOverride}>
+   246→   246→            <SelectTrigger className="w-full md:w-52">
+   247→   247→              <SelectValue placeholder="Empresa" />
+   248→   248→            </SelectTrigger>
+   249→   249→            <SelectContent>
+   250→   250→              <SelectItem value="all">Todas as empresas</SelectItem>
+   251→   251→              {companies.map((c) => (
+   252→   252→                <SelectItem key={c.id} value={c.id}>
+   253→   253→                  <span className="flex items-center gap-2">
+   254→   254→                    <span
+   255→   255→                      className="w-2 h-2 rounded-full"
+   256→   256→                      style={{ backgroundColor: c.brandColor || '#7C3AED' }}
+   257→   257→                    />
+   258→   258→                    {c.name}
+   259→   259→                  </span>
+   260→   260→                </SelectItem>
+   261→   261→              ))}
+   262→   262→            </SelectContent>
+   263→   263→          </Select>
+   264→   264→        </div>
+   265→   265→      </Card>
+   266→   266→
+   267→   267→      <Tabs value={view} onValueChange={(v) => setView(v as 'calendar' | 'list')}>
+   268→   268→        <TabsList>
+   269→   269→          <TabsTrigger value="calendar" className="gap-1.5">
+   270→   270→            <CalendarDays className="w-4 h-4" /> Calendário
+   271→   271→          </TabsTrigger>
+   272→   272→          <TabsTrigger value="list" className="gap-1.5">
+   273→   273→            <ListIcon className="w-4 h-4" /> Lista
+   274→   274→          </TabsTrigger>
+   275→   275→        </TabsList>
+   276→   276→
+   277→   277→        {/* Calendar view */}
+   278→   278→        <TabsContent value="calendar" className="mt-4">
+   279→   279→          <Card className="p-4 sm:p-6">
+   280→   280→            <div className="flex items-center justify-between mb-4">
+   281→   281→              <h3 className="font-semibold text-lg">
+   282→   282→                {MONTHS[calendarMonth.getMonth()]}{' '}
+   283→   283→                {calendarMonth.getFullYear()}
+   284→   284→              </h3>
+   285→   285→              <div className="flex items-center gap-2">
+   286→   286→                <Button
+   287→   287→                  variant="outline"
+   288→   288→                  size="icon"
+   289→   289→                  onClick={prevMonth}
+   290→   290→                  aria-label="Mês anterior"
+   291→   291→                >
+   292→   292→                  <ChevronLeft className="w-4 h-4" />
+   293→   293→                </Button>
+   294→   294→                <Button variant="outline" size="sm" onClick={goToday}>
+   295→   295→                  Hoje
+   296→   296→                </Button>
+   297→   297→                <Button
+   298→   298→                  variant="outline"
+   299→   299→                  size="icon"
+   300→   300→                  onClick={nextMonth}
+   301→   301→                  aria-label="Próximo mês"
+   302→   302→                >
+   303→   303→                  <ChevronRight className="w-4 h-4" />
+   304→   304→                </Button>
+   305→   305→              </div>
+   306→   306→            </div>
+   307→   307→
+   308→   308→            <div className="grid grid-cols-7 gap-1 mb-2">
+   309→   309→              {WEEKDAYS.map((d) => (
+   310→   310→                <div
+   311→   311→                  key={d}
+   312→   312→                  className="text-center text-[11px] sm:text-xs font-semibold text-muted-foreground py-2"
+   313→   313→                >
+   314→   314→                  {d}
+   315→   315→                </div>
+   316→   316→              ))}
+   317→   317→            </div>
+   318→   318→
+   319→   319→            <div className="grid grid-cols-7 gap-1">
+   320→   320→              {calendarCells.map((cell) => {
+   321→   321→                if (!cell.date) {
+   322→   322→                  return <div key={cell.key} className="aspect-square" />
+   323→   323→                }
+   324→   324→                const key = `${cell.date.getFullYear()}-${cell.date.getMonth()}-${cell.date.getDate()}`
+   325→   325→                const dayPosts = postsByDay[key] || []
+   326→   326→                const isToday = isSameDay(cell.date, today)
+   327→   327→                return (
+   328→   328→                  <button
+   329→   329→                    key={cell.key}
+   330→   330→                    onClick={() => dayPosts.length > 0 && setSelectedDay(cell.date)}
+   331→   331→                    className={cn(
+   332→   332→                      'aspect-square rounded-lg border border-border p-1 sm:p-1.5 flex flex-col items-start gap-0.5 transition-colors text-left',
+   333→   333→                      dayPosts.length > 0
+   334→   334→                        ? 'cursor-pointer hover:border-primary/40 hover:bg-accent/40'
+   335→   335→                        : 'cursor-default'
+   336→   336→                    )}
+   337→   337→                  >
+   338→   338→                    <span
+   339→   339→                      className={cn(
+   340→   340→                        'text-[11px] sm:text-xs font-medium',
+   341→   341→                        isToday ? 'text-primary' : 'text-foreground'
+   342→   342→                      )}
+   343→   343→                    >
+   344→   344→                      {cell.date.getDate()}
+   345→   345→                    </span>
+   346→   346→                    {dayPosts.length > 0 && (
+   347→   347→                      <div className="flex flex-wrap gap-0.5 mt-auto">
+   348→   348→                        {dayPosts.slice(0, 4).map((p) => (
+   349→   349→                          <span
+   350→   350→                            key={p.id}
+   351→   351→                            className="w-1.5 h-1.5 rounded-full"
+   352→   352→                            style={{
+   353→   353→                              backgroundColor:
+   354→   354→                                p.company?.brandColor || '#7C3AED',
+   355→   355→                            }}
+   356→   356→                          />
+   357→   357→                        ))}
+   358→   358→                        {dayPosts.length > 4 && (
+   359→   359→                          <span className="text-[9px] text-muted-foreground leading-none">
+   360→   360→                            +{dayPosts.length - 4}
+   361→   361→                          </span>
+   362→   362→                        )}
+   363→   363→                      </div>
+   364→   364→                    )}
+   365→   365→                    {isToday && (
+   366→   366→                      <span className="sr-only">Hoje</span>
+   367→   367→                    )}
+   368→   368→                  </button>
+   369→   369→                )
+   370→   370→              })}
+   371→   371→            </div>
+   372→   372→
+   373→   373→            <div className="mt-4 pt-4 border-t flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+   374→   374→              <div className="flex items-center gap-1.5">
+   375→   375→                <span className="w-2 h-2 rounded-full bg-primary" />
+   376→   376→                <span>Clique em um dia para ver os posts agendados</span>
+   377→   377→              </div>
+   378→   378→              <div className="flex items-center gap-1.5">
+   379→   379→                <CalendarDays className="w-3 h-3" />
+   380→   380→                <span>{posts.length} posts no total</span>
+   381→   381→              </div>
+   382→   382→            </div>
+   383→   383→          </Card>
+   384→   384→        </TabsContent>
+   385→   385→
+   386→   386→        {/* List view */}
+   387→   387→        <TabsContent value="list" className="mt-4">
+   388→   388→          <Card className="overflow-hidden">
+   389→   389→            {loading ? (
+   390→   390→              <div className="p-6 space-y-3">
+   391→   391→                {[1, 2, 3, 4, 5].map((i) => (
+   392→   392→                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+   393→   393→                ))}
+   394→   394→              </div>
+   395→   395→            ) : filteredPosts.length === 0 ? (
+   396→   396→              <EmptyState
+   397→   397→                icon={CalendarDays}
+   398→   398→                title="Nenhum post encontrado"
+   399→   399→                description="Ajuste os filtros ou crie um novo post com a ajuda da IA."
+   400→   400→                action={
+   401→   401→                  <Button className="gap-2" onClick={() => setSection('creator')}>
+   402→   402→                    <Sparkles className="w-4 h-4" /> Criar com IA
+   403→   403→                  </Button>
+   404→   404→                }
+   405→   405→              />
+   406→   406→            ) : (
+   407→   407→              <div className="max-h-[640px] overflow-y-auto scroll-fancy divide-y">
+   408→   408→                <AnimatePresence initial={false}>
+   409→   409→                  {filteredPosts.map((post, i) => {
+   410→   410→                    const hashtags = safeParse<string[]>(post.hashtags, [])
+   411→   411→                    const platforms = (post.targets || []).map(
+   412→   412→                      (t: any) => t.platform
+   413→   413→                    )
+   414→   414→                    const category = POST_CATEGORIES.find(
+   415→   415→                      (c) => c.value === post.category
+   416→   416→                    )
+   417→   417→                    return (
+   418→   418→                      <motion.button
+   419→   419→                        key={post.id}
+   420→   420→                        initial={{ opacity: 0, y: 8 }}
+   421→   421→                        animate={{ opacity: 1, y: 0 }}
+   422→   422→                        exit={{ opacity: 0, y: -8 }}
+   423→   423→                        transition={{ delay: Math.min(i * 0.02, 0.2) }}
+   424→   424→                        onClick={() => setEditing(post)}
+   425→   425→                        className="group w-full flex items-start gap-3 p-4 hover:bg-accent/40 transition-colors text-left"
+   426→   426→                      >
+   427→   427→                        <span
+   428→   428→                          className="w-1 self-stretch rounded-full shrink-0 min-h-[48px]"
+   429→   429→                          style={{
+   430→   430→                            backgroundColor: post.company?.brandColor || '#7C3AED',
+   431→   431→                          }}
+   432→   432→                        />
+   433→   433→                        <div className="flex-1 min-w-0">
+   434→   434→                          <div className="flex items-center gap-2 flex-wrap mb-1">
+   435→   435→                            <span className="font-semibold text-sm truncate">
+   436→   436→                              {post.title}
+   437→   437→                            </span>
+   438→   438→                            <StatusBadge status={post.status} />
+   439→   439→                            {category && (
+   440→   440→                              <Badge variant="secondary" className="text-[10px]">
+   441→   441→                                {category.label}
+   442→   442→                              </Badge>
+   443→   443→                            )}
+   444→   444→                          </div>
+   445→   445→                          <p className="text-xs text-muted-foreground line-clamp-1 mb-1.5">
+   446→   446→                            {post.content}
+   447→   447→                          </p>
+   448→   448→                          <div className="flex items-center gap-3 flex-wrap text-[11px] text-muted-foreground">
+   449→   449→                            <span className="flex items-center gap-1">
+   450→   450→                              <span
+   451→   451→                                className="w-2 h-2 rounded-full"
+   452→   452→                                style={{
+   453→   453→                                  backgroundColor:
+   454→   454→                                    post.company?.brandColor || '#7C3AED',
+   455→   455→                                }}
+   456→   456→                              />
+   457→   457→                              {post.company?.name || '—'}
+   458→   458→                            </span>
+   459→   459→                            <span className="flex items-center gap-1">
+   460→   460→                              <Clock className="w-3 h-3" />
+   461→   461→                              {formatDateTime(post.scheduledAt)}
+   462→   462→                            </span>
+   463→   463→                            <div className="flex items-center gap-1">
+   464→   464→                              {platforms.map((p: string) => (
+   465→   465→                                <PlatformBadge key={p} platform={p} />
+   466→   466→                              ))}
+   467→   467→                            </div>
+   468→   468→                            {hashtags.length > 0 && (
+   469→   469→                              <span className="flex items-center gap-1">
+   470→   470→                                <Hash className="w-3 h-3" />
+   471→   471→                                {hashtags.length}
+   472→   472→                              </span>
+   473→   473→                            )}
+   474→   474→                          </div>
+   475→   475→                        </div>
+   476→   476→                        <Pencil className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+   477→   477→                      </motion.button>
+   478→   478→                    )
+   479→   479→                  })}
+   480→   480→                </AnimatePresence>
+   481→   481→              </div>
+   482→   482→            )}
+   483→   483→          </Card>
+   484→   484→        </TabsContent>
+   485→   485→      </Tabs>
+   486→   486→
+   487→   487→      {/* Day detail dialog */}
+   488→   488→      <Dialog open={!!selectedDay} onOpenChange={(o) => !o && setSelectedDay(null)}>
+   489→   489→        <DialogContent className="max-w-lg">
+   490→   490→          <DialogHeader>
+   491→   491→            <DialogTitle className="flex items-center gap-2">
+   492→   492→              <CalendarDays className="w-5 h-5 text-primary" />
+   493→   493→              {selectedDay?.toLocaleDateString('pt-BR', {
+   494→   494→                weekday: 'long',
+   495→   495→                day: '2-digit',
+   496→   496→                month: 'long',
+   497→   497→              })}
+   498→   498→            </DialogTitle>
+   499→   499→            <DialogDescription>
+   500→   500→              {selectedDayPosts.length}{' '}
+   501→   501→              {selectedDayPosts.length === 1
+   502→   502→                ? 'post agendado'
+   503→   503→                : 'posts agendados'}{' '}
+   504→   504→              neste dia
+   505→   505→            </DialogDescription>
+   506→   506→          </DialogHeader>
+   507→   507→          <div className="max-h-96 overflow-y-auto scroll-fancy -mx-1 px-1">
+   508→   508→            <div className="space-y-2">
+   509→   509→              {selectedDayPosts.map((p) => {
+   510→   510→                const platforms = (p.targets || []).map((t: any) => t.platform)
+   511→   511→                return (
+   512→   512→                  <button
+   513→   513→                    key={p.id}
+   514→   514→                    onClick={() => {
+   515→   515→                      setEditing(p)
+   516→   516→                      setSelectedDay(null)
+   517→   517→                    }}
+   518→   518→                    className="w-full flex items-start gap-3 p-3 rounded-xl border border-border hover:border-primary/40 hover:bg-accent/40 transition-colors text-left"
+   519→   519→                  >
+   520→   520→                    <span
+   521→   521→                      className="w-1 self-stretch rounded-full shrink-0"
+   522→   522→                      style={{
+   523→   523→                        backgroundColor: p.company?.brandColor || '#7C3AED',
+   524→   524→                      }}
+   525→   525→                    />
+   526→   526→                    <div className="flex-1 min-w-0">
+   527→   527→                      <div className="flex items-center gap-2 flex-wrap mb-1">
+   528→   528→                        <span className="font-semibold text-sm truncate">
+   529→   529→                          {p.title}
+   530→   530→                        </span>
+   531→   531→                        <StatusBadge status={p.status} />
+   532→   532→                      </div>
+   533→   533→                      <p className="text-xs text-muted-foreground line-clamp-2 mb-1.5">
+   534→   534→                        {p.content}
+   535→   535→                      </p>
+   536→   536→                      <div className="flex items-center gap-2 flex-wrap text-[11px] text-muted-foreground">
+   537→   537→                        <span className="flex items-center gap-1">
+   538→   538→                          <Clock className="w-3 h-3" />
+   539→   539→                          {formatDateTime(p.scheduledAt)}
+   540→   540→                        </span>
+   541→   541→                        <div className="flex items-center gap-1">
+   542→   542→                          {platforms.map((pl: string) => (
+   543→   543→                            <PlatformBadge key={pl} platform={pl} />
+   544→   544→                          ))}
+   545→   545→                        </div>
+   546→   546→                      </div>
+   547→   547→                    </div>
+   548→   548→                  </button>
+   549→   549→                )
+   550→   550→              })}
+   551→   551→            </div>
+   552→   552→          </div>
+   553→   553→        </DialogContent>
+   554→   554→      </Dialog>
+   555→   555→
+   556→   556→      {/* Edit dialog */}
+   557→   557→      {editing && (
+   558→   558→        <EditPostDialog
+   559→   559→          post={editing}
+   560→   560→          onClose={() => setEditing(null)}
+   561→   561→          onSaved={() => {
+   562→   562→            refresh()
+   563→   563→            setEditing(null)
+   564→   564→          }}
+   565→   565→          onDeleted={() => {
+   566→   566→            refresh()
+   567→   567→            setEditing(null)
+   568→   568→          }}
+   569→   569→        />
+   570→   570→      )}
+   571→   571→    </div>
+   572→   572→  )
+   573→   573→}
+   574→   574→
+   575→   575→function EditPostDialog({
+   576→   576→  post,
+   577→   577→  onClose,
+   578→   578→  onSaved,
+   579→   579→  onDeleted,
+   580→   580→}: {
+   581→   581→  post: any
+   582→   582→  onClose: () => void
+   583→   583→  onSaved: () => void
+   584→   584→  onDeleted: () => void
+   585→   585→}) {
+   586→   586→  const [title, setTitle] = useState(post.title || '')
+   587→   587→  const [content, setContent] = useState(post.content || '')
+   588→   588→  const [scheduledAt, setScheduledAt] = useState(
+   589→   589→    toLocalInputValue(post.scheduledAt)
+   590→   590→  )
+   591→   591→  const [status, setStatus] = useState(post.status || 'draft')
+   592→   592→  const [category, setCategory] = useState(post.category || 'promocional')
+   593→   593→  const [tone, setTone] = useState(post.tone || 'profissional')
+   594→   594→  const [platforms, setPlatforms] = useState<string[]>(
+   595→   595→    (post.targets || []).map((t: any) => t.platform)
+   596→   596→  )
+   597→   597→  const [saving, setSaving] = useState(false)
+   598→   598→  const [deleting, setDeleting] = useState(false)
+   599→   599→
+   600→   600→  const hashtags = safeParse<string[]>(post.hashtags, [])
+   601→   601→
+   602→   602→  const togglePlatform = (p: string) => {
+   603→   603→    setPlatforms((prev) =>
+   604→   604→      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
+   605→   605→    )
+   606→   606→  }
+   607→   607→
+   608→   608→  const handleSave = async () => {
+   609→   609→    if (!title.trim()) {
+   610→   610→      toast.error('Título é obrigatório')
+   611→   611→      return
+   612→   612→    }
+   613→   613→    setSaving(true)
+   614→   614→    try {
+   615→   615→      await apiPut(`/api/posts/${post.id}`, {
+   616→   616→        title,
+   617→   617→        content,
+   618→   618→        scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+   619→   619→        status,
+   620→   620→        category,
+   621→   621→        tone,
+   622→   622→        platforms,
+   623→   623→        hashtags,
+   624→   624→        variations: {},
+   625→   625→      })
+   626→   626→      toast.success('Post atualizado com sucesso!')
+   627→   627→      onSaved()
+   628→   628→    } catch (e: any) {
+   629→   629→      toast.error(e?.message || 'Erro ao salvar post')
+   630→   630→    } finally {
+   631→   631→      setSaving(false)
+   632→   632→    }
+   633→   633→  }
+   634→   634→
+   635→   635→  const handleDelete = async () => {
+   636→   636→    setDeleting(true)
+   637→   637→    try {
+   638→   638→      await apiDelete(`/api/posts/${post.id}`)
+   639→   639→      toast.success('Post excluído')
+   640→   640→      onDeleted()
+   641→   641→    } catch (e: any) {
+   642→   642→      toast.error(e?.message || 'Erro ao excluir')
+   643→   643→    } finally {
+   644→   644→      setDeleting(false)
+   645→   645→    }
+   646→   646→  }
+   647→   647→
+   648→   648→  return (
+   649→   649→    <Dialog open onOpenChange={(o) => !o && onClose()}>
+   650→   650→      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+   651→   651→        <DialogHeader>
+   652→   652→          <DialogTitle className="flex items-center gap-2">
+   653→   653→            <Pencil className="w-5 h-5 text-primary" /> Editar Post
+   654→   654→          </DialogTitle>
+   655→   655→          <DialogDescription>
+   656→   656→            Altere os campos abaixo e salve as alterações.
+   657→   657→          </DialogDescription>
+   658→   658→        </DialogHeader>
+   659→   659→
+   660→   660→        <div className="space-y-4 py-2">
+   661→   661→          <div>
+   662→   662→            <Label>Título</Label>
+   663→   663→            <Input
+   664→   664→              value={title}
+   665→   665→              onChange={(e) => setTitle(e.target.value)}
+   666→   666→              className="mt-1.5"
+   667→   667→            />
+   668→   668→          </div>
+   669→   669→          <div>
+   670→   670→            <Label>Conteúdo</Label>
+   671→   671→            <Textarea
+   672→   672→              value={content}
+   673→   673→              onChange={(e) => setContent(e.target.value)}
+   674→   674→              rows={5}
+   675→   675→              className="mt-1.5 resize-none"
+   676→   676→            />
+   677→   677→            <p className="text-xs text-muted-foreground mt-1">
+   678→   678→              {content.length} caracteres
+   679→   679→            </p>
+   680→   680→          </div>
+   681→   681→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   682→   682→            <div>
+   683→   683→              <Label>Agendar para</Label>
+   684→   684→              <Input
+   685→   685→                type="datetime-local"
+   686→   686→                value={scheduledAt}
+   687→   687→                onChange={(e) => setScheduledAt(e.target.value)}
+   688→   688→                className="mt-1.5"
+   689→   689→              />
+   690→   690→            </div>
+   691→   691→            <div>
+   692→   692→              <Label>Status</Label>
+   693→   693→              <Select value={status} onValueChange={setStatus}>
+   694→   694→                <SelectTrigger className="mt-1.5 w-full">
+   695→   695→                  <SelectValue />
+   696→   696→                </SelectTrigger>
+   697→   697→                <SelectContent>
+   698→   698→                  <SelectItem value="draft">Rascunho</SelectItem>
+   699→   699→                  <SelectItem value="scheduled">Agendado</SelectItem>
+   700→   700→                  <SelectItem value="published">Publicado</SelectItem>
+   701→   701→                </SelectContent>
+   702→   702→              </Select>
+   703→   703→            </div>
+   704→   704→          </div>
+   705→   705→          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+   706→   706→            <div>
+   707→   707→              <Label>Categoria</Label>
+   708→   708→              <Select value={category} onValueChange={setCategory}>
+   709→   709→                <SelectTrigger className="mt-1.5 w-full">
+   710→   710→                  <SelectValue />
+   711→   711→                </SelectTrigger>
+   712→   712→                <SelectContent>
+   713→   713→                  {POST_CATEGORIES.map((c) => (
+   714→   714→                    <SelectItem key={c.value} value={c.value}>
+   715→   715→                      {c.label}
+   716→   716→                    </SelectItem>
+   717→   717→                  ))}
+   718→   718→                </SelectContent>
+   719→   719→              </Select>
+   720→   720→            </div>
+   721→   721→            <div>
+   722→   722→              <Label>Tom de voz</Label>
+   723→   723→              <Select value={tone} onValueChange={setTone}>
+   724→   724→                <SelectTrigger className="mt-1.5 w-full">
+   725→   725→                  <SelectValue />
+   726→   726→                </SelectTrigger>
+   727→   727→                <SelectContent>
+   728→   728→                  {TONES.map((t) => (
+   729→   729→                    <SelectItem key={t} value={t} className="capitalize">
+   730→   730→                      {t}
+   731→   731→                    </SelectItem>
+   732→   732→                  ))}
+   733→   733→                </SelectContent>
+   734→   734→              </Select>
+   735→   735→            </div>
+   736→   736→          </div>
+   737→   737→          <div>
+   738→   738→            <Label>Plataformas</Label>
+   739→   739→            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1.5">
+   740→   740→              {PLATFORMS.map((p) => {
+   741→   741→                const checked = platforms.includes(p)
+   742→   742→                const meta = PLATFORM_META[p as Platform]
+   743→   743→                return (
+   744→   744→                  <label
+   745→   745→                    key={p}
+   746→   746→                    className={cn(
+   747→   747→                      'flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors',
+   748→   748→                      checked
+   749→   749→                        ? 'border-primary bg-primary/5'
+   750→   750→                        : 'border-border hover:bg-accent/40'
+   751→   751→                    )}
+   752→   752→                  >
+   753→   753→                    <Checkbox
+   754→   754→                      checked={checked}
+   755→   755→                      onCheckedChange={() => togglePlatform(p)}
+   756→   756→                    />
+   757→   757→                    <PlatformIcon platform={p} className="w-4 h-4 shrink-0" />
+   758→   758→                    <span className="text-sm truncate">{meta.label}</span>
+   759→   759→                  </label>
+   760→   760→                )
+   761→   761→              })}
+   762→   762→            </div>
+   763→   763→          </div>
+   764→   764→          {hashtags.length > 0 && (
+   765→   765→            <div>
+   766→   766→              <Label>Hashtags</Label>
+   767→   767→              <div className="flex flex-wrap gap-1.5 mt-1.5">
+   768→   768→                {hashtags.map((h, i) => (
+   769→   769→                  <Badge key={i} variant="secondary" className="text-xs">
+   770→   770→                    #{h}
+   771→   771→                  </Badge>
+   772→   772→                ))}
+   773→   773→              </div>
+   774→   774→            </div>
+   775→   775→          )}
+   776→   776→        </div>
+   777→   777→
+   778→   778→        <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between">
+   779→   779→          <Button
+   780→   780→            variant="destructive"
+   781→   781→            onClick={handleDelete}
+   782→   782→            disabled={deleting}
+   783→   783→            className="gap-2"
+   784→   784→          >
+   785→   785→            <Trash2 className="w-4 h-4" />
+   786→   786→            {deleting ? 'Excluindo...' : 'Excluir'}
+   787→   787→          </Button>
+   788→   788→          <div className="flex gap-2">
+   789→   789→            <DialogClose asChild>
+   790→   790→              <Button variant="outline">Cancelar</Button>
+   791→   791→            </DialogClose>
+   792→   792→            <Button onClick={handleSave} disabled={saving} className="gap-2">
+   793→   793→              {saving ? 'Salvando...' : 'Salvar'}
+   794→   794→            </Button>
+   795→   795→          </div>
+   796→   796→        </DialogFooter>
+   797→   797→      </DialogContent>
+   798→   798→    </Dialog>
+   799→   799→  )
+   800→   800→}
+   801→   801→
