@@ -30,6 +30,9 @@ build/
 ehthumbs.db
 Thumbs.db
 
+# Arquivos de estado de processos de desenvolvimento
+.zscripts/*.pid
+
 # Logs
 logs
 *.log
