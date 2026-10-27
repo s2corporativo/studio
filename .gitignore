@@ -119,3 +119,7 @@ postcss.config.mjs
 # Config de máquina local do Claude Code (proxy) — nunca versionar
 .claude/settings.local.json
 >>>>>>> e657d62d3d334a26b5b7947c62111fef89f42263
+
+# STU-04: artefatos de runtime fora do versionamento
+db/
+upload/
