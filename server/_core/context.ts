@@ -3,8 +3,15 @@ import type { User } from "../../drizzle/schema";
 import { sdk } from "./sdk";
 import * as db from "../db";
 
-// S2 Studio: Auto-login — sempre retorna um usuário admin
-// sem necessidade de autenticação externa.
+// S2 Studio: auto-login administrativo, agora CONTROLADO POR FLAG (STU-01).
+//
+// Antes: qualquer requisição sem sessão recebia um usuário admin universal,
+// expondo toda a API (publicações Meta, IA, storage) a visitantes anônimos.
+//
+// Agora: o auto-login só ocorre quando S2_AUTO_LOGIN=1 estiver definido
+// explicitamente no ambiente (modo dev/single-tenant consciente). Sem a flag,
+// requisições não autenticadas recebem user=null e os procedimentos
+// protectedProcedure/adminProcedure respondem 401/403 (fail-closed).
 
 const S2_AUTO_USER: User = {
   id: 1,
@@ -17,6 +24,8 @@ const S2_AUTO_USER: User = {
   updatedAt: new Date(),
   lastSignedIn: new Date(),
 } as User;
+
+const AUTO_LOGIN_ENABLED = process.env.S2_AUTO_LOGIN === "1";
 
 // Flag para garantir que o usuário auto foi criado no banco
 let autoUserInitialized = false;
@@ -39,8 +48,8 @@ export async function createContext(
     user = null;
   }
 
-  // S2 Studio: Se não há usuário autenticado, usa auto-login
-  if (!user) {
+  // Auto-login APENAS com flag explícita (fail-closed por padrão)
+  if (!user && AUTO_LOGIN_ENABLED) {
     // Garantir que o usuário auto existe no banco (apenas uma vez)
     if (!autoUserInitialized) {
       try {

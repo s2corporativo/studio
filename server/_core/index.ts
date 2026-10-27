@@ -32,6 +32,14 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // STU-09: segredo de sessão obrigatório em produção (fail-closed).
+  // Sem isso, tokens eram assinados/verificados com HMAC de chave vazia.
+  if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+    throw new Error(
+      "JWT_SECRET é obrigatório em produção — abortando boot (fail-closed)"
+    );
+  }
+
   const app = express();
   const server = createServer(app);
   app.use(express.json({ limit: "50mb" }));
@@ -55,15 +63,30 @@ async function startServer() {
   }
 
   const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+  // STU-05: em produção NÃO desloca porta silenciosamente — falha honesta.
+  if (process.env.NODE_ENV === "production") {
+    if (!(await isPortAvailable(preferredPort))) {
+      throw new Error(
+        `Porta ${preferredPort} ocupada — abortando boot de produção (fail-fast)`
+      );
+    }
+    server.listen(preferredPort, () => {
+      console.log(`Server running on http://localhost:${preferredPort}/`);
+    });
+  } else {
+    const port = await findAvailablePort(preferredPort);
 
-  if (port !== preferredPort) {
-    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    if (port !== preferredPort) {
+      console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+    }
+
+    server.listen(port, () => {
+      console.log(`Server running on http://localhost:${port}/`);
+    });
   }
-
-  server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
-  });
 }
 
-startServer().catch(console.error);
+startServer().catch((err) => {
+  console.error("Falha no boot:", err);
+  process.exit(1);
+});
