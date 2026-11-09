@@ -23,6 +23,9 @@ const SocialOsCommandCenter = lazy(() => import("./SocialOsCommandCenter"));
 const BrandPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.BrandPanel })));
 const CalendarPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.CalendarPanel })));
 const SourcesPanel = lazy(() => import("./StudioPanels").then(module => ({ default: module.SourcesPanel })));
+const SocialHubPanel = lazy(() => import("./SocialHubPanel"));
+const AdvancedFeatures = lazy(() => import("./AdvancedFeatures"));
+const FeaturesPackV2 = lazy(() => import("./FeaturesPackV2"));
 
 function mutationError(error: { message: string }) {
   toast.error(error.message || "Não foi possível concluir a operação.");

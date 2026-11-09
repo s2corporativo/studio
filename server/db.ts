@@ -1,19 +1,21 @@
 import { eq } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/bun-sqlite";
-import { Database } from "bun:sqlite";
+import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import { InsertUser, users } from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzle> | null = null;
-let _sqlite: Database | null = null;
+let _db: MySql2Database | null = null;
+let _pool: ReturnType<typeof mysql.createPool> | null = null;
 
 export async function getDb() {
   if (!_db) {
-    const dbPath = process.env.DATABASE_URL?.replace("file:", "") || "./db/custom.db";
+    if (!ENV.databaseUrl) {
+      console.warn("[Database] DATABASE_URL not configured");
+      return null;
+    }
     try {
-      _sqlite = new Database(dbPath, { create: true });
-      _sqlite.exec("PRAGMA journal_mode = WAL;");
-      _sqlite.exec("PRAGMA foreign_keys = ON;");
-      _db = drizzle(_sqlite);
+      _pool = mysql.createPool(ENV.databaseUrl);
+      _db = drizzle({ client: _pool });
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -35,9 +37,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     if (user.role !== undefined) values.role = user.role;
     if (!values.lastSignedIn) values.lastSignedIn = new Date();
 
-    // SQLite: onConflictDoUpdate
-    await db.insert(users).values(values).onConflictDoUpdate({
-      target: users.openId,
+    await db.insert(users).values(values).onDuplicateKeyUpdate({
       set: {
         name: values.name,
         email: values.email,

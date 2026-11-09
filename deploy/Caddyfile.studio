@@ -1,0 +1,26 @@
+# Snippet de reverse proxy para Caddy — S2 Studio
+#
+# A VPS Contabo compartilhada já hospeda outros serviços (EJC, Verde Limp,
+# S2 Licitações). Cole este bloco no Caddyfile principal do host (ou em um
+# arquivo separado importado por ele) — não substitua o Caddyfile existente.
+#
+# O app roda em um container Docker publicado apenas em 127.0.0.1:8080
+# (ver docker-compose.yml), então o Caddy é o único ponto de entrada
+# público para este domínio.
+
+studio.s2corporativo.com.br {
+	reverse_proxy 127.0.0.1:8080
+
+	encode gzip zstd
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	log {
+		output file /var/log/caddy/studio.s2corporativo.com.br.log
+	}
+}

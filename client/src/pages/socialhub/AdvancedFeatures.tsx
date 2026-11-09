@@ -642,7 +642,7 @@ function WhiteLabelTab() {
             <div><Label className="text-xs">Cor Secundária</Label><div className="flex gap-2"><input type="color" value={config.branding.secondaryColor} onChange={e => setConfig({ ...config, branding: { ...config.branding, secondaryColor: e.target.value } })} className="w-12 h-9 rounded border" /><Input value={config.branding.secondaryColor} onChange={e => setConfig({ ...config, branding: { ...config.branding, secondaryColor: e.target.value } })} /></div></div>
             <div><Label className="text-xs">Domínio Customizado</Label><Input value={config.branding.customDomain || ""} onChange={e => setConfig({ ...config, branding: { ...config.branding, customDomain: e.target.value } })} placeholder="app.suaempresa.com" /></div>
           </div>
-          <div className="flex items-center gap-2"><Switch checked={config.branding.poweredBy} onCheckedChange={v => setConfig({ ...config, branding: { ...config.branding, poweredBy: v } }))} /><Label className="text-xs">Exibir "Powered by SocialHub"</Label></div>
+          <div className="flex items-center gap-2"><Switch checked={config.branding.poweredBy} onCheckedChange={v => setConfig({ ...config, branding: { ...config.branding, poweredBy: v } })} /><Label className="text-xs">Exibir "Powered by SocialHub"</Label></div>
           <Button onClick={handleSave} disabled={saving} className="gap-2 w-full"><Palette className="w-4 h-4" /> {saving ? "Salvando..." : "Salvar Configurações"}</Button>
           <Separator />
           <div><p className="text-xs font-semibold mb-2">Planos disponíveis</p><div className="grid sm:grid-cols-3 gap-2">{config.plans?.map((p: any) => (

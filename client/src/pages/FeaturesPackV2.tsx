@@ -13,7 +13,7 @@ import {
   Send, Palette, Bot, Mail, Link as LinkIcon, DollarSign, Grid3x3, GitBranch,
   Mic, Brain, Layers, Users, Wallet, Bell, Calendar as CalIcon, Shield, Database,
   Loader2, Sparkles, CheckCircle2, Download, TrendingUp, Heart, Eye, Clock,
-  AlertTriangle, Star, FileText, Smartphone, QrCode, Zap,
+  AlertTriangle, Star, FileText, Smartphone, QrCode, Zap, Target,
 } from "lucide-react";
 import { toast } from "sonner";
 
