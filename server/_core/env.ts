@@ -5,9 +5,20 @@ export const ENV = {
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   isProduction: process.env.NODE_ENV === "production",
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+
+  // ChatGPT/OpenAI-compatible LLM configuration.
+  // Keep the legacy BUILT_IN_FORGE_* aliases temporarily for deployments that
+  // still inject those variable names, but never fall back to a Manus endpoint.
+  llmApiUrl:
+    process.env.OPENAI_BASE_URL ??
+    process.env.BUILT_IN_FORGE_API_URL ??
+    "https://api.openai.com",
+  llmApiKey:
+    process.env.OPENAI_API_KEY ??
+    process.env.BUILT_IN_FORGE_API_KEY ??
+    "",
   preferredLlmModel: process.env.LLM_MODEL ?? "gpt-5-mini",
+
   metaInstagramAppId: process.env.META_INSTAGRAM_APP_ID ?? "",
   metaInstagramAppSecret: process.env.META_INSTAGRAM_APP_SECRET ?? "",
 };
